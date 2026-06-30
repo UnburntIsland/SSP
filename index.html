@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>森循島：污染潮倖存者</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="game-root">
+    <!-- ===== Gameplay canvas ===== -->
+    <canvas id="game-canvas" width="960" height="600"></canvas>
+
+    <!-- ===== In-game HUD (shown only while playing) ===== -->
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-block">
+          <div class="hud-label">生命值</div>
+          <div class="bar hp-bar"><div id="hp-fill" class="bar-fill"></div><span id="hp-text" class="bar-text">100 / 100</span></div>
+        </div>
+        <div class="hud-block hud-center">
+          <div id="hud-timer" class="hud-timer">05:00</div>
+          <div class="hud-sub">距離淨化完成</div>
+        </div>
+        <div class="hud-block hud-right">
+          <div class="hud-coins">♻ <span id="hud-coins">0</span> 循環幣</div>
+          <div class="hud-purified">淨化數：<span id="hud-purified">0</span></div>
+        </div>
+      </div>
+      <div class="hud-xp">
+        <div class="hud-level">Lv.<span id="hud-level">1</span></div>
+        <div class="bar xp-bar"><div id="xp-fill" class="bar-fill"></div></div>
+      </div>
+      <div id="hud-skills" class="hud-skills"></div>
+    </div>
+
+    <!-- ===== Start / Main Menu ===== -->
+    <section id="screen-menu" class="screen">
+      <div class="menu-art" id="menu-art"></div>
+      <h1 class="game-title">森循島</h1>
+      <h2 class="game-subtitle">污染潮倖存者</h2>
+      <p class="tagline">走位、淨化、循環再生 —— 在污染潮中存活下來。</p>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" data-action="play">開始遊戲</button>
+        <button class="btn" data-action="characters">角色選擇</button>
+        <button class="btn" data-action="shop">商店</button>
+        <button class="btn" data-action="codex">圖鑑 / 永續知識</button>
+      </div>
+      <div class="coin-display">目前持有：<span class="coin-amount" id="menu-coins">0</span> 枚循環幣 ♻</div>
+      <button class="link-reset" data-action="reset">重置存檔</button>
+    </section>
+
+    <!-- ===== Character Select ===== -->
+    <section id="screen-characters" class="screen hidden">
+      <h2 class="screen-title">選擇守護者</h2>
+      <div id="character-list" class="card-grid"></div>
+      <div class="screen-footer">
+        <button class="btn" data-action="back">返回</button>
+        <button class="btn btn-primary" id="confirm-character" data-action="start">以此角色出發</button>
+      </div>
+    </section>
+
+    <!-- ===== Shop ===== -->
+    <section id="screen-shop" class="screen hidden">
+      <h2 class="screen-title">循環商店</h2>
+      <p class="screen-desc">用「循環幣」投資永久升級，讓每一次行動都更有力。</p>
+      <div class="coin-display">可用循環幣：<span class="coin-amount" id="shop-coins">0</span> ♻</div>
+      <div id="shop-list" class="shop-list"></div>
+      <div class="screen-footer">
+        <button class="btn" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Codex / Knowledge ===== -->
+    <section id="screen-codex" class="screen hidden">
+      <h2 class="screen-title">永續圖鑑</h2>
+      <p class="screen-desc">在關卡中拾取「知識卡」即可解鎖一則永續小知識。</p>
+      <div id="codex-list" class="codex-list"></div>
+      <div class="screen-footer">
+        <button class="btn" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Level-up overlay ===== -->
+    <div id="overlay-levelup" class="overlay hidden">
+      <div class="overlay-inner">
+        <h2 class="levelup-title">升級！選擇你的成長</h2>
+        <div id="levelup-options" class="levelup-options"></div>
+      </div>
+    </div>
+
+    <!-- ===== Victory ===== -->
+    <section id="screen-victory" class="screen result-screen hidden">
+      <h2 class="result-title win">潮間帶已淨化！</h2>
+      <p class="result-flavour">你撐過了污染潮，海岸重新恢復了呼吸。</p>
+      <div id="victory-stats" class="result-stats"></div>
+      <div class="screen-footer">
+        <button class="btn btn-primary" data-action="menu">回到主畫面</button>
+      </div>
+    </section>
+
+    <!-- ===== Game Over ===== -->
+    <section id="screen-gameover" class="screen result-screen hidden">
+      <h2 class="result-title lose">污染暫時佔了上風…</h2>
+      <p class="result-flavour">別氣餒——每一次行動都讓你更接近循環再生。</p>
+      <div id="gameover-stats" class="result-stats"></div>
+      <div class="screen-footer">
+        <button class="btn btn-primary" data-action="menu">回到主畫面</button>
+      </div>
+    </section>
+
+    <!-- ===== Toast (knowledge unlocked, etc.) ===== -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
+  <!-- Data layer -->
+  <script src="js/data/characters.js"></script>
+  <script src="js/data/skills.js"></script>
+  <script src="js/data/enemies.js"></script>
+  <script src="js/data/shop.js"></script>
+  <script src="js/data/stages.js"></script>
+  <script src="js/data/knowledge.js"></script>
+  <!-- Engine -->
+  <script src="js/storage.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/pickups.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/enemy.js"></script>
+  <script src="js/weapons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/test_mode.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
