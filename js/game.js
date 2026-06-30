@@ -89,14 +89,28 @@
 
       this.running = true;
       this.paused = false;
+      this.menuPaused = false;
       this.ended = false;
       this.lastTs = 0;
 
       this._hudSig = "";
-      global.requestAnimationFrame(this._loop);
+      if (!this._looping) { this._looping = true; global.requestAnimationFrame(this._loop); }
     },
 
     stop: function () { this.running = false; },
+
+    /* ---------------- 暫停 / 中止（選單用） ---------------- */
+    isPausable: function () { return this.running && !this.ended && !this.paused && !this.menuPaused; },
+    pauseGame: function () { if (!this.isPausable()) return false; this.menuPaused = true; return true; },
+    resumeGame: function () { if (!this.menuPaused) return false; this.menuPaused = false; this.lastTs = 0; return true; },
+    isMenuPaused: function () { return !!this.menuPaused; },
+    // 立即中止本局並清空世界（回首頁用），確保不殘留敵人/子彈/掉落物/計時器/暫停狀態
+    abort: function () {
+      this.running = false; this.ended = true; this.menuPaused = false; this.paused = false;
+      this.enemies = []; this.projectiles = []; this.zones = []; this.pulses = [];
+      this.pickups = []; this.puffs = []; this.floaters = [];
+      this.pendingLevelUps = 0; this.time = 0;
+    },
 
     /* ---------------- 背景（離屏繪製一次） ---------------- */
     buildBackground: function () {
@@ -182,13 +196,13 @@
 
     /* ---------------- 主迴圈 ---------------- */
     loop: function (ts) {
-      if (!this.running) return;
+      if (!this.running) { this._looping = false; return; }
       if (!this.lastTs) this.lastTs = ts;
       var dt = (ts - this.lastTs) / 1000;
       this.lastTs = ts;
       if (dt > 0.05) dt = 0.05;          // 防止切到背景分頁後的大跳躍
 
-      if (!this.paused && !this.ended) this.update(dt);
+      if (!this.paused && !this.menuPaused && !this.ended) this.update(dt);
       this.render();
 
       if (this.running) global.requestAnimationFrame(this._loop);

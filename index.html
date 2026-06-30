@@ -46,6 +46,7 @@
         <button class="btn" data-action="characters">角色選擇</button>
         <button class="btn" data-action="shop">商店</button>
         <button class="btn" data-action="codex">圖鑑 / 永續知識</button>
+        <button class="btn" data-action="settings-home">設定</button>
       </div>
       <div class="coin-display">目前持有：<span class="coin-amount" id="menu-coins">0</span> 枚循環幣 ♻</div>
       <button class="link-reset" data-action="reset">重置存檔</button>
@@ -82,11 +83,69 @@
       </div>
     </section>
 
+    <!-- ===== Settings (from home or pause) ===== -->
+    <section id="screen-settings" class="screen hidden">
+      <h2 class="screen-title">設定</h2>
+      <div class="settings-panel" id="settings-panel">
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-master"></span>
+          <label class="setting-label">主音量</label>
+          <input type="range" class="slider" id="vol-master" min="0" max="100" value="80" />
+          <span class="setting-val" id="val-master">80</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-music"></span>
+          <label class="setting-label">音樂音量</label>
+          <input type="range" class="slider" id="vol-music" min="0" max="100" value="70" />
+          <span class="setting-val" id="val-music">70</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-sfx"></span>
+          <label class="setting-label">音效音量</label>
+          <input type="range" class="slider" id="vol-sfx" min="0" max="100" value="80" />
+          <span class="setting-val" id="val-sfx">80</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-mute"></span>
+          <label class="setting-label">靜音</label>
+          <button class="btn toggle" id="btn-mute">未靜音</button>
+        </div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn" data-action="settings-back"><span class="btn-icon" id="ic-back"></span>返回</button>
+      </div>
+    </section>
+
     <!-- ===== Level-up overlay ===== -->
     <div id="overlay-levelup" class="overlay hidden">
       <div class="overlay-inner">
         <h2 class="levelup-title">升級！選擇你的成長</h2>
         <div id="levelup-options" class="levelup-options"></div>
+      </div>
+    </div>
+
+    <!-- ===== Pause overlay ===== -->
+    <div id="overlay-pause" class="overlay hidden">
+      <div class="overlay-inner pause-panel" id="pause-panel">
+        <h2 class="pause-title">遊戲暫停</h2>
+        <div class="pause-buttons">
+          <button class="btn btn-primary" data-action="resume">繼續遊戲</button>
+          <button class="btn" data-action="settings-pause"><span class="btn-icon" id="ic-presettings"></span>設定</button>
+          <button class="btn" data-action="ask-restart"><span class="btn-icon" id="ic-restart"></span>重新開始本關</button>
+          <button class="btn" data-action="ask-home"><span class="btn-icon" id="ic-home"></span>回到首頁</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Confirm dialog (home / restart) ===== -->
+    <div id="overlay-confirm" class="overlay hidden">
+      <div class="overlay-inner confirm-panel" id="confirm-panel">
+        <h2 class="confirm-title" id="confirm-title">確定要回到首頁嗎？</h2>
+        <p class="confirm-desc" id="confirm-desc">目前這局進度將不會保存。</p>
+        <div class="confirm-buttons">
+          <button class="btn" data-action="confirm-cancel"><span class="btn-icon" id="ic-cancel"></span>取消</button>
+          <button class="btn btn-danger" id="confirm-ok" data-action="confirm-ok"><span class="btn-icon" id="ic-ok"></span><span id="confirm-ok-label">確認回首頁</span></button>
+        </div>
       </div>
     </div>
 
@@ -124,6 +183,7 @@
   <script src="js/data/knowledge.js"></script>
   <!-- Engine -->
   <script src="js/storage.js"></script>
+  <script src="js/audioManager.js"></script>
   <script src="js/assets.js"></script>
   <script src="js/sprites.js"></script>
   <script src="js/input.js"></script>

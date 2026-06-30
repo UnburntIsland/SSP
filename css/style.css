@@ -296,3 +296,116 @@ html,body{
   .bar{ width:150px; }
   .menu-buttons{ width:260px; }
 }
+
+/* ============================================================
+   暫停選單 / 設定畫面 / 確認視窗（本輪新增）
+   ============================================================ */
+.pause-panel{
+  width:min(360px,90%);
+  background:var(--bg-panel); border:3px solid #0a1a23;
+  box-shadow:0 6px 0 #0a1a23, inset 0 0 0 2px rgba(255,255,255,.05);
+  padding:26px; text-align:center;
+}
+.pause-title{ font-size:30px; color:var(--sun); letter-spacing:4px; margin-bottom:18px; text-shadow:3px 3px 0 #0a1a23; }
+.pause-buttons{ display:flex; flex-direction:column; gap:12px; }
+
+.confirm-panel{
+  width:min(440px,92%);
+  background:var(--bg-panel); border:3px solid #0a1a23; box-shadow:0 6px 0 #0a1a23;
+  padding:24px 26px; text-align:center;
+}
+.confirm-title{ font-size:23px; color:var(--paper); letter-spacing:1px; margin-bottom:10px; }
+.confirm-desc{ font-size:13px; color:#bfe3d6; line-height:1.7; margin-bottom:20px; }
+.confirm-buttons{ display:flex; gap:14px; justify-content:center; }
+.btn-danger{
+  background:var(--danger); border-color:#5b1f1d;
+  box-shadow:0 4px 0 #5b1f1d, inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.btn-danger:hover{ background:#f06b66; }
+
+.settings-panel{
+  display:flex; flex-direction:column; gap:14px; width:min(520px,94%);
+  background:var(--bg-panel); border:3px solid #0a1a23; box-shadow:0 5px 0 #0a1a23;
+  padding:22px 24px; margin:0 auto;
+}
+.setting-row{ display:flex; align-items:center; gap:14px; }
+.setting-icon{
+  width:26px; height:26px; flex:0 0 26px;
+  background:var(--bg-panel-2); border:2px solid #0a1a23; image-rendering:pixelated;
+}
+.setting-label{ width:84px; flex:0 0 84px; text-align:left; font-size:14px; color:#d7ece3; }
+.setting-val{ width:40px; flex:0 0 40px; text-align:right; font-size:14px; color:var(--coin); }
+.toggle{ min-width:96px; }
+.toggle.on{ background:var(--danger); border-color:#5b1f1d; box-shadow:0 4px 0 #5b1f1d; }
+
+/* 音量滑桿（原生 range，支援點擊與拖曳） */
+.slider{
+  -webkit-appearance:none; appearance:none;
+  flex:1 1 auto; height:14px; background:#0a1a23;
+  border:2px solid #06141d; outline:none; cursor:pointer; image-rendering:pixelated;
+}
+.slider::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:18px; height:22px; background:var(--leaf); border:2px solid #0a1a23; cursor:pointer;
+}
+.slider::-webkit-slider-thumb:hover{ background:#6cd874; }
+.slider::-moz-range-thumb{ width:18px; height:22px; background:var(--leaf); border:2px solid #0a1a23; cursor:pointer; }
+.slider::-moz-range-track{ height:14px; background:#0a1a23; border:2px solid #06141d; }
+.slider:focus::-webkit-slider-thumb{ box-shadow:0 0 0 2px var(--sun); }
+
+/* UI 若日後放入圖片素材，套用後可移除預設外觀邊框 */
+.setting-icon.has-asset{ border:none; background-color:transparent; }
+
+/* ============================================================
+   暫停 / 設定 / 確認：UI 圖片素材皮膚（有圖才套用，缺圖維持上方 CSS）
+   ============================================================ */
+/* 面板底圖：套用後移除預設邊框/底色，露出圖片框 */
+.pause-panel.has-asset, .settings-panel.has-asset, .confirm-panel.has-asset{
+  background-color:transparent; border:none; box-shadow:none;
+}
+.pause-panel.has-asset{ padding:48px 40px; }
+.settings-panel.has-asset{ padding:42px 46px; }
+.confirm-panel.has-asset{ padding:48px 46px; }
+
+/* 按鈕內嵌圖示：預設隱藏，套到圖才顯示（避免缺圖留空位） */
+.btn-icon{ display:none; }
+.btn-icon.has-asset{
+  display:inline-block; width:1.15em; height:1.15em; vertical-align:-0.2em;
+  margin-right:8px; background-repeat:no-repeat; background-position:center; background-size:contain;
+}
+
+/* 空白按鈕底圖：僅限暫停/設定/確認範圍，且三張圖都載入時 */
+.has-ui-buttons #overlay-pause .btn,
+.has-ui-buttons #overlay-confirm .btn,
+.has-ui-buttons #screen-settings .btn{
+  background-color:transparent; border:none; box-shadow:none;
+  background-image:var(--ui-btn-normal); background-size:100% 100%;
+  background-repeat:no-repeat; background-position:center;
+  text-shadow:1px 1px 0 rgba(0,0,0,.55);
+}
+.has-ui-buttons #overlay-pause .btn:hover,
+.has-ui-buttons #overlay-confirm .btn:hover,
+.has-ui-buttons #screen-settings .btn:hover{
+  background-color:transparent; background-image:var(--ui-btn-hover); transform:none;
+}
+.has-ui-buttons #overlay-pause .btn:active,
+.has-ui-buttons #overlay-confirm .btn:active,
+.has-ui-buttons #screen-settings .btn:active{
+  background-color:transparent; background-image:var(--ui-btn-pressed); transform:translateY(2px); box-shadow:none;
+}
+
+/* 音量滑桿圖片皮膚（slider_bar / slider_knob） */
+.has-ui-slider .slider{
+  background-color:transparent; border:none;
+  background-image:var(--ui-slider-bar); background-size:100% 100%;
+  background-repeat:no-repeat; background-position:center;
+}
+.has-ui-slider .slider::-webkit-slider-thumb{
+  background-color:transparent; border:none;
+  background-image:var(--ui-slider-knob); background-size:100% 100%; background-repeat:no-repeat;
+}
+.has-ui-slider .slider::-moz-range-thumb{
+  background-color:transparent; border:none;
+  background-image:var(--ui-slider-knob); background-size:100% 100%; background-repeat:no-repeat;
+}
+.has-ui-slider .slider::-moz-range-track{ background:transparent; border:none; }

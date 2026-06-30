@@ -1,6 +1,6 @@
 /* ============================================================
    storage.js  —  存檔（localStorage）
-   保存：循環幣總額、商店升級等級、已解鎖知識、上次選用角色。
+   保存：循環幣總額、商店升級等級、已解鎖知識、上次選用角色、音量設定。
    以 try/catch 包裹，讓 file:// 下若無法存取也能照常遊玩。
    ============================================================ */
 (function (global) {
@@ -14,7 +14,9 @@
         coins: 0,
         shop: {},        // { upgradeId: level }
         knowledge: [],   // 已解鎖的 knowledge id
-        lastChar: "ranger"
+        lastChar: "ranger",
+        // 音量設定（0~100；mute 為布林）—— 單一來源，audioManager 由此讀寫
+        audio: { master: 80, music: 70, sfx: 80, mute: false }
       };
     },
 
@@ -25,9 +27,12 @@
         if (raw) d = JSON.parse(raw);
       } catch (e) { d = null; }
       if (!d || typeof d !== "object") d = this._default();
-      // 補齊缺漏欄位
+      // 補齊缺漏欄位（含舊存檔沒有的 audio）
       var def = this._default();
       for (var k in def) { if (!(k in d)) d[k] = def[k]; }
+      // audio 子欄位也補齊
+      if (!d.audio || typeof d.audio !== "object") d.audio = def.audio;
+      for (var ak in def.audio) { if (!(ak in d.audio)) d.audio[ak] = def.audio[ak]; }
       this.data = d;
       return d;
     },
@@ -90,6 +95,20 @@
     /* -------- 上次角色 -------- */
     getLastChar: function () { return this.data.lastChar; },
     setLastChar: function (id) { this.data.lastChar = id; this.save(); },
+
+    /* -------- 音量設定（重整後保留；商店升級/存檔不受重新開始影響） -------- */
+    getAudioSettings: function () {
+      if (!this.data) return { master: 80, music: 70, sfx: 80, mute: false };
+      if (!this.data.audio || typeof this.data.audio !== "object") {
+        this.data.audio = { master: 80, music: 70, sfx: 80, mute: false };
+      }
+      return this.data.audio;
+    },
+    setAudioSettings: function (obj) {
+      var a = this.getAudioSettings();
+      for (var k in obj) a[k] = obj[k];
+      this.save();
+    },
 
     /* -------- 將商店等級換算為開局加成 -------- */
     getMetaBonuses: function () {

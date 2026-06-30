@@ -4,28 +4,13 @@
    - 每個素材可設定多個候選路徑（candidate paths），依序嘗試：
        第 1 個 = 建議的「正式素材路徑」，把最終圖放這裡即可覆蓋；
        後續    = 目前已存在、可立即使用的素材；
-       全部失敗 → Sprites 會自動 fallback 回程式碼繪製的 placeholder。
+       全部失敗 → Sprites / UI 會自動 fallback 回程式碼繪製。
    - 大圖在載入後一次性下採樣（bake）到 BAKE_MAX，之後每幀繪製較省效能。
    - 任何載入失敗都不會中斷遊戲（這是 fallback 機制的核心）。
-
-   素材對照表（key 對應 sprites 的 id）：
-     角色  char_ranger   森林巡守員     enemy 之外於世界中以 Sprites.draw 繪製
-     角色  char_beach    海岸淨灘者
-     角色  char_solar    太陽能工程師
-     敵人  enemy_bag     塑膠袋怪
-     敵人  enemy_butt    菸蒂蟲
-     敵人  enemy_battery 廢電池史萊姆
-     敵人  enemy_oil     油污團塊 (Boss)
-     道具  pickup_xp     經驗晶體
-     道具  pickup_coin   循環幣
-     道具  pickup_health 淨水瓶
-     道具  pickup_card   知識卡
-     技能  skill_seed/net/solar/wind/compost   技能圖示（HUD / 升級卡）
-     升級  shop_soil/recycle/energy/eco/rain   商店升級圖示
    ============================================================ */
 (function (global) {
 
-  var BAKE_MAX = 200;   // 下採樣上限（像素）：兼顧清晰度與每幀繪製效能
+  var BAKE_MAX = 256;   // 下採樣上限（像素）
 
   // key -> { label, paths:[由優先到備援] }
   var MANIFEST = {
@@ -88,20 +73,39 @@
       "assets/images/skills/skill_compost_spores.png",
       "assets/images/skills/concepts/skill_compost_spores_icon_256.png" ] },
 
-    // -------- 商店升級圖示（目前尚無對應圖檔 → 自動 fallback 向量繪製）--------
+    // -------- 商店升級圖示（目前尚無圖檔 → 自動 fallback 向量繪製）--------
     shop_soil:    { label: "健康土壤", paths: ["assets/images/ui/upgrade_healthy_soil.png"] },
     shop_recycle: { label: "回收分類", paths: ["assets/images/ui/upgrade_recycling_sort.png"] },
     shop_energy:  { label: "節能行動", paths: ["assets/images/ui/upgrade_energy_saving.png"] },
     shop_eco:     { label: "生態感知", paths: ["assets/images/ui/upgrade_eco_sense.png"] },
-    shop_rain:    { label: "雨水收集", paths: ["assets/images/ui/upgrade_rainwater.png"] }
+    shop_rain:    { label: "雨水收集", paths: ["assets/images/ui/upgrade_rainwater.png"] },
+
+    // -------- 暫停 / 設定 / 確認 UI 素材（有圖用圖，缺圖 → CSS fallback）--------
+    ui_panel_pause:    { label: "暫停面板底圖",     paths: ["assets/images/ui/panel_pause.png"] },
+    ui_panel_settings: { label: "設定面板底圖",     paths: ["assets/images/ui/panel_settings.png"] },
+    ui_panel_confirm:  { label: "確認視窗底圖",     paths: ["assets/images/ui/panel_confirm.png"] },
+    ui_button_normal:  { label: "空白按鈕(一般)",   paths: ["assets/images/ui/button_blank_normal.png"] },
+    ui_button_hover:   { label: "空白按鈕(滑入)",   paths: ["assets/images/ui/button_blank_hover.png"] },
+    ui_button_pressed: { label: "空白按鈕(按下)",   paths: ["assets/images/ui/button_blank_pressed.png"] },
+    ui_icon_music:     { label: "音樂圖示",         paths: ["assets/images/ui/icon_music.png"] },
+    ui_icon_sfx:       { label: "音效圖示",         paths: ["assets/images/ui/icon_sfx.png"] },
+    ui_icon_mute:      { label: "靜音圖示",         paths: ["assets/images/ui/icon_mute.png"] },
+    ui_icon_settings:  { label: "設定圖示",         paths: ["assets/images/ui/icon_settings.png"] },
+    ui_icon_home:      { label: "首頁圖示",         paths: ["assets/images/ui/icon_home.png"] },
+    ui_icon_restart:   { label: "重新開始圖示",     paths: ["assets/images/ui/icon_restart.png"] },
+    ui_icon_back:      { label: "返回圖示",         paths: ["assets/images/ui/icon_back.png"] },
+    ui_icon_cancel:    { label: "取消圖示",         paths: ["assets/images/ui/icon_cancel.png"] },
+    ui_icon_confirm:   { label: "確認圖示",         paths: ["assets/images/ui/icon_confirm.png"] },
+    ui_icon_pause:     { label: "暫停圖示",         paths: ["assets/images/ui/icon_pause.png"] },
+    ui_slider_bar:     { label: "滑桿底條",         paths: ["assets/images/ui/slider_bar.png"] },
+    ui_slider_knob:    { label: "滑桿握把",         paths: ["assets/images/ui/slider_knob.png"] }
   };
 
-  var store = {};   // key -> { ok, src, w, h, path }
+  var store = {};
   var stats = { total: 0, loaded: 0, failed: 0 };
 
   function hasDOM() { return typeof document !== "undefined" && !!document.createElement && typeof Image !== "undefined"; }
 
-  // 將大圖一次性下採樣到 BAKE_MAX，回傳可供 drawImage 使用的來源（canvas 或原圖）
   function bake(img) {
     var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
     if (!w || !h) return { src: img, w: w || 1, h: h || 1 };
@@ -115,7 +119,7 @@
       c.drawImage(img, 0, 0, tw, th);
       return { src: cv, w: tw, h: th };
     } catch (e) {
-      return { src: img, w: w, h: h };   // 退而求其次，直接用原圖
+      return { src: img, w: w, h: h };
     }
   }
 
@@ -146,8 +150,9 @@
 
     ready: function (key) { var e = store[key]; return !!(e && e.ok); },
     get: function (key) { var e = store[key]; return (e && e.ok) ? e : null; },
+    path: function (key) { var e = store[key]; return (e && e.ok) ? e.path : null; },
 
-    // 置中、等比例縮放繪入 (cx,cy) 為中心、boxW×boxH 的方框；成功回傳 true
+    // 置中、等比例縮放繪入方框（世界繪製）；成功回傳 true
     drawCentered: function (ctx, key, cx, cy, boxW, boxH, alpha) {
       var e = this.get(key);
       if (!e) return false;
@@ -162,7 +167,7 @@
       return ok;
     },
 
-    // 等比例縮放填入 (x,y,boxW,boxH) 方框（給 DOM 圖示 canvas 用）；成功回傳 true
+    // 等比例縮放填入方框（DOM 圖示 canvas）；成功回傳 true
     drawInRect: function (ctx, key, x, y, boxW, boxH) {
       var e = this.get(key);
       if (!e) return false;
@@ -173,7 +178,21 @@
       return true;
     },
 
-    // 偵錯：回傳每個 key 是否成功載入、用了哪個路徑
+    // 給 DOM 元素套用背景圖；若該素材尚未載入則不動作（保留 CSS fallback）。回傳是否套用。
+    applyBg: function (elOrId, key, opt) {
+      var el = (typeof elOrId === "string") ? document.getElementById(elOrId) : elOrId;
+      if (!el) return false;
+      var p = this.path(key);
+      if (!p) return false;
+      opt = opt || {};
+      el.style.backgroundImage = "url('" + p + "')";
+      el.style.backgroundSize = opt.size || "100% 100%";
+      el.style.backgroundRepeat = "no-repeat";
+      el.style.backgroundPosition = "center";
+      el.classList.add("has-asset");
+      return true;
+    },
+
     report: function () {
       var out = [];
       for (var key in MANIFEST) {
@@ -184,6 +203,6 @@
     }
   };
 
-  Assets.load();          // assets.js 在 sprites.js 之前載入；圖片於背景非同步載入
+  Assets.load();
   global.Assets = Assets;
 })(window);
