@@ -1,11 +1,12 @@
 /* ============================================================
-   sprites.js  —  程式繪製的像素風佔位圖
+   sprites.js  —  圖片素材優先，否則程式繪製的像素風佔位圖
    每個 sprite 以調色盤 + 字元列定義；'.' 為透明。
-   之後可改為載入 assets/images/ 的真正圖檔來替換。
+   繪製順序：先問 assets.js 是否有對應圖片素材，有就畫圖片，
+   沒有（或尚未載入完成）就 fallback 回這裡的程式碼像素繪製。
    提供：
      Sprites.draw(ctx, id, cx, cy, scale, opt)   世界座標置中繪製
      Sprites.makeCanvas(id, scale)               產生 <canvas>（給 DOM 卡片/HUD）
-     Sprites.drawIcon(ctx, id, x, y, size)        技能/商店圖示（向量式繪製）
+     Sprites.drawIcon(ctx, id, x, y, size)        技能/商店圖示
      Sprites.makeIconCanvas(id, size)
    ============================================================ */
 (function (global) {
@@ -219,11 +220,17 @@
   var Sprites = {
     has: function (id) { return !!SPRITES[id]; },
 
-    // 在世界座標 (cx,cy) 置中繪製
+    // 在世界座標 (cx,cy) 置中繪製（優先圖片素材，否則回退 placeholder）
     draw: function (ctx, id, cx, cy, scale, opt) {
       var s = SPRITES[id];
-      if (!s) return;
       opt = opt || {};
+      // 優先使用圖片素材；置入與 placeholder 相同大小的方框，確保視覺大小與遊戲流程一致
+      if (global.Assets) {
+        var bw = s ? s.w * scale : 12 * scale;
+        var bh = s ? s.h * scale : 12 * scale;
+        if (global.Assets.drawCentered(ctx, id, cx, cy, bw, bh, opt.alpha)) return;
+      }
+      if (!s) return;
       var ox = cx - (s.w * scale) / 2;
       var oy = cy - (s.h * scale) / 2;
       if (opt.alpha != null) { ctx.save(); ctx.globalAlpha = opt.alpha; }
@@ -237,21 +244,27 @@
       return { w: s.w * scale, h: s.h * scale };
     },
 
-    // 產生獨立 <canvas>，給 DOM（角色卡、HUD 圖示等）
+    // 產生獨立 <canvas>，給 DOM（角色卡、HUD 圖示等）。優先圖片，否則 placeholder。
     makeCanvas: function (id, scale) {
       var s = SPRITES[id];
       var cv = document.createElement("canvas");
-      if (!s) { cv.width = cv.height = 1; return cv; }
-      cv.width = s.w * scale;
-      cv.height = s.h * scale;
+      var bw = s ? s.w * scale : 64;
+      var bh = s ? s.h * scale : 64;
+      cv.width = bw; cv.height = bh;
       var ctx = cv.getContext("2d");
+      if (global.Assets && global.Assets.ready(id)) {
+        ctx.imageSmoothingEnabled = true;
+        if (global.Assets.drawInRect(ctx, id, 0, 0, bw, bh)) return cv;
+      }
       ctx.imageSmoothingEnabled = false;
-      drawSpriteTo(ctx, s, 0, 0, scale);
+      if (s) drawSpriteTo(ctx, s, 0, 0, scale);
       return cv;
     },
 
-    /* ---------- 技能 / 商店圖示（向量式繪製） ---------- */
+    /* ---------- 技能 / 商店圖示（優先圖片，否則向量式繪製） ---------- */
     drawIcon: function (ctx, id, x, y, size) {
+      // 優先使用圖片素材
+      if (global.Assets && global.Assets.drawInRect(ctx, id, x, y, size, size)) return;
       ctx.save();
       ctx.translate(x, y);
       var c = size / 2;
