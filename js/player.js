@@ -48,6 +48,9 @@
     this.hitFlash = 0;
 
     this.weapons = [];   // Weapon 實例
+
+    // 8 方向動畫播放器（缺圖時 draw 會 fallback 到靜態圖 / placeholder）
+    this.animator = global.CharacterAnimator ? new global.CharacterAnimator(character) : null;
   }
 
   Player.prototype.xpForLevel = function (level) {
@@ -110,6 +113,8 @@
   Player.prototype.update = function (dt, world) {
     var mv = global.Input.getMoveVector();
     if (mv.x !== 0) this.facing = mv.x > 0 ? 1 : -1;
+    if (this.animator) this.animator.update(dt, mv.x, mv.y);
+    this._bobT = (this._bobT || 0) + dt;   // 走路 bob 相位
     this.x += mv.x * this.speed * dt;
     this.y += mv.y * this.speed * dt;
 
@@ -134,7 +139,48 @@
     // 受擊後閃爍（無敵中每隔一段時間半透明）
     var blink = (this.invulnTimer > 0 && Math.floor(this.invulnTimer * 16) % 2 === 0);
     var alpha = blink ? 0.45 : 1;
-    global.Sprites.draw(ctx, this.spriteId, this.x, this.y, 3, { alpha: alpha });
+    var __ps = (global.Config ? global.Config.RENDER_SIZES.player / global.Config.CAMERA_ZOOM : 36);
+    var __dir = this.animator ? this.animator.dir : "S";
+    var __moving = this.animator ? this.animator.action === "walk" : false;
+    var __faceLeft = (__dir === "W" || __dir === "NW" || __dir === "SW");
+    var __bob = __moving ? Math.abs(Math.sin((this._bobT || 0) * 9)) * (__ps * 0.07) : 0;
+    var __dy = this.y - __bob;
+    // 8 方向動畫幀優先；缺圖 → 靜態圖（朝左時水平翻轉 + 走路 bob，避免看起來像倒退走）
+    var __resolution = this.animator && this.animator.resolveSprite ? this.animator.resolveSprite() : null;
+    var __drawn = false;
+    if (__resolution && __resolution.key && global.Animation && global.Animation.drawResolvedSprite) {
+      __drawn = global.Animation.drawResolvedSprite(ctx, __resolution, this.x, __dy, __ps, __ps, alpha);
+    }
+    if (__drawn && global.Animation && global.Animation.recordResolved) {
+      global.Animation.recordResolved(this.animator, __resolution);
+    }
+    if (!__drawn) {
+      if (global.Animation && global.Animation.drawFallbackSprite && this.animator) {
+        global.Animation.drawFallbackSprite(ctx, {
+          animator: this.animator,
+          spriteId: this.spriteId,
+          x: this.x,
+          y: this.y,
+          w: __ps,
+          h: __ps,
+          alpha: alpha,
+          entityType: "Player"
+        });
+      } else {
+        if (__faceLeft) { ctx.save(); ctx.translate(this.x, 0); ctx.scale(-1, 1); ctx.translate(-this.x, 0); }
+        global.Sprites.drawSized(ctx, this.spriteId, this.x, __dy, __ps, __ps, { alpha: alpha });
+        if (__faceLeft) ctx.restore();
+      }
+    }
+    if (this.animator && global.Animation && global.Animation.drawAnimationDebugLabel) {
+      global.Animation.drawAnimationDebugLabel(ctx, {
+        animator: this.animator,
+        resolution: __drawn ? __resolution : null,
+        x: this.x,
+        y: this.y,
+        offsetY: __ps * 0.82
+      });
+    }
 
     // 護盾光環
     if (this.invulnTimer > 0) {

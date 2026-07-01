@@ -60,7 +60,8 @@
     ctx.ellipse(this.x, this.y + 6, this.scale * 3, this.scale * 1.4, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    global.Sprites.draw(ctx, this.spriteId, this.x, this.y + floatY, this.scale);
+    var __pk = (global.Config ? global.Config.RENDER_SIZES.pickup / global.Config.CAMERA_ZOOM : this.scale * 8);
+    global.Sprites.drawSized(ctx, this.spriteId, this.x, this.y + floatY, __pk, __pk);
   };
 
   global.Pickup = Pickup;

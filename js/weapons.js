@@ -27,15 +27,17 @@
     if (this.life <= 0) this.dead = true;
   };
   Projectile.prototype.draw = function (ctx) {
+    // 視覺大小取自 RENDER_SIZES（碰撞半徑 this.radius 不變，不影響命中判定）
+    var vr = (global.Config ? (global.Config.RENDER_SIZES.projectile / 2) / global.Config.CAMERA_ZOOM : this.radius);
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.spin);
     ctx.fillStyle = "#7cc36a";
     ctx.beginPath();
-    ctx.ellipse(0, 0, this.radius, this.radius * 0.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, vr, vr * 0.6, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#2e7d32";
-    ctx.fillRect(-1, -this.radius, 2, this.radius * 2);
+    ctx.fillRect(-1, -vr, 2, vr * 2);
     ctx.restore();
   };
 

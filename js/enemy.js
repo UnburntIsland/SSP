@@ -1,7 +1,6 @@
 /* ============================================================
-   enemy.js  —  污染物（敵人）實體
-   行為：朝玩家移動；被技能命中後扣血；歸零時被「淨化」並掉落經驗。
-   （遊戲中以「淨化 / 回收 / 驅散污染」描述，而非擊殺。）
+   enemy.js
+   Enemy movement, damage, and rendering.
    ============================================================ */
 (function (global) {
 
@@ -26,26 +25,35 @@
     this.dead = false;
     this.purified = false;
     this.hitFlash = 0;
+    this.contactTimer = 0;
+    this.faceLeft = false;
+    this.moveDir = "S";
+    this._bobT = 0;
 
     var sz = global.Sprites.size(this.spriteId, 1);
     this.drawScale = sz.w ? (this.radius * 2.3) / sz.w : 2.4;
-
-    // 接觸傷害節流（避免每幀都打到玩家）
-    this.contactTimer = 0;
+    this.animator = global.EnemyAnimator ? new global.EnemyAnimator(def) : null;
   }
 
   Enemy.prototype.update = function (dt, player) {
     var dx = player.x - this.x;
     var dy = player.y - this.y;
     var dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
-    this.x += (dx / dist) * this.speed * dt;
-    this.y += (dy / dist) * this.speed * dt;
+    var vx = (dx / dist) * this.speed;
+    var vy = (dy / dist) * this.speed;
+
+    this.x += vx * dt;
+    this.y += vy * dt;
+
+    this.faceLeft = dx < 0;
+    this.moveDir = global.getDirectionFromVector ? global.getDirectionFromVector(vx, vy) : this.moveDir;
+    this._bobT += dt;
+    if (this.animator) this.animator.update(dt, vx, vy);
 
     if (this.hitFlash > 0) this.hitFlash -= dt;
     if (this.contactTimer > 0) this.contactTimer -= dt;
   };
 
-  // 回傳 true 表示此次傷害使其被淨化
   Enemy.prototype.takeDamage = function (n) {
     if (this.dead) return false;
     this.hp -= n;
@@ -59,8 +67,7 @@
     return false;
   };
 
-  Enemy.prototype.draw = function (ctx) {
-    // 影子
+  Enemy.prototype.drawShadow = function (ctx) {
     ctx.save();
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = "#000";
@@ -68,31 +75,82 @@
     ctx.ellipse(this.x, this.y + this.radius * 0.7, this.radius * 0.9, this.radius * 0.4, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+  };
 
-    global.Sprites.draw(ctx, this.spriteId, this.x, this.y, this.drawScale);
+  Enemy.prototype.renderSize = function () {
+    var sizes = global.Config ? global.Config.RENDER_SIZES : null;
+    var px = this.isBoss ? (sizes ? sizes.enemyBoss : 128)
+      : (this.radius >= 15 ? (sizes ? sizes.enemyMedium : 56) : (sizes ? sizes.enemySmall : 44));
+    return px / (global.Config ? global.Config.CAMERA_ZOOM : 1.8);
+  };
 
-    // 命中閃光
-    if (this.hitFlash > 0) {
+  Enemy.prototype.drawBody = function (ctx, size) {
+    var resolution = this.animator && this.animator.resolveSprite ? this.animator.resolveSprite() : null;
+    var drawn = false;
+    if (resolution && resolution.key && global.Animation && global.Animation.drawResolvedSprite) {
+      drawn = global.Animation.drawResolvedSprite(ctx, resolution, this.x, this.y, size, size, 1);
+    }
+    if (drawn && global.Animation && global.Animation.recordResolved) {
+      global.Animation.recordResolved(this.animator, resolution);
+      return;
+    }
+
+    if (global.Animation && global.Animation.drawFallbackSprite && this.animator) {
+      global.Animation.drawFallbackSprite(ctx, {
+        animator: this.animator,
+        spriteId: this.spriteId,
+        x: this.x,
+        y: this.y,
+        w: size,
+        h: size,
+        entityType: "Enemy",
+        cueTint: this.isBoss ? "rgba(214, 137, 255, 0.65)" : "rgba(169, 223, 86, 0.72)"
+      });
+      return;
+    }
+
+    var bob = Math.abs(Math.sin((this._bobT || 0) * 8)) * (size * 0.06);
+    var drawY = this.y - bob;
+    if (this.faceLeft) {
       ctx.save();
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      ctx.translate(this.x, 0);
+      ctx.scale(-1, 1);
+      ctx.translate(-this.x, 0);
     }
+    global.Sprites.drawSized(ctx, this.spriteId, this.x, drawY, size, size);
+    if (this.faceLeft) ctx.restore();
+  };
 
-    // Boss 血條
-    if (this.isBoss) {
-      var w = 70, h = 7;
-      var bx = this.x - w / 2, by = this.y - this.radius - 18;
-      ctx.fillStyle = "#0a1a23";
-      ctx.fillRect(bx - 2, by - 2, w + 4, h + 4);
-      ctx.fillStyle = "#3a1416";
-      ctx.fillRect(bx, by, w, h);
-      ctx.fillStyle = "#e8534e";
-      ctx.fillRect(bx, by, w * (this.hp / this.maxHp), h);
-    }
+  Enemy.prototype.drawHitFlash = function (ctx) {
+    if (this.hitFlash <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  Enemy.prototype.drawBossHp = function (ctx) {
+    if (!this.isBoss) return;
+    var w = 70;
+    var h = 7;
+    var bx = this.x - w / 2;
+    var by = this.y - this.radius - 18;
+    ctx.fillStyle = "#0a1a23";
+    ctx.fillRect(bx - 2, by - 2, w + 4, h + 4);
+    ctx.fillStyle = "#3a1416";
+    ctx.fillRect(bx, by, w, h);
+    ctx.fillStyle = "#e8534e";
+    ctx.fillRect(bx, by, w * (this.hp / this.maxHp), h);
+  };
+
+  Enemy.prototype.draw = function (ctx) {
+    this.drawShadow(ctx);
+    this.drawBody(ctx, this.renderSize());
+    this.drawHitFlash(ctx);
+    this.drawBossHp(ctx);
   };
 
   global.Enemy = Enemy;

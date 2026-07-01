@@ -1,0 +1,270 @@
+{
+  "enemyDef": {
+    "id": "plastic_bag",
+    "animationId": "plastic_bag",
+    "spriteBasePath": "assets/images/enemies/plastic_bag/"
+  },
+  "loadedMoveS": [
+    "eanim_plastic_bag_move_S_0:true:assets/images/enemies/plastic_bag/move_S_0.png",
+    "eanim_plastic_bag_move_S_1:true:assets/images/enemies/plastic_bag/move_S_1.png",
+    "eanim_plastic_bag_move_S_2:true:assets/images/enemies/plastic_bag/move_S_2.png",
+    "eanim_plastic_bag_move_S_3:true:assets/images/enemies/plastic_bag/move_S_3.png"
+  ],
+  "loadedIdleS": "eanim_plastic_bag_idle_S_0:false:null",
+  "debugFrames": [
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 0,
+      "requestedKey": "eanim_plastic_bag_move_S_0",
+      "resolvedKey": null,
+      "hasSprite": false,
+      "fallbackType": "loading-exact",
+      "imagePath": null,
+      "drawPathExpected": false
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 0,
+      "requestedKey": "eanim_plastic_bag_move_S_0",
+      "resolvedKey": "eanim_plastic_bag_move_S_0",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_0.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 1,
+      "requestedKey": "eanim_plastic_bag_move_S_1",
+      "resolvedKey": "eanim_plastic_bag_move_S_1",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_1.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 2,
+      "requestedKey": "eanim_plastic_bag_move_S_2",
+      "resolvedKey": "eanim_plastic_bag_move_S_2",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_2.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 2,
+      "requestedKey": "eanim_plastic_bag_move_S_2",
+      "resolvedKey": "eanim_plastic_bag_move_S_2",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_2.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 3,
+      "requestedKey": "eanim_plastic_bag_move_S_3",
+      "resolvedKey": "eanim_plastic_bag_move_S_3",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_3.png",
+      "drawPathExpected": true
+    }
+  ],
+  "latest": {
+    "enemyId": "plastic_bag",
+    "animationId": "plastic_bag",
+    "spriteBasePath": "assets/images/enemies/plastic_bag/",
+    "moveDir": "S",
+    "direction": "S",
+    "action": "move",
+    "frameIndex": 1,
+    "requestedKey": "eanim_plastic_bag_move_S_1",
+    "resolvedKey": "eanim_plastic_bag_move_S_1",
+    "hasSprite": true,
+    "fallbackType": "exact",
+    "imagePath": "assets/images/enemies/plastic_bag/move_S_1.png",
+    "drawPathExpected": true
+  },
+  "plasticBagResponses": [
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_0.png"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_1.png"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_2.png"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_3.png"
+    }
+  ],
+  "plasticBag404": [],
+  "normalFrames": [
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "idle",
+      "frameIndex": 0,
+      "requestedKey": "eanim_plastic_bag_idle_S_0",
+      "resolvedKey": null,
+      "hasSprite": false,
+      "fallbackType": "loading-exact",
+      "imagePath": null,
+      "drawPathExpected": false
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 0,
+      "requestedKey": "eanim_plastic_bag_move_S_0",
+      "resolvedKey": "eanim_plastic_bag_move_S_0",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_0.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 1,
+      "requestedKey": "eanim_plastic_bag_move_S_1",
+      "resolvedKey": "eanim_plastic_bag_move_S_1",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_1.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 1,
+      "requestedKey": "eanim_plastic_bag_move_S_1",
+      "resolvedKey": "eanim_plastic_bag_move_S_1",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_1.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 2,
+      "requestedKey": "eanim_plastic_bag_move_S_2",
+      "resolvedKey": "eanim_plastic_bag_move_S_2",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_2.png",
+      "drawPathExpected": true
+    },
+    {
+      "enemyId": "plastic_bag",
+      "animationId": "plastic_bag",
+      "spriteBasePath": "assets/images/enemies/plastic_bag/",
+      "moveDir": "S",
+      "direction": "S",
+      "action": "move",
+      "frameIndex": 3,
+      "requestedKey": "eanim_plastic_bag_move_S_3",
+      "resolvedKey": "eanim_plastic_bag_move_S_3",
+      "hasSprite": true,
+      "fallbackType": "exact",
+      "imagePath": "assets/images/enemies/plastic_bag/move_S_3.png",
+      "drawPathExpected": true
+    }
+  ],
+  "normalInfo": {
+    "enemyId": "plastic_bag",
+    "animationId": "plastic_bag",
+    "spriteBasePath": "assets/images/enemies/plastic_bag/",
+    "moveDir": "S",
+    "direction": "S",
+    "action": "move",
+    "frameIndex": 1,
+    "requestedKey": "eanim_plastic_bag_move_S_1",
+    "resolvedKey": "eanim_plastic_bag_move_S_1",
+    "hasSprite": true,
+    "fallbackType": "exact",
+    "imagePath": "assets/images/enemies/plastic_bag/move_S_1.png",
+    "drawPathExpected": true
+  },
+  "normalResponses": [
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_0.png"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/idle_S_0.png"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_1.png"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_2.png"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:4185/assets/images/enemies/plastic_bag/move_S_3.png"
+    }
+  ],
+  "normal404": []
+}

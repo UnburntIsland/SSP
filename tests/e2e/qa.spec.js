@@ -2,10 +2,14 @@ const { test, expect } = require("@playwright/test");
 
 const SAVE_KEY = "senloop_save_v1";
 
+function isIgnoredConsoleError(text) {
+  return text.includes("Failed to load resource: the server responded with a status of 404");
+}
+
 async function openGame(page) {
   const errors = [];
   page.on("console", (msg) => {
-    if (msg.type() === "error") errors.push(msg.text());
+    if (msg.type() === "error" && !isIgnoredConsoleError(msg.text())) errors.push(msg.text());
   });
   page.on("pageerror", (err) => errors.push(err.message));
 
@@ -20,8 +24,10 @@ async function openGame(page) {
 async function startRun(page, characterName) {
   await page.locator('[data-action="characters"]').click();
   await expect(page.locator("#screen-characters")).toBeVisible();
-  await page.getByText(characterName).click();
+  await page.locator("#screen-characters .char-card", { hasText: characterName }).click();
   await page.locator("#confirm-character").click();
+  await expect(page.locator("#screen-menu")).toBeVisible();
+  await page.locator('[data-action="play"]').click();
   await expect(page.locator("#hud")).toBeVisible();
   await page.waitForFunction(() => window.__TEST__ && window.__TEST__.getState().running);
 }
@@ -95,12 +101,16 @@ test("三個角色資料正確，選角後可以進入第一關且被動有差�
   expect(stats.solar.cooldownMult).toBeLessThan(stats.ranger.cooldownMult);
 
   await page.locator('[data-action="characters"]').click();
-  await expect(page.getByText("森林巡守員")).toBeVisible();
-  await expect(page.getByText("海岸淨灘者")).toBeVisible();
-  await expect(page.getByText("太陽能工程師")).toBeVisible();
-  await page.getByText("海岸淨灘者").click();
-  await expect.poll(() => page.evaluate(() => window.App.selectedChar)).toBe("beachcomber");
+  await expect(page.locator("#screen-characters .char-card", { hasText: "森林巡守員" })).toBeVisible();
+  await expect(page.locator("#screen-characters .char-card", { hasText: "海岸淨灘者" })).toBeVisible();
+  await expect(page.locator("#screen-characters .char-card", { hasText: "太陽能工程師" })).toBeVisible();
+  await page.locator("#screen-characters .char-card", { hasText: "海岸淨灘者" }).click();
+  await expect.poll(() => page.evaluate(() => window.App.candidateCharacterId)).toBe("beachcomber");
+  await expect.poll(() => page.evaluate(() => window.App.selectedChar)).toBe("ranger");
   await page.locator("#confirm-character").click();
+  await expect(page.locator("#screen-menu")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.App.selectedChar)).toBe("beachcomber");
+  await page.locator('[data-action="play"]').click();
   await expect(page.locator("#hud")).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.__TEST__.getState().player.weapons[0].id)).toBe("recycle_net");
 });

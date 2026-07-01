@@ -9,28 +9,28 @@
 </head>
 <body>
   <div id="game-root">
+    <div id="stage">
     <!-- ===== Gameplay canvas ===== -->
     <canvas id="game-canvas" width="960" height="600"></canvas>
 
     <!-- ===== In-game HUD (shown only while playing) ===== -->
     <div id="hud" class="hidden">
-      <div class="hud-top">
-        <div class="hud-block">
-          <div class="hud-label">生命值</div>
+      <div class="hud-corner hud-tl">
+        <div class="hud-charname" id="hud-charname">守護者</div>
+        <div class="hud-hprow">
+          <span class="hud-lv">Lv.<span id="hud-level">1</span></span>
           <div class="bar hp-bar"><div id="hp-fill" class="bar-fill"></div><span id="hp-text" class="bar-text">100 / 100</span></div>
         </div>
-        <div class="hud-block hud-center">
-          <div id="hud-timer" class="hud-timer">05:00</div>
-          <div class="hud-sub">距離淨化完成</div>
-        </div>
-        <div class="hud-block hud-right">
-          <div class="hud-coins">♻ <span id="hud-coins">0</span> 循環幣</div>
-          <div class="hud-purified">淨化數：<span id="hud-purified">0</span></div>
-        </div>
-      </div>
-      <div class="hud-xp">
-        <div class="hud-level">Lv.<span id="hud-level">1</span></div>
         <div class="bar xp-bar"><div id="xp-fill" class="bar-fill"></div></div>
+      </div>
+      <div class="hud-corner hud-tc">
+        <div id="hud-timer" class="hud-timer">05:00</div>
+        <div class="hud-sub">距離淨化完成</div>
+      </div>
+      <div class="hud-corner hud-tr">
+        <div class="hud-stat hud-coins">♻ <span id="hud-coins">0</span> 循環幣</div>
+        <div class="hud-stat hud-purified">淨化 <span id="hud-purified">0</span></div>
+        <div class="hud-hint">暫停 P / ESC</div>
       </div>
       <div id="hud-skills" class="hud-skills"></div>
     </div>
@@ -41,6 +41,18 @@
       <h1 class="game-title">森循島</h1>
       <h2 class="game-subtitle">污染潮倖存者</h2>
       <p class="tagline">走位、淨化、循環再生 —— 在污染潮中存活下來。</p>
+      <div class="current-character-panel" id="home-character-preview" aria-live="polite">
+        <div class="current-character-portrait" id="home-character-portrait"></div>
+        <div class="current-character-info">
+          <div class="current-character-eyebrow">目前角色</div>
+          <div class="current-character-name" id="home-character-name">森林巡守員</div>
+          <div class="current-character-role" id="home-character-role">定位：平衡型</div>
+          <div class="current-character-skill">
+            <span class="current-character-skill-icon" id="home-character-skill-icon"></span>
+            <span id="home-character-skill-name">初始：種子飛刃</span>
+          </div>
+        </div>
+      </div>
       <div class="menu-buttons">
         <button class="btn btn-primary" data-action="play">開始遊戲</button>
         <button class="btn" data-action="characters">角色選擇</button>
@@ -58,7 +70,7 @@
       <div id="character-list" class="card-grid"></div>
       <div class="screen-footer">
         <button class="btn" data-action="back">返回</button>
-        <button class="btn btn-primary" id="confirm-character" data-action="start">以此角色出發</button>
+        <button class="btn btn-primary" id="confirm-character" data-action="confirm-character">確定</button>
       </div>
     </section>
 
@@ -171,6 +183,7 @@
 
     <!-- ===== Toast (knowledge unlocked, etc.) ===== -->
     <div id="toast" class="toast hidden"></div>
+    </div><!-- /#stage -->
   </div>
 
   <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
@@ -182,10 +195,14 @@
   <script src="js/data/stages.js"></script>
   <script src="js/data/knowledge.js"></script>
   <!-- Engine -->
+  <script src="js/config.js"></script>
+  <script src="js/uiTheme.js"></script>
+  <script src="js/stageRenderer.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/audioManager.js"></script>
   <script src="js/assets.js"></script>
   <script src="js/sprites.js"></script>
+  <script src="js/animation.js"></script>
   <script src="js/input.js"></script>
   <script src="js/pickups.js"></script>
   <script src="js/player.js"></script>
@@ -193,6 +210,7 @@
   <script src="js/weapons.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/debug.js"></script>
   <script src="js/test_mode.js"></script>
   <script src="js/main.js"></script>
 </body>

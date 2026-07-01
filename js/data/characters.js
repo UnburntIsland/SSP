@@ -48,7 +48,44 @@
     }
   ];
 
+  // 8 方向動畫資產設定（spriteBasePath + animationSet）—— 資料驅動，所有角色套同一規則
+  (function () {
+    var FOLDER = { ranger: "ranger", beachcomber: "beachcomber", solar: "solar_engineer" };
+    var D = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    function buildAnimSet() {
+      var idle = {}, walk = {};
+      D.forEach(function (d) {
+        idle[d] = ["idle_" + d + "_0"];
+        walk[d] = ["walk_" + d + "_0", "walk_" + d + "_1", "walk_" + d + "_2", "walk_" + d + "_3"];
+      });
+      return { idle: idle, walk: walk };
+    }
+    global.GameData.characters.forEach(function (ch) {
+      var folder = FOLDER[ch.id] || ch.id;
+      ch.canonicalId = ch.id === "solar" ? "solar_engineer" : ch.id;
+      ch.animationId = ch.canonicalId;
+      ch.spriteBasePath = "assets/images/characters/" + folder + "/";
+      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : "";
+      ch.animationSet = buildAnimSet();
+    });
+  })();
+
+  global.GameData.characterAliases = {
+    ranger: "ranger",
+    forest_ranger: "ranger",
+    beachcomber: "beachcomber",
+    coastal_cleanup: "beachcomber",
+    coastal_cleanup_volunteer: "beachcomber",
+    solar: "solar",
+    solar_engineer: "solar"
+  };
+
+  global.GameData.resolveCharacterId = function (id) {
+    return global.GameData.characterAliases[id] || id;
+  };
+
   global.GameData.getCharacter = function (id) {
+    id = global.GameData.resolveCharacterId(id);
     return global.GameData.characters.find(function (c) { return c.id === id; });
   };
 })(window);

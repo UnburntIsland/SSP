@@ -20,7 +20,7 @@
       eduText: "健康有機質的土壤能蓄水、固碳，是陸地生態的根基。"
     },
     {
-      id: "recycling_sort",
+      id: "recycle_sort",
       name: "回收分類",
       iconId: "shop_recycle",
       statKey: "coinBonusMult",
@@ -53,7 +53,7 @@
       eduText: "觀察與認識周遭生態，是願意保護環境的第一步。"
     },
     {
-      id: "rainwater",
+      id: "rainwater_harvest",
       name: "雨水收集",
       iconId: "shop_rain",
       statKey: "shieldBonus",

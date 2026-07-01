@@ -22,29 +22,60 @@
   var App = {
     state: "HOME",
     settingsReturn: "home",
+    selectedCharacterId: "ranger",
+    currentSelectedCharacter: "ranger",
+    candidateCharacterId: "ranger",
 
     boot: function () {
       global.Storage.load();
       if (global.AudioManager) global.AudioManager.init();   // 在 Storage.load 之後再同步一次設定
 
+      this.selectedCharacterId = this.loadSelectedCharacter();
+      this.currentSelectedCharacter = this.selectedCharacterId;
+      this.candidateCharacterId = this.selectedCharacterId;
+      this.selectedChar = this.selectedCharacterId; // 相容既有測試與舊程式碼
+      this.currentChar = this.selectedCharacterId;
+
       this.canvas = document.getElementById("game-canvas");
       this.ui = global.UI;
       this.ui.init(this);
       global.Game.init(this.canvas, this);
-
-      this.selectedChar = global.Storage.getLastChar() || "ranger";
-      if (!global.GameData.getCharacter(this.selectedChar)) this.selectedChar = "ranger";
-      this.currentChar = this.selectedChar;
+      if (global.Input && global.Input.attachMouse) global.Input.attachMouse(this.canvas);
 
       this.wireButtons();
       this.bindKeys();
       this.ui.updateCoinLabels();
+      this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
       this.ui.refreshSettings();
       this.showScreen("menu");
       this.setState("HOME");
     },
 
     setState: function (s) { this.state = s; },
+
+    loadSelectedCharacter: function () {
+      var id = global.Storage.loadSelectedCharacter ? global.Storage.loadSelectedCharacter() : global.Storage.getLastChar();
+      var character = global.GameData.getCharacter(id) || global.GameData.getCharacter("ranger");
+      return character ? character.id : "ranger";
+    },
+
+    saveSelectedCharacter: function (id) {
+      var character = global.GameData.getCharacter(id) || global.GameData.getCharacter("ranger");
+      id = character ? character.id : "ranger";
+      this.selectedCharacterId = id;
+      this.currentSelectedCharacter = id;
+      this.selectedChar = id;
+      if (global.Storage.saveSelectedCharacter) global.Storage.saveSelectedCharacter(id);
+      else global.Storage.setLastChar(id);
+      if (this.ui) this.ui.updateHomeCharacterPreview(id);
+    },
+
+    characterPreviewData: function (id) {
+      id = id || this.selectedCharacterId || "ranger";
+      var ch = global.GameData.getCharacter(id) || global.GameData.getCharacter("ranger") || global.GameData.characters[0];
+      var skill = ch ? global.GameData.getSkill(ch.startingSkill) : null;
+      return { character: ch, skill: skill };
+    },
 
     wireButtons: function () {
       var self = this;
@@ -81,12 +112,13 @@
     handleAction: function (action) {
       switch (action) {
         // 首頁
-        case "play":          this.startRun(this.selectedChar); break;
-        case "characters":    this.showScreen("characters"); this.ui.buildCharacters(this.selectedChar); this.setState("CHARACTER_SELECT"); break;
+        case "play":          this.startRun(this.selectedCharacterId); break;
+        case "characters":    this.openCharacterSelect(); break;
         case "shop":          this.showScreen("shop"); this.ui.buildShop(); this.ui.updateCoinLabels(); this.setState("SHOP"); break;
         case "codex":         this.showScreen("codex"); this.ui.buildCodex(); this.setState("CODEX"); break;
         case "settings-home": this.openSettings("home"); break;
-        case "start":         this.startRun(this.selectedChar); break;
+        case "start":         this.startRun(this.selectedCharacterId); break;
+        case "confirm-character": this.confirmCharacterSelection(); break;
         case "back":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
         case "menu":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
         case "reset":         this.resetSave(); break;
@@ -118,13 +150,30 @@
       if (name && SCREENS[name]) {
         document.getElementById(SCREENS[name]).classList.remove("hidden");
       }
+      if (name === "menu" && this.ui) this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
     },
 
     /* ---------------- 角色 / 商店 ---------------- */
+    openCharacterSelect: function () {
+      this.candidateCharacterId = this.selectedCharacterId;
+      this.showScreen("characters");
+      this.ui.buildCharacters(this.candidateCharacterId);
+      this.setState("CHARACTER_SELECT");
+    },
+
     selectCharacter: function (id) {
-      this.selectedChar = id;
-      global.Storage.setLastChar(id);
-      this.ui.buildCharacters(id);
+      var character = global.GameData.getCharacter(id);
+      if (!character) return;
+      this.candidateCharacterId = character.id;
+      this.ui.buildCharacters(character.id);
+    },
+
+    confirmCharacterSelection: function () {
+      var id = this.candidateCharacterId || this.selectedCharacterId || "ranger";
+      this.saveSelectedCharacter(id);
+      this.showScreen("menu");
+      this.ui.updateCoinLabels();
+      this.setState("HOME");
     },
 
     buyUpgrade: function (id) {
@@ -145,8 +194,13 @@
       if (!ok) return;
       global.Storage.reset();
       if (global.AudioManager) global.AudioManager.init();
+      this.selectedCharacterId = "ranger";
+      this.currentSelectedCharacter = "ranger";
+      this.candidateCharacterId = "ranger";
       this.selectedChar = "ranger";
+      this.currentChar = "ranger";
       this.ui.updateCoinLabels();
+      this.ui.updateHomeCharacterPreview("ranger");
       this.ui.refreshSettings();
       this.showScreen("menu");
       this.setState("HOME");
@@ -157,7 +211,7 @@
       this.settingsReturn = origin;
       this.ui.showPause(false);
       this.showScreen("settings");
-      this.ui.refreshSettings();
+      this.ui.renderSettingsScreen(origin);
       this.setState(origin === "home" ? "SETTINGS_FROM_HOME" : "SETTINGS_FROM_PAUSE");
     },
 
@@ -226,7 +280,7 @@
       this.ui.showConfirm(false);
       this.ui.showPause(false);
       global.Game.abort();
-      this.startRun(this.currentChar || this.selectedChar);   // 不重置商店升級 / localStorage
+      this.startRun(this.currentChar || this.selectedCharacterId);   // 不重置商店升級 / localStorage
     },
 
     /* ---------------- 一局生命週期 ---------------- */

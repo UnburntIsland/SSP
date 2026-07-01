@@ -6,6 +6,9 @@
 (function (global) {
 
   var MAX_WEAPONS = 6;
+  var VIEW_W = (global.Config ? global.Config.GAME_WIDTH : 1280);
+  var VIEW_H = (global.Config ? global.Config.GAME_HEIGHT : 720);
+  function ZOOM() { return global.Config ? global.Config.CAMERA_ZOOM : 1.8; }   // 世界層放大倍率（UI 不受影響）
 
   // 升級畫面用的通用能力選項（非技能）
   var STAT_UPGRADES = [
@@ -49,11 +52,10 @@
     },
 
     resize: function () {
+      // 固定內部邏輯解析度（16:9）；CSS 負責等比例縮放與置中，image-rendering:pixelated 保持銳利。
       var c = this.canvas;
-      var w = c.clientWidth || global.innerWidth;
-      var h = c.clientHeight || global.innerHeight;
-      c.width = Math.max(320, Math.floor(w));
-      c.height = Math.max(240, Math.floor(h));
+      if (c.width !== VIEW_W) c.width = VIEW_W;
+      if (c.height !== VIEW_H) c.height = VIEW_H;
       this.ctx.imageSmoothingEnabled = false;
     },
 
@@ -114,6 +116,8 @@
 
     /* ---------------- 背景（離屏繪製一次） ---------------- */
     buildBackground: function () {
+      // 改用素材驅動的 StageRenderer（tilemap + props）；缺圖時 StageRenderer 內部自行 fallback。
+      if (global.StageRenderer) { global.StageRenderer.build(this.stage, 1337); this.bg = null; return; }
       var W = this.world.w, H = this.world.h;
       var bg = document.createElement("canvas");
       bg.width = W; bg.height = H;
@@ -537,11 +541,13 @@
 
     /* ---------------- 攝影機 ---------------- */
     updateCamera: function () {
-      var cw = this.canvas.width, ch = this.canvas.height;
-      var maxX = Math.max(0, this.world.w - cw);
-      var maxY = Math.max(0, this.world.h - ch);
-      this.camera.x = clamp(this.player.x - cw / 2, 0, maxX);
-      this.camera.y = clamp(this.player.y - ch / 2, 0, maxY);
+      // 攝影機以「世界座標」運作；可視世界範圍 = 畫面尺寸 / zoom
+      var z = ZOOM();
+      var vw = this.canvas.width / z, vh = this.canvas.height / z;
+      var maxX = Math.max(0, this.world.w - vw);
+      var maxY = Math.max(0, this.world.h - vh);
+      this.camera.x = clamp(this.player.x - vw / 2, 0, maxX);
+      this.camera.y = clamp(this.player.y - vh / 2, 0, maxY);
     },
 
     /* ---------------- 繪製 ---------------- */
@@ -550,17 +556,24 @@
       var cw = this.canvas.width, ch = this.canvas.height;
       var cam = this.camera;
 
-      // 背景（只畫可視範圍）
-      if (this.bg) {
-        ctx.drawImage(this.bg, cam.x, cam.y, cw, ch, 0, 0, cw, ch);
-      } else {
-        ctx.fillStyle = "#0a2535"; ctx.fillRect(0, 0, cw, ch);
-      }
+      // 清背景
+      ctx.fillStyle = "#0a2535"; ctx.fillRect(0, 0, cw, ch);
 
+      // ===== 世界層：套用 camera zoom + translate（UI 層之後另外畫，不受 zoom 影響） =====
+      var z = ZOOM();
+      var vw = cw / z, vh = ch / z;   // 可視世界範圍
       ctx.save();
+      ctx.scale(z, z);
       ctx.translate(-cam.x, -cam.y);
 
-      var minX = cam.x - 40, maxX = cam.x + cw + 40, minY = cam.y - 40, maxY = cam.y + ch + 40;
+      // 背景：tilemap + props（優先圖片素材，缺圖時 StageRenderer 內部 fallback）
+      if (global.StageRenderer && global.StageRenderer.built) {
+        global.StageRenderer.draw(ctx, cam.x, cam.y, vw, vh);
+      } else if (this.bg) {
+        ctx.drawImage(this.bg, cam.x, cam.y, vw, vh, cam.x, cam.y, vw, vh);
+      }
+
+      var minX = cam.x - 40, maxX = cam.x + vw + 40, minY = cam.y - 40, maxY = cam.y + vh + 40;
       function vis(o, m) { m = m || 0; return o.x > minX - m && o.x < maxX + m && o.y > minY - m && o.y < maxY + m; }
 
       // 地面層：區域效果（在敵人下方）
@@ -590,14 +603,25 @@
       for (var u = 0; u < this.pulses.length; u++) this.pulses[u].draw(ctx);
 
       // 飄字
-      ctx.textAlign = "center"; ctx.font = "bold 13px 'Courier New', monospace";
       for (var fl = 0; fl < this.floaters.length; fl++) {
         var ft = this.floaters[fl];
         ctx.save(); ctx.globalAlpha = Math.max(0, 1 - ft.age / ft.life);
-        ctx.fillStyle = ft.color; ctx.fillText(ft.text, ft.x, ft.y); ctx.restore();
+        if (global.UI_THEME) global.UI_THEME.drawOutlinedText(ctx, ft.text, ft.x, ft.y, { fontSize: 15, fill: ft.color, strokeWidth: 3 });
+        else { ctx.textAlign = "center"; ctx.fillStyle = ft.color; ctx.fillText(ft.text, ft.x, ft.y); }
+        ctx.restore();
       }
 
       ctx.restore();
+
+      // debugUI：視窗邊框 + 滑鼠內部座標十字準星
+      if (global.Debug && global.Debug.enabled) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,60,240,0.7)"; ctx.lineWidth = 1;
+        ctx.strokeRect(0.5, 0.5, cw - 1, ch - 1);
+        var mm = (global.Input && global.Input.getMouse) ? global.Input.getMouse() : null;
+        if (mm) { ctx.beginPath(); ctx.moveTo(mm.x, 0); ctx.lineTo(mm.x, ch); ctx.moveTo(0, mm.y); ctx.lineTo(cw, mm.y); ctx.stroke(); }
+        ctx.restore();
+      }
 
       // HUD（DOM）更新
       if (this.app && this.app.ui) this.app.ui.updateHUD(this);
@@ -621,5 +645,6 @@
     return "rgb(" + r + "," + g + "," + bl + ")";
   }
 
+  Game.VIEW_W = VIEW_W; Game.VIEW_H = VIEW_H;
   global.Game = Game;
 })(window);

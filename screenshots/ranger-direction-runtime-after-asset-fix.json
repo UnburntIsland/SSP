@@ -1,0 +1,285 @@
+{
+  "generatedAt": "2026-07-01T13:08:32.972Z",
+  "selected": {
+    "selectedCharacterId": "ranger",
+    "currentChar": "ranger",
+    "playerCharacterId": "ranger",
+    "animationId": "ranger",
+    "spriteBasePath": "assets/images/characters/ranger/"
+  },
+  "results": [
+    {
+      "input": "D",
+      "expectedDirection": "E",
+      "record": {
+        "entityType": "Player",
+        "entityId": "ranger",
+        "action": "walk",
+        "direction": "E",
+        "frameIndex": 0,
+        "frameName": "walk_E_0",
+        "requestedKey": "canim_ranger_walk_E_0",
+        "resolvedKey": "canim_ranger_idle_E_0",
+        "spriteKey": "canim_ranger_idle_E_0",
+        "hasSprite": true,
+        "fallback": true,
+        "fallbackType": "idle-direction",
+        "fallbackKey": "canim_ranger_idle_E_0",
+        "flipX": false,
+        "inputVx": 1,
+        "inputVy": 0,
+        "t": 4883.39999999851
+      }
+    },
+    {
+      "input": "A",
+      "expectedDirection": "W",
+      "record": {
+        "entityType": "Player",
+        "entityId": "ranger",
+        "action": "walk",
+        "direction": "W",
+        "frameIndex": 0,
+        "frameName": "walk_W_0",
+        "requestedKey": "canim_ranger_walk_W_0",
+        "resolvedKey": "canim_ranger_idle_W_0",
+        "spriteKey": "canim_ranger_idle_W_0",
+        "hasSprite": true,
+        "fallback": true,
+        "fallbackType": "idle-direction",
+        "fallbackKey": "canim_ranger_idle_W_0",
+        "flipX": false,
+        "inputVx": -1,
+        "inputVy": 0,
+        "t": 5650.39999999851
+      }
+    },
+    {
+      "input": "W+D",
+      "expectedDirection": "NE",
+      "record": {
+        "entityType": "Player",
+        "entityId": "ranger",
+        "action": "walk",
+        "direction": "NE",
+        "frameIndex": 0,
+        "frameName": "walk_NE_0",
+        "requestedKey": "canim_ranger_walk_NE_0",
+        "resolvedKey": "canim_ranger_idle_NE_0",
+        "spriteKey": "canim_ranger_idle_NE_0",
+        "hasSprite": true,
+        "fallback": true,
+        "fallbackType": "idle-direction",
+        "fallbackKey": "canim_ranger_idle_NE_0",
+        "flipX": false,
+        "inputVx": 0.7071067811865475,
+        "inputVy": -0.7071067811865475,
+        "t": 6417.199999999255
+      }
+    },
+    {
+      "input": "W+A",
+      "expectedDirection": "NW",
+      "record": {
+        "entityType": "Player",
+        "entityId": "ranger",
+        "action": "walk",
+        "direction": "NW",
+        "frameIndex": 0,
+        "frameName": "walk_NW_0",
+        "requestedKey": "canim_ranger_walk_NW_0",
+        "resolvedKey": "canim_ranger_idle_NW_0",
+        "spriteKey": "canim_ranger_idle_NW_0",
+        "hasSprite": true,
+        "fallback": true,
+        "fallbackType": "idle-direction",
+        "fallbackKey": "canim_ranger_idle_NW_0",
+        "flipX": false,
+        "inputVx": -0.7071067811865475,
+        "inputVy": -0.7071067811865475,
+        "t": 7183.699999999255
+      }
+    },
+    {
+      "input": "S+D",
+      "expectedDirection": "SE",
+      "record": {
+        "entityType": "Player",
+        "entityId": "ranger",
+        "action": "walk",
+        "direction": "SE",
+        "frameIndex": 0,
+        "frameName": "walk_SE_0",
+        "requestedKey": "canim_ranger_walk_SE_0",
+        "resolvedKey": "canim_ranger_idle_SE_0",
+        "spriteKey": "canim_ranger_idle_SE_0",
+        "hasSprite": true,
+        "fallback": true,
+        "fallbackType": "idle-direction",
+        "fallbackKey": "canim_ranger_idle_SE_0",
+        "flipX": false,
+        "inputVx": 0.7071067811865475,
+        "inputVy": 0.7071067811865475,
+        "t": 7933.60000000149
+      }
+    },
+    {
+      "input": "S+A",
+      "expectedDirection": "SW",
+      "record": {
+        "entityType": "Player",
+        "entityId": "ranger",
+        "action": "walk",
+        "direction": "SW",
+        "frameIndex": 0,
+        "frameName": "walk_SW_0",
+        "requestedKey": "canim_ranger_walk_SW_0",
+        "resolvedKey": "canim_ranger_idle_SW_0",
+        "spriteKey": "canim_ranger_idle_SW_0",
+        "hasSprite": true,
+        "fallback": true,
+        "fallbackType": "idle-direction",
+        "fallbackKey": "canim_ranger_idle_SW_0",
+        "flipX": false,
+        "inputVx": -0.7071067811865475,
+        "inputVy": 0.7071067811865475,
+        "t": 8700.699999999255
+      }
+    }
+  ],
+  "network": [
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/idle_E_0.png",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/idle_NE_0.png",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/idle_NW_0.png",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/idle_S_0.png",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/idle_SE_0.png",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/idle_SW_0.png",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/idle_W_0.png",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_E_0.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_E_1.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_E_2.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_E_3.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NE_0.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NE_1.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NE_2.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NE_3.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NW_0.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NW_1.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NW_2.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_NW_3.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SE_0.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SE_1.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SE_2.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SE_3.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SW_0.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SW_1.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SW_2.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_SW_3.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_W_0.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_W_1.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_W_2.png",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:4186/assets/images/characters/ranger/walk_W_3.png",
+      "status": 404
+    }
+  ],
+  "noDebugOverlay": true,
+  "shotMap": {
+    "E": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\ranger-right-after-asset-fix.png",
+    "W": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\ranger-left-after-asset-fix.png",
+    "NE": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\ranger-diag-NE-after-asset-fix.png",
+    "NW": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\ranger-diag-NW-after-asset-fix.png",
+    "SE": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\ranger-diag-SE-after-asset-fix.png",
+    "SW": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\ranger-diag-SW-after-asset-fix.png"
+  }
+}

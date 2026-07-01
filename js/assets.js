@@ -73,12 +73,27 @@
       "assets/images/skills/skill_compost_spores.png",
       "assets/images/skills/concepts/skill_compost_spores_icon_256.png" ] },
 
-    // -------- 商店升級圖示（目前尚無圖檔 → 自動 fallback 向量繪製）--------
-    shop_soil:    { label: "健康土壤", paths: ["assets/images/ui/upgrade_healthy_soil.png"] },
-    shop_recycle: { label: "回收分類", paths: ["assets/images/ui/upgrade_recycling_sort.png"] },
-    shop_energy:  { label: "節能行動", paths: ["assets/images/ui/upgrade_energy_saving.png"] },
-    shop_eco:     { label: "生態感知", paths: ["assets/images/ui/upgrade_eco_sense.png"] },
-    shop_rain:    { label: "雨水收集", paths: ["assets/images/ui/upgrade_rainwater.png"] },
+    // -------- 商店升級圖示（優先讀 assets/images/shop；缺圖 → 舊圖或向量 fallback）--------
+    shop_soil:    { label: "健康土壤", paths: [
+      "assets/images/shop/upgrade_healthy_soil.png",
+      "assets/images/ui/upgrade_healthy_soil_single_v1.png",
+      "assets/images/ui/upgrade_healthy_soil.png" ] },
+    shop_recycle: { label: "回收分類", paths: [
+      "assets/images/shop/upgrade_recycle_sort.png",
+      "assets/images/ui/upgrade_recycling_sort_single_v1.png",
+      "assets/images/ui/upgrade_recycling_sort.png" ] },
+    shop_energy:  { label: "節能行動", paths: [
+      "assets/images/shop/upgrade_energy_saving.png",
+      "assets/images/ui/upgrade_energy_saving_action_single_v1.png",
+      "assets/images/ui/upgrade_energy_saving.png" ] },
+    shop_eco:     { label: "生態感知", paths: [
+      "assets/images/shop/upgrade_eco_sense.png",
+      "assets/images/ui/upgrade_eco_sense_single_v1.png",
+      "assets/images/ui/upgrade_eco_sense.png" ] },
+    shop_rain:    { label: "雨水收集", paths: [
+      "assets/images/shop/upgrade_rainwater_harvest.png",
+      "assets/images/ui/upgrade_rainwater_harvest_single_v1.png",
+      "assets/images/ui/upgrade_rainwater.png" ] },
 
     // -------- 暫停 / 設定 / 確認 UI 素材（有圖用圖，缺圖 → CSS fallback）--------
     ui_panel_pause:    { label: "暫停面板底圖",     paths: ["assets/images/ui/panel_pause.png"] },
@@ -98,7 +113,21 @@
     ui_icon_confirm:   { label: "確認圖示",         paths: ["assets/images/ui/icon_confirm.png"] },
     ui_icon_pause:     { label: "暫停圖示",         paths: ["assets/images/ui/icon_pause.png"] },
     ui_slider_bar:     { label: "滑桿底條",         paths: ["assets/images/ui/slider_bar.png"] },
-    ui_slider_knob:    { label: "滑桿握把",         paths: ["assets/images/ui/slider_knob.png"] }
+    ui_slider_knob:    { label: "滑桿握把",         paths: ["assets/images/ui/slider_knob.png"] },
+
+    // -------- 地圖 tiles（缺圖 → StageRenderer 程式格子 fallback）--------
+    tile_beach_sand_01: { label: "沙地 1", paths: ["assets/images/tiles/beach_sand_01.png"] },
+    tile_beach_sand_02: { label: "沙地 2", paths: ["assets/images/tiles/beach_sand_02.png"] },
+    tile_beach_sand_03: { label: "沙地 3", paths: ["assets/images/tiles/beach_sand_03.png"] },
+    tile_tide_pool_01:  { label: "潮池",   paths: ["assets/images/tiles/tide_pool_01.png"] },
+    tile_shoreline_01:  { label: "海岸線", paths: ["assets/images/tiles/shoreline_01.png"] },
+
+    // -------- 場景 props（缺圖 → 程式簡易繪製 fallback）--------
+    prop_driftwood_01:     { label: "漂流木",   paths: ["assets/images/props/driftwood_01.png"] },
+    prop_rock_01:          { label: "礁石",     paths: ["assets/images/props/rock_01.png"] },
+    prop_recycle_bin_01:   { label: "回收桶",   paths: ["assets/images/props/recycle_bin_01.png"] },
+    prop_plastic_trash_01: { label: "塑膠垃圾", paths: ["assets/images/props/plastic_trash_01.png"] },
+    prop_oil_stain_01:     { label: "油污",     paths: ["assets/images/props/oil_stain_01.png"] }
   };
 
   var store = {};
@@ -124,7 +153,8 @@
   }
 
   function tryLoad(key, paths, idx) {
-    if (idx >= paths.length) { store[key] = { ok: false }; stats.failed++; return; }
+    if (idx >= paths.length) { store[key] = { ok: false, loading: false, failed: true }; stats.failed++; return; }
+    store[key] = { ok: false, loading: true, failed: false, path: paths[idx] };
     var img = new Image();
     img.onload = function () {
       if (!(img.naturalWidth > 0)) { tryLoad(key, paths, idx + 1); return; }
@@ -149,8 +179,19 @@
     },
 
     ready: function (key) { var e = store[key]; return !!(e && e.ok); },
+    pending: function (key) { var e = store[key]; return !!(e && e.loading); },
+    failed: function (key) { var e = store[key]; return !!(e && e.failed); },
     get: function (key) { var e = store[key]; return (e && e.ok) ? e : null; },
     path: function (key) { var e = store[key]; return (e && e.ok) ? e.path : null; },
+
+    // 動態註冊素材 key（例如 8 方向動畫幀）；缺圖一樣走 fallback，不報錯
+    register: function (key, paths) {
+      if (!hasDOM()) return;
+      if (store[key] || this.manifest[key]) return;
+      this.manifest[key] = { label: key, paths: paths.slice() };
+      stats.total++;
+      tryLoad(key, paths.slice(), 0);
+    },
 
     // 置中、等比例縮放繪入方框（世界繪製）；成功回傳 true
     drawCentered: function (ctx, key, cx, cy, boxW, boxH, alpha) {

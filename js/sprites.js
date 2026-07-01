@@ -238,6 +238,19 @@
       if (opt.alpha != null) ctx.restore();
     },
 
+    // 以「世界尺寸方框 (w×h)」置中繪製（圖片或 placeholder 皆等比例 fit，避免透明留白造成偏移）
+    drawSized: function (ctx, id, cx, cy, w, h, opt) {
+      opt = opt || {};
+      if (global.Assets && global.Assets.drawCentered(ctx, id, cx, cy, w, h, opt.alpha)) return;
+      var s = SPRITES[id];
+      if (!s) return;
+      var scale = Math.min(w / s.w, h / s.h);
+      var ox = cx - (s.w * scale) / 2, oy = cy - (s.h * scale) / 2;
+      if (opt.alpha != null) { ctx.save(); ctx.globalAlpha = opt.alpha; }
+      drawSpriteTo(ctx, s, ox, oy, scale);
+      if (opt.alpha != null) ctx.restore();
+    },
+
     size: function (id, scale) {
       var s = SPRITES[id];
       if (!s) return { w: 0, h: 0 };
