@@ -52,6 +52,10 @@
   (function () {
     var FOLDER = { ranger: "ranger", beachcomber: "beachcomber", solar: "solar_engineer" };
     var D = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    // 8 方向 idle / walk 全部列出，不在資料層假設哪些 walk 存在。
+    // 「某方向 walk 是否可用」由執行期依「資料夾實際檔案」判斷：
+    // walk_<DIR>_0~3 四張全部成功載入才使用（animation.js 的 isWalkApproved），
+    // 缺任一張 → 該方向固定用 idle_<DIR>_0。之後補齊圖檔會自動啟用，毋須改程式。
     function buildAnimSet() {
       var idle = {}, walk = {};
       D.forEach(function (d) {
@@ -65,7 +69,7 @@
       ch.canonicalId = ch.id === "solar" ? "solar_engineer" : ch.id;
       ch.animationId = ch.canonicalId;
       ch.spriteBasePath = "assets/images/characters/" + folder + "/";
-      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : "";
+      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : "");
       ch.animationSet = buildAnimSet();
     });
   })();

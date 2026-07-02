@@ -36,6 +36,7 @@
       fallback: !!info.fallback,
       fallbackType: info.fallbackType || (info.fallback ? "fallback" : "exact"),
       fallbackKey: info.fallbackKey || "",
+      approvedWalk: !!info.approvedWalk,
       flipX: !!info.flipX,
       inputVx: info.inputVx || 0,
       inputVy: info.inputVy || 0,
@@ -97,7 +98,8 @@
         r.entityType + " " + r.action + "_" + r.direction +
         " f" + r.frameIndex + " " + status +
         " type=" + r.fallbackType +
-        " vx=" + vx + " vy=" + vy + " flipX=" + r.flipX
+        " vx=" + vx + " vy=" + vy + " flipX=" + r.flipX +
+        " approvedWalk=" + r.approvedWalk
       ) +
         '<br><span class="debug-muted">' +
         escapeHtml("requested=" + r.requestedKey + " | resolved=" + (r.resolvedKey || "-") + (r.fallbackKey ? " | fallbackKey=" + r.fallbackKey : "")) +

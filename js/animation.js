@@ -92,7 +92,27 @@
     this.moving = false;
     this.lastVx = 0;
     this.lastVy = 0;
+    // strictDirection：只允許「同方向」的圖（walk_<DIR> 完整 4 張才用，
+    // 否則固定用 idle_<DIR>_0）。不做鄰近方向 fallback、不做鏡像翻轉。
+    // 玩家（CharacterAnimator）啟用；敵人維持原有行為。
+    this.strictDirection = !!opts.strictDirection;
+    if (this.strictDirection) this.registerOwnFrames();
   }
+
+  // 預先註冊此 animator 自己 animationSet 內列出的所有幀，讓素材及早載入，
+  // 避免「一半 walk 幀已載入、一半還在載」造成 walk / idle 混用閃爍。
+  AnimatedSpriteAnimator.prototype.registerOwnFrames = function () {
+    var set = this.animationSet || {};
+    var self = this;
+    Object.keys(set).forEach(function (action) {
+      var byDir = set[action] || {};
+      Object.keys(byDir).forEach(function (dir) {
+        (byDir[dir] || []).forEach(function (frameName) {
+          self.registerFrame(frameName);
+        });
+      });
+    });
+  };
 
   AnimatedSpriteAnimator.prototype.framesOf = function (action, dir) {
     var set = this.animationSet || {};
@@ -101,7 +121,9 @@
 
   AnimatedSpriteAnimator.prototype.frameCount = function (action, dir) {
     var frames = this.framesOf(action, dir);
-    return Math.max(frames.length, countFallbackFrames(action));
+    if (frames.length) return frames.length;
+    if (action !== this.idleAction) return 1;
+    return countFallbackFrames(action);
   };
 
   AnimatedSpriteAnimator.prototype.update = function (dt, vx, vy) {
@@ -111,7 +133,14 @@
     var moving = !!(vx || vy);
     if (moving) {
       var dir = getDirectionFromVector(vx, vy);
-      if (dir) this.dir = dir;
+      if (dir && dir !== this.dir) {
+        this.dir = dir;
+        // 方向改變：從第 0 幀重新開始，避免殘留上一方向的幀（防閃爍）
+        if (this.strictDirection) {
+          this.frame = 0;
+          this.timer = 0;
+        }
+      }
     }
 
     var nextAction = moving ? this.moveAction : this.idleAction;
@@ -163,6 +192,90 @@
     A.register(this.keyForFrame(frameName), [spritePathFor(this.def, frameName)]);
   };
 
+  // 規則：某方向的 walk「必須完整 4 張且全部載入完成」才可使用；
+  // 缺任何一張都視為不可用（改用同方向 idle_<DIR>_0），避免 walk / idle 混用。
+  AnimatedSpriteAnimator.prototype.isWalkApproved = function (dir) {
+    var A = global.Assets;
+    if (!A || !A.ready) return false;
+    var frames = this.framesOf(this.moveAction, dir);
+    if (!frames || frames.length < 4) return false;
+    for (var i = 0; i < 4; i++) {
+      this.registerFrame(frames[i]);
+      if (!A.ready(this.keyForFrame(frames[i]))) return false;
+    }
+    return true;
+  };
+
+  // 嚴格模式解析（玩家用）：
+  //   direction = DIR 時只允許兩種結果：
+  //     1) walk_<DIR>_0~3 完整 → 用 walk_<DIR>_<frame>
+  //     2) 否則 → 用 idle_<DIR>_0
+  //   絕不 fallback 到其他方向、絕不鏡像翻轉（flipX 恆為 false）。
+  AnimatedSpriteAnimator.prototype.resolveSpriteStrict = function () {
+    var A = global.Assets;
+    if (!A || !A.ready) return null;
+
+    var current = this.currentFrameName();
+    var requestedKey = this.keyForFrame(current);
+    var isMove = this.action !== this.idleAction;
+    var approvedWalk = isMove && this.isWalkApproved(this.dir);
+
+    var frameName;
+    var fallbackType;
+    if (isMove && approvedWalk) {
+      var frames = this.framesOf(this.moveAction, this.dir);
+      frameName = frames[this.frame % frames.length];
+      fallbackType = "exact";
+    } else {
+      // 停止移動、或該方向 walk 不完整 → 一律用同方向 idle 第 0 幀
+      frameName = this.frameNameFor(this.idleAction, this.dir, 0);
+      fallbackType = isMove ? "idle-direction" : "exact";
+    }
+
+    this.registerFrame(frameName);
+    var key = this.keyForFrame(frameName);
+    if (A.ready(key)) {
+      return {
+        key: key,
+        requestedKey: requestedKey,
+        resolvedKey: key,
+        requestedFrameName: current,
+        resolvedFrameName: frameName,
+        fallbackType: fallbackType,
+        flipX: false,
+        hasSprite: true,
+        fallback: fallbackType !== "exact",
+        approvedWalk: approvedWalk
+      };
+    }
+    if (A.pending && A.pending(key)) {
+      return {
+        key: null,
+        requestedKey: requestedKey,
+        resolvedKey: null,
+        requestedFrameName: current,
+        resolvedFrameName: frameName,
+        fallbackType: "loading-" + fallbackType,
+        flipX: false,
+        hasSprite: false,
+        fallback: true,
+        approvedWalk: approvedWalk
+      };
+    }
+    return {
+      key: null,
+      requestedKey: requestedKey,
+      resolvedKey: null,
+      requestedFrameName: current,
+      resolvedFrameName: null,
+      fallbackType: isDebugAnimation() ? "diagnostic" : "clean",
+      flipX: false,
+      hasSprite: false,
+      fallback: true,
+      approvedWalk: approvedWalk
+    };
+  };
+
   function fallbackDirections(dir) {
     var map = {
       NE: ["E", "N"],
@@ -183,6 +296,8 @@
   }
 
   AnimatedSpriteAnimator.prototype.resolveSprite = function () {
+    if (this.strictDirection) return this.resolveSpriteStrict();
+
     var A = global.Assets;
     if (!A || !A.ready) return null;
 
@@ -191,6 +306,8 @@
     var current = this.currentFrameName();
     var requestedKey = this.keyForFrame(current);
     var self = this;
+    var hasActionFrames = this.framesOf(this.action, this.dir).length > 0;
+    var canUseActionFrame = this.action === this.idleAction || hasActionFrames;
 
     function add(frameName, fallbackType, flipX) {
       if (!frameName) return;
@@ -206,13 +323,18 @@
       });
     }
 
-    add(current, "exact", false);
+    if (canUseActionFrame) {
+      add(current, "exact", false);
+    }
     if (this.action !== this.idleAction) {
       add(this.frameNameFor(this.idleAction, this.dir, 0), "idle-direction", false);
     }
 
     fallbackDirections(this.dir).forEach(function (dir) {
-      add(self.frameNameFor(self.action, dir, self.frame), "near-" + dir, false);
+      var hasNearActionFrames = self.framesOf(self.action, dir).length > 0;
+      if (self.action === self.idleAction || hasNearActionFrames) {
+        add(self.frameNameFor(self.action, dir, self.frame), "near-" + dir, false);
+      }
       if (self.action !== self.idleAction) {
         add(self.frameNameFor(self.idleAction, dir, 0), "idle-near-" + dir, false);
       }
@@ -220,7 +342,10 @@
 
     var mirror = mirroredRightDirection(this.dir);
     if (mirror) {
-      add(this.frameNameFor(this.action, mirror, this.frame), "mirror-" + mirror, true);
+      var hasMirrorActionFrames = this.framesOf(this.action, mirror).length > 0;
+      if (this.action === this.idleAction || hasMirrorActionFrames) {
+        add(this.frameNameFor(this.action, mirror, this.frame), "mirror-" + mirror, true);
+      }
       if (this.action !== this.idleAction) {
         add(this.frameNameFor(this.idleAction, mirror, 0), "idle-mirror-" + mirror, true);
       }
@@ -297,6 +422,11 @@
       entityId: this.assetId,
       action: this.action,
       direction: this.dir,
+      approvedWalk: this.action === this.moveAction && (
+        this.strictDirection
+          ? this.isWalkApproved(this.dir)
+          : this.framesOf(this.action, this.dir).length > 0
+      ),
       frameIndex: this.frame,
       frameName: frameName,
       requestedFrameName: resolved.requestedFrameName || frameName,
@@ -326,7 +456,8 @@
       idleAction: "idle",
       moveAction: "walk",
       animationSet: character && character.animationSet,
-      durations: { idle: 0.48, walk: 0.13 }
+      durations: { idle: 0.48, walk: 0.13 },
+      strictDirection: true
     });
     this.char = character || {};
     this.charId = this.assetId;
@@ -693,11 +824,12 @@
     var vx = Number(info.inputVx || 0).toFixed(2);
     var vy = Number(info.inputVy || 0).toFixed(2);
     var lines = [
-      info.action + "_" + info.direction + " f" + info.frameIndex,
-      "sprite=" + info.hasSprite + " fallback=" + info.fallback,
-      "key=" + (info.resolvedKey || info.requestedKey || "-"),
-      "type=" + info.fallbackType + " flipX=" + info.flipX,
-      "vx=" + vx + " vy=" + vy
+      "dir=" + info.direction + " action=" + info.action + " f" + info.frameIndex,
+      "vx=" + vx + " vy=" + vy,
+      "requested=" + (info.requestedKey || "-"),
+      "resolved=" + (info.resolvedKey || "-"),
+      "hasSprite=" + info.hasSprite + " type=" + info.fallbackType,
+      "approvedWalk=" + info.approvedWalk + " flipX=" + info.flipX
     ];
     var x = opts.x || 0;
     var y = (opts.y || 0) - (opts.offsetY || 52);

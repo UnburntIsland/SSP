@@ -951,6 +951,14 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
   text-overflow:ellipsis;
 }
 
+/* Button labels are now icon-free so newly added actions do not inherit odd
+   decorative symbols from the shared UI icon set. Settings row icons are not
+   `.btn-icon`, so volume/mute indicators remain visible. */
+.btn.ui-button .btn-icon,
+.btn.ui-button .btn-icon.has-asset{
+  display:none !important;
+}
+
 .has-ui-buttons #screen-menu .menu-buttons .btn,
 .has-ui-buttons #screen-characters .screen-footer .btn,
 .has-ui-buttons #screen-settings .screen-footer .btn,
@@ -1442,4 +1450,183 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
 .debug-ui #screen-characters .card-grid{
   outline:1px dashed rgba(255,212,0,.9);
   outline-offset:2px;
+}
+
+/* Final confirm dialog layout QA: keep visual buttons and DOM hitboxes locked. */
+#overlay-confirm .confirm-panel{
+  --confirm-button-width:min(220px, calc((100% - 30px) / 2));
+  width:min(520px, calc(100% - 56px));
+  min-height:300px;
+  padding:48px 56px 44px;
+  display:grid;
+  grid-template-rows:auto auto auto;
+  justify-items:center;
+  align-content:center;
+  row-gap:14px;
+  text-align:center;
+}
+#overlay-confirm .confirm-panel.has-asset{
+  padding:48px 56px 44px;
+  background-size:100% 100%;
+}
+#overlay-confirm .confirm-title{
+  width:100%;
+  margin:0;
+  line-height:1.18;
+  text-align:center;
+}
+#overlay-confirm .confirm-desc{
+  width:100%;
+  max-width:380px;
+  margin:0;
+  line-height:1.55;
+  text-align:center;
+}
+#overlay-confirm .confirm-buttons{
+  width:100%;
+  margin-top:8px;
+  display:grid;
+  grid-template-columns:var(--confirm-button-width) var(--confirm-button-width);
+  justify-content:center;
+  align-items:center;
+  gap:30px;
+}
+#overlay-confirm .confirm-buttons .btn{
+  width:var(--confirm-button-width);
+  height:56px;
+  min-height:56px;
+  padding:0 18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+#overlay-confirm .confirm-buttons .btn .btn-icon{
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+}
+#overlay-confirm .confirm-buttons .btn .btn-label{
+  flex:0 1 auto;
+  line-height:1;
+  text-align:center;
+}
+.debug-ui #overlay-confirm .confirm-panel::after{
+  content:"";
+  position:absolute;
+  left:56px;
+  right:56px;
+  top:48px;
+  bottom:44px;
+  border:1px dashed rgba(101,224,183,.72);
+  pointer-events:none;
+}
+
+
+/* ============================================================
+   2026-07-02 修正：設定 / 確認視窗三畫面版面
+   1) 確認視窗（回首頁 / 重新開始）：DOM 按鈕改為透明並絕對定位，
+      對齊 panel_confirm.png 圖內建的紅 / 綠按鈕底板（實測 bbox 百分比）。
+   2) 修正 --confirm-button-width 於 grid cell 與按鈕重複解析、
+      導致按鈕縮成 53px 的 bug。
+   3) 設定面板底圖已抹除內建假滑軌 / 假滑塊 / icon 槽 / toggle 底座
+      （原圖備份於 assets/_archive_unused/20260702_ui_panel_fix/），
+      滑桿與圖示由 DOM 渲染，移除先前為遮舊圖而設的列底色條。
+   ============================================================ */
+#overlay-confirm .confirm-panel.has-asset{
+  display:block;
+  padding:0;
+}
+#overlay-confirm .confirm-panel.has-asset .confirm-title{
+  position:absolute; left:10%; right:10%; top:38%; margin:0;
+  width:auto; text-align:center;   /* width:auto：讓 left/right 定義文字框，覆蓋舊的 width:100%，文字才會真正置中 */
+}
+#overlay-confirm .confirm-panel.has-asset .confirm-desc{
+  position:absolute; left:12%; right:12%; top:55%; margin:0; max-width:none;
+  width:auto; text-align:center;
+}
+#overlay-confirm .confirm-panel.has-asset .confirm-buttons{
+  position:absolute; left:15.1%; top:73.2%; width:69.8%; height:14.6%;
+  margin:0; display:grid; grid-template-columns:1fr 1fr; gap:0 10.6%;
+  align-items:stretch; justify-content:stretch;
+}
+#overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn,
+.has-ui-buttons #overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn{
+  width:100%; height:100%; min-height:0; padding:0 6px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background-color:transparent;
+  background-image:var(--ui-btn-normal);
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:100% 100%;
+  border:0; box-shadow:none;
+}
+.has-ui-buttons #overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn:hover{
+  background-image:var(--ui-btn-hover);
+  background-color:transparent;
+  transform:none;
+}
+.has-ui-buttons #overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn:active{
+  background-image:var(--ui-btn-pressed);
+  background-color:transparent;
+  transform:translateY(1px); box-shadow:none;
+}
+#overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn .btn-label{
+  max-width:none; overflow:visible; text-overflow:clip; flex:0 1 auto;
+}
+/* 無面板圖 fallback：按鈕填滿 grid cell（修正 53px bug） */
+#overlay-confirm .confirm-buttons .btn{ width:100%; }
+
+/* 設定畫面：面板圖已無內建元件，列底色條不再需要 */
+.setting-row:not([data-setting="mute"])::before{ display:none; }
+
+/* 設定畫面：列間距收緊一些（縮小內容區高度與列距，列往中間靠攏），左右往內縮一些 */
+.settings-inner{
+  top:26.5%;
+  bottom:20%;
+  left:88px;
+  right:70px;
+  row-gap:5px;
+}
+
+/* 設定標題移入面板頂部的鐵牌位置（原本浮在圖外上方） */
+#screen-settings .screen-title{
+  transform:translateY(96px);
+  position:relative;
+  z-index:2;
+  pointer-events:none;
+}
+
+/* 升級（技能選擇）選項放大：卡片、圖示與字級 */
+.levelup-title{ font-size:32px; }
+.levelup-options{ gap:20px; }
+.levelup-card{ width:272px; padding:20px 18px; }
+.levelup-icon{ width:76px; height:76px; margin:0 auto 10px; }
+.levelup-name{ font-size:21px; }
+.levelup-tag{ font-size:13px; margin:3px 0 9px; }
+.levelup-effect{ font-size:14px; margin-bottom:9px; }
+.levelup-edu{ font-size:13px; }
+.levelup-key{ font-size:12px; margin-top:11px; }
+
+/* 按鈕文字上緣被裁：line-height 1 → 1.35 並允許溢出（CJK 上緣需要空間） */
+.btn.ui-button .btn-label{
+  line-height:1.35;
+  overflow:visible;
+  text-overflow:clip;
+}
+
+/* 首頁 / 暫停按鈕加高 + 間隔加大一些些 */
+#screen-menu .menu-buttons .btn{ height:56px; min-height:56px; }
+#screen-menu .menu-buttons{ gap:16px; }
+.pause-buttons .btn{ min-height:56px; }
+.pause-buttons{ gap:16px; }
+.pause-panel.has-asset .pause-buttons{ gap:4.5%; }
+
+/* 設定滑桿往左延伸一點（label 欄縮窄），內容左右再內縮一點點 */
+.setting-row{
+  grid-template-columns:30px minmax(88px, 100px) minmax(174px, 1fr) 44px;
+}
+.settings-inner{
+  left:96px;
+  right:78px;
 }

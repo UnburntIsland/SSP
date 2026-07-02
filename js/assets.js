@@ -97,8 +97,8 @@
 
     // -------- 暫停 / 設定 / 確認 UI 素材（有圖用圖，缺圖 → CSS fallback）--------
     ui_panel_pause:    { label: "暫停面板底圖",     paths: ["assets/images/ui/panel_pause.png"] },
-    ui_panel_settings: { label: "設定面板底圖",     paths: ["assets/images/ui/panel_settings.png"] },
-    ui_panel_confirm:  { label: "確認視窗底圖",     paths: ["assets/images/ui/panel_confirm.png"] },
+    ui_panel_settings: { label: "設定面板底圖",     paths: ["assets/images/ui/panel_settings.png?v=buttonless1"] },
+    ui_panel_confirm:  { label: "確認視窗底圖",     paths: ["assets/images/ui/panel_confirm.png?v=buttonless1"] },
     ui_button_normal:  { label: "空白按鈕(一般)",   paths: ["assets/images/ui/button_blank_normal.png"] },
     ui_button_hover:   { label: "空白按鈕(滑入)",   paths: ["assets/images/ui/button_blank_hover.png"] },
     ui_button_pressed: { label: "空白按鈕(按下)",   paths: ["assets/images/ui/button_blank_pressed.png"] },
