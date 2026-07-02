@@ -1631,6 +1631,57 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
   #game-canvas{ touch-action:none; }
 }
 
+/* ============================================================
+   手機顯示適配（js/mobile.js 於觸控裝置加上 .is-mobile）
+   #stage 固定 1280x720，transform:scale 整體等比縮放 → UI 不爆版
+   ============================================================ */
+html.is-mobile, .is-mobile body{
+  overflow:hidden;
+  height:100%;
+  overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;
+}
+.is-mobile #game-root{
+  overflow:hidden;
+  width:100vw;
+  height:100vh;
+}
+.is-mobile #stage{
+  width:1280px;
+  height:720px;
+  flex:0 0 auto;
+  transform-origin:center center;
+}
+
+/* 直向轉橫向提示 */
+#rotate-hint{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(6, 18, 25, 0.94);
+  text-align:center;
+}
+#rotate-hint.hidden{ display:none; }
+.rotate-hint-inner{ color:#eafff7; padding:24px; }
+.rotate-hint-icon{
+  font-size:64px;
+  color:#57ebda;
+  margin-bottom:14px;
+  animation:rotate-hint-spin 2.2s ease-in-out infinite;
+}
+.rotate-hint-text{
+  font-size:18px;
+  letter-spacing:1px;
+  text-shadow:1px 1px 0 rgba(0,0,0,.6);
+}
+@keyframes rotate-hint-spin{
+  0%, 55%{ transform:rotate(0deg); }
+  75%, 100%{ transform:rotate(90deg); }
+}
+
 /* 設定滑桿往左延伸一點（label 欄縮窄），內容左右再內縮一點點 */
 .setting-row{
   grid-template-columns:30px minmax(88px, 100px) minmax(174px, 1fr) 44px;
