@@ -1615,12 +1615,21 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
   text-overflow:clip;
 }
 
-/* 首頁 / 暫停按鈕加高 + 間隔加大一些些 */
+/* 首頁 / 暫停按鈕加高；暫停間隔加大、首頁間隔略減 */
 #screen-menu .menu-buttons .btn{ height:56px; min-height:56px; }
-#screen-menu .menu-buttons{ gap:16px; }
+#screen-menu .menu-buttons{ gap:13px; }
 .pause-buttons .btn{ min-height:56px; }
-.pause-buttons{ gap:16px; }
-.pause-panel.has-asset .pause-buttons{ gap:4.5%; }
+.pause-buttons{ gap:18px; }
+.pause-panel.has-asset .pause-buttons{ gap:5.5%; }
+
+/* 升級（技能選擇）三張卡片固定一列並排 */
+#overlay-levelup .overlay-inner{ width:min(920px, 96%); }
+.levelup-options{ flex-wrap:nowrap; }
+
+/* 手機：畫布上滑動移動時避免頁面捲動 / 縮放 */
+@media (pointer: coarse){
+  #game-canvas{ touch-action:none; }
+}
 
 /* 設定滑桿往左延伸一點（label 欄縮窄），內容左右再內縮一點點 */
 .setting-row{
