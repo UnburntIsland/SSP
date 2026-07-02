@@ -1,0 +1,123 @@
+{
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_001f03bfa3c7e9c1016a46a3a651688191978d4cdda18aa1b7.png",
+  "referenceSize": [
+    192,
+    192
+  ],
+  "targetMetrics": {
+    "w": 103.25,
+    "h": 110.75,
+    "cx": 95.875,
+    "bottom": 150.0
+  },
+  "frames": [
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\W\\move_W_0.png",
+      "sourceCropBox": [
+        88,
+        258,
+        499,
+        492
+      ],
+      "subjectSizeBeforeScale": [
+        403,
+        226
+      ],
+      "scaledSize": [
+        103,
+        58
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        44,
+        92,
+        147,
+        150
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\W\\move_W_1.png",
+      "sourceCropBox": [
+        118,
+        263,
+        429,
+        481
+      ],
+      "subjectSizeBeforeScale": [
+        303,
+        210
+      ],
+      "scaledSize": [
+        103,
+        72
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        44,
+        78,
+        147,
+        150
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\W\\move_W_2.png",
+      "sourceCropBox": [
+        40,
+        258,
+        442,
+        492
+      ],
+      "subjectSizeBeforeScale": [
+        394,
+        226
+      ],
+      "scaledSize": [
+        103,
+        59
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        44,
+        91,
+        147,
+        150
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\W\\move_W_3.png",
+      "sourceCropBox": [
+        71,
+        263,
+        381,
+        481
+      ],
+      "subjectSizeBeforeScale": [
+        302,
+        210
+      ],
+      "scaledSize": [
+        103,
+        72
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        44,
+        78,
+        147,
+        150
+      ]
+    }
+  ]
+}

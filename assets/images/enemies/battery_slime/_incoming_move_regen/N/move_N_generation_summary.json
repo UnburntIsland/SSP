@@ -1,0 +1,123 @@
+{
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_0916312d4d20a696016a469a5c22d8819186a62167bd3aa07a.png",
+  "referenceCanvas": [
+    192,
+    192
+  ],
+  "targetBBox": {
+    "w": 149.75,
+    "h": 114.5,
+    "centerX": 96.125,
+    "bottom": 160
+  },
+  "frames": [
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\N\\move_N_0.png",
+      "generatedCellBBox": [
+        80,
+        276,
+        521,
+        580
+      ],
+      "scaledSize": [
+        154,
+        106
+      ],
+      "paste": [
+        19,
+        54
+      ],
+      "outputBBox": [
+        19,
+        54,
+        173,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\N\\move_N_1.png",
+      "generatedCellBBox": [
+        76,
+        152,
+        461,
+        585
+      ],
+      "scaledSize": [
+        105,
+        118
+      ],
+      "paste": [
+        44,
+        42
+      ],
+      "outputBBox": [
+        44,
+        42,
+        149,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\N\\move_N_2.png",
+      "generatedCellBBox": [
+        7,
+        293,
+        485,
+        589
+      ],
+      "scaledSize": [
+        154,
+        96
+      ],
+      "paste": [
+        19,
+        64
+      ],
+      "outputBBox": [
+        19,
+        64,
+        173,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\N\\move_N_3.png",
+      "generatedCellBBox": [
+        29,
+        279,
+        471,
+        588
+      ],
+      "scaledSize": [
+        154,
+        108
+      ],
+      "paste": [
+        19,
+        52
+      ],
+      "outputBBox": [
+        19,
+        52,
+        173,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ]
+    }
+  ]
+}

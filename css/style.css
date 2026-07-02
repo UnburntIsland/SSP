@@ -1653,6 +1653,145 @@ html.is-mobile, .is-mobile body{
   transform-origin:center center;
 }
 
+/* ============================================================
+   手機大廳（is-mobile 限定；桌機不受影響）
+   - 隱藏「角色選擇」按鈕與底部金幣列
+   - 角色卡移到按鈕右側，點擊展開摺疊選單直接切換角色
+   - 金幣 chip 顯示於左上角
+   ============================================================ */
+.is-mobile #screen-menu [data-action="characters"]{ display:none; }
+.is-mobile #screen-menu .coin-display{ display:none; }
+.is-mobile #screen-menu{ position:relative; overflow:visible; }
+.is-mobile #screen-menu .menu-buttons{ transform:translateX(-165px); }
+.is-mobile #home-character-preview{
+  position:absolute;
+  left:50%;
+  top:160px;              /* 與左側按鈕列頂對齊 */
+  height:264px;           /* = 4 顆按鈕 + 間距總高，底部對齊 */
+  transform:translateX(65px);
+  width:360px;
+  margin:0;
+  cursor:pointer;
+  z-index:5;
+  transition:border-color .12s ease;
+  display:flex;
+  flex-flow:row wrap;
+  align-items:center;
+  justify-content:flex-start;
+  gap:0 12px;
+  padding:14px 14px 8px;
+  box-sizing:border-box;
+  text-align:left;
+}
+/* 左：放大的人物頭像 */
+.is-mobile #home-character-preview .current-character-portrait{
+  flex:0 0 132px;
+  width:132px;
+  height:168px;
+  margin:0;
+}
+.is-mobile #home-character-preview .current-character-canvas{
+  width:auto;
+  height:156px;          /* 依高度放大人物，pixelated 保持像素銳利 */
+  max-width:124px;
+  max-height:156px;
+  object-fit:contain;
+}
+/* 右：名稱 + 能力值列 */
+.is-mobile #home-character-preview .current-character-info{
+  flex:1 1 0;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:4px;
+  text-align:left;
+}
+.is-mobile #home-character-preview .current-character-role,
+.is-mobile #home-character-preview .current-character-skill{ display:none; }
+#mobile-char-stats{ display:flex; flex-direction:column; gap:5px; margin-top:6px; }
+.mobile-stat-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:5px 9px;
+  background:rgba(6, 20, 29, 0.55);
+  border:1px solid rgba(77, 208, 196, 0.28);
+}
+.mobile-stat-label{
+  flex:0 0 auto;
+  font-size:12px;
+  color:#7fd8c9;
+  letter-spacing:1px;
+}
+.mobile-stat-value{
+  flex:1 1 auto;
+  text-align:right;
+  font-size:13px;
+  color:#fff7d6;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.is-mobile .mobile-char-chevron{ flex:1 0 100%; margin-top:auto; text-align:center; }
+.is-mobile #home-character-preview:active{ transform:translateX(65px) scale(.98); }
+.is-mobile #home-character-preview.expanded{ border-color:var(--sun, #ffd84a); }
+.mobile-char-chevron{
+  display:none;
+  margin-top:6px;
+  font-size:12px;
+  color:#9fd8c6;
+  letter-spacing:1px;
+}
+.is-mobile .mobile-char-chevron{ display:block; }
+.is-mobile #home-character-preview.expanded .mobile-char-chevron{ color:#ffd84a; }
+#mobile-char-list{
+  position:absolute;
+  left:50%;
+  transform:translateX(65px);
+  top:0;            /* JS 不管位置，由下方 margin 排 —— 用 top 覆蓋 */
+  width:340px;
+  z-index:6;
+  background:rgba(10, 26, 35, 0.97);
+  border:3px solid #0a1a23;
+  box-shadow:0 8px 0 rgba(10,26,35,.6), 0 14px 30px rgba(0,0,0,.5);
+}
+.is-mobile #mobile-char-list{ top:430px; }
+#mobile-char-list.hidden{ display:none; }
+.mobile-char-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:56px;
+  padding:6px 12px;
+  cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.mobile-char-item:last-child{ border-bottom:none; }
+.mobile-char-item:active{ background:rgba(120, 214, 107, .18); }
+.mobile-char-item.active{ background:rgba(120, 214, 107, .12); }
+.mobile-char-item-icon{ width:44px; height:44px; flex:0 0 44px; image-rendering:pixelated; }
+.mobile-char-item-text{ flex:1 1 auto; text-align:left; }
+.mobile-char-item-name{ font-size:17px; color:#e7f3bd; }
+.mobile-char-item-role{ font-size:12px; color:#9fc4b8; margin-top:2px; }
+.mobile-char-item-mark{ font-size:18px; color:#78d66b; opacity:0; flex:0 0 auto; }
+.mobile-char-item.active .mobile-char-item-mark{ opacity:1; }
+#mobile-coin-chip{
+  position:absolute;
+  left:18px;
+  top:14px;
+  z-index:5;
+  padding:8px 14px;
+  font-size:18px;
+  color:#ffd84a;
+  background:rgba(10, 26, 35, 0.85);
+  border:2px solid #0a1a23;
+  border-radius:20px;
+  text-shadow:1px 1px 0 rgba(0,0,0,.6);
+}
+.is-mobile #screen-menu .btn:active{ transform:scale(.97); }
+
 /* 直向轉橫向提示 */
 #rotate-hint{
   position:fixed;

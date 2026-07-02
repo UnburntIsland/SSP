@@ -99,7 +99,7 @@
         " f" + r.frameIndex + " " + status +
         " type=" + r.fallbackType +
         " vx=" + vx + " vy=" + vy + " flipX=" + r.flipX +
-        " approvedWalk=" + r.approvedWalk
+        (r.entityType === "Enemy" ? " approvedMove=" : " approvedWalk=") + r.approvedWalk
       ) +
         '<br><span class="debug-muted">' +
         escapeHtml("requested=" + r.requestedKey + " | resolved=" + (r.resolvedKey || "-") + (r.fallbackKey ? " | fallbackKey=" + r.fallbackKey : "")) +

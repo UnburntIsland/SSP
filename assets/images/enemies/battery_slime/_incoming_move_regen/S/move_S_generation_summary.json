@@ -1,0 +1,123 @@
+{
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_0a74f61a361a2faf016a469db69ea08191aa99cb511fa0e57c.png",
+  "referenceSize": [
+    192,
+    192
+  ],
+  "targetMetrics": {
+    "w": 149.75,
+    "h": 114.5,
+    "cx": 96.125,
+    "bottom": 160.0
+  },
+  "frames": [
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\S\\move_S_0.png",
+      "sourceCropBox": [
+        69,
+        331,
+        500,
+        583
+      ],
+      "subjectSizeBeforeScale": [
+        423,
+        244
+      ],
+      "scaledSize": [
+        150,
+        86
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        21,
+        74,
+        171,
+        160
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\S\\move_S_1.png",
+      "sourceCropBox": [
+        84,
+        170,
+        472,
+        596
+      ],
+      "subjectSizeBeforeScale": [
+        380,
+        418
+      ],
+      "scaledSize": [
+        104,
+        114
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        44,
+        46,
+        148,
+        160
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\S\\move_S_2.png",
+      "sourceCropBox": [
+        54,
+        303,
+        473,
+        588
+      ],
+      "subjectSizeBeforeScale": [
+        411,
+        277
+      ],
+      "scaledSize": [
+        150,
+        101
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        21,
+        59,
+        171,
+        160
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\S\\move_S_3.png",
+      "sourceCropBox": [
+        37,
+        331,
+        462,
+        583
+      ],
+      "subjectSizeBeforeScale": [
+        417,
+        244
+      ],
+      "scaledSize": [
+        150,
+        88
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        21,
+        72,
+        171,
+        160
+      ]
+    }
+  ]
+}

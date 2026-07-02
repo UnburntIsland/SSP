@@ -1,0 +1,127 @@
+{
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_0f7b5410d4cd971b016a469c12c8c8819195b2bc19a349994b.png",
+  "referenceCanvas": [
+    192,
+    192
+  ],
+  "targetBBox": {
+    "w": 149.75,
+    "h": 114.5,
+    "centerX": 96.125,
+    "bottom": 160
+  },
+  "frames": [
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\E\\move_E_0.png",
+      "generatedCellBBox": [
+        54,
+        274,
+        501,
+        557
+      ],
+      "scaledSize": [
+        154,
+        98
+      ],
+      "paste": [
+        19,
+        62
+      ],
+      "outputBBox": [
+        19,
+        62,
+        173,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "despillChanged": 275
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\E\\move_E_1.png",
+      "generatedCellBBox": [
+        37,
+        174,
+        483,
+        568
+      ],
+      "scaledSize": [
+        134,
+        118
+      ],
+      "paste": [
+        29,
+        42
+      ],
+      "outputBBox": [
+        29,
+        42,
+        163,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "despillChanged": 261
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\E\\move_E_2.png",
+      "generatedCellBBox": [
+        19,
+        290,
+        513,
+        560
+      ],
+      "scaledSize": [
+        154,
+        84
+      ],
+      "paste": [
+        19,
+        76
+      ],
+      "outputBBox": [
+        19,
+        76,
+        173,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "despillChanged": 152
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\E\\move_E_3.png",
+      "generatedCellBBox": [
+        33,
+        281,
+        464,
+        557
+      ],
+      "scaledSize": [
+        154,
+        99
+      ],
+      "paste": [
+        19,
+        61
+      ],
+      "outputBBox": [
+        19,
+        61,
+        173,
+        160
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "despillChanged": 327
+    }
+  ]
+}

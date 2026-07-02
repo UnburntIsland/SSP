@@ -1,0 +1,123 @@
+{
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_0ed766f93429b530016a469ec75050819186cd9aa07798d6bd.png",
+  "referenceSize": [
+    192,
+    192
+  ],
+  "targetMetrics": {
+    "w": 149.75,
+    "h": 114.5,
+    "cx": 96.125,
+    "bottom": 160.0
+  },
+  "frames": [
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\W\\move_W_0.png",
+      "sourceCropBox": [
+        74,
+        293,
+        507,
+        552
+      ],
+      "subjectSizeBeforeScale": [
+        425,
+        251
+      ],
+      "scaledSize": [
+        150,
+        88
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        21,
+        72,
+        171,
+        160
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\W\\move_W_1.png",
+      "sourceCropBox": [
+        91,
+        172,
+        475,
+        559
+      ],
+      "subjectSizeBeforeScale": [
+        376,
+        379
+      ],
+      "scaledSize": [
+        114,
+        114
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        39,
+        46,
+        153,
+        160
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\W\\move_W_2.png",
+      "sourceCropBox": [
+        68,
+        289,
+        490,
+        552
+      ],
+      "subjectSizeBeforeScale": [
+        414,
+        255
+      ],
+      "scaledSize": [
+        150,
+        92
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        21,
+        68,
+        171,
+        160
+      ]
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\battery_slime\\_incoming_move_regen\\W\\move_W_3.png",
+      "sourceCropBox": [
+        47,
+        316,
+        462,
+        552
+      ],
+      "subjectSizeBeforeScale": [
+        407,
+        228
+      ],
+      "scaledSize": [
+        150,
+        84
+      ],
+      "outputSize": [
+        192,
+        192
+      ],
+      "outputBBox": [
+        21,
+        76,
+        171,
+        160
+      ]
+    }
+  ]
+}

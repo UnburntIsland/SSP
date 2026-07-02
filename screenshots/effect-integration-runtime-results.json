@@ -1,0 +1,335 @@
+{
+  "runtime": {
+    "summary": [
+      {
+        "effectId": "seed_blade",
+        "groupName": "projectile",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "projectile_0.png",
+          "projectile_1.png",
+          "projectile_2.png",
+          "projectile_3.png"
+        ]
+      },
+      {
+        "effectId": "seed_blade",
+        "groupName": "hit",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "hit_0.png",
+          "hit_1.png",
+          "hit_2.png",
+          "hit_3.png"
+        ]
+      },
+      {
+        "effectId": "recycle_net",
+        "groupName": "aoe",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "aoe_0.png",
+          "aoe_1.png",
+          "aoe_2.png",
+          "aoe_3.png",
+          "aoe_4.png",
+          "aoe_5.png"
+        ]
+      },
+      {
+        "effectId": "solar_pulse",
+        "groupName": "pulse",
+        "approvedEffect": false,
+        "approvedGroup": false,
+        "ready": false,
+        "frames": [
+          "pulse_0.png",
+          "pulse_1.png",
+          "pulse_2.png",
+          "pulse_3.png",
+          "pulse_4.png",
+          "pulse_5.png"
+        ]
+      },
+      {
+        "effectId": "wind_blade",
+        "groupName": "blade",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "blade_0.png",
+          "blade_1.png",
+          "blade_2.png",
+          "blade_3.png"
+        ]
+      },
+      {
+        "effectId": "compost_spore",
+        "groupName": "area",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "area_0.png",
+          "area_1.png",
+          "area_2.png",
+          "area_3.png",
+          "area_4.png",
+          "area_5.png"
+        ]
+      },
+      {
+        "effectId": "common",
+        "groupName": "hit_small",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "hit_small_0.png",
+          "hit_small_1.png",
+          "hit_small_2.png",
+          "hit_small_3.png"
+        ]
+      },
+      {
+        "effectId": "common",
+        "groupName": "purify_pop",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "purify_pop_0.png",
+          "purify_pop_1.png",
+          "purify_pop_2.png",
+          "purify_pop_3.png",
+          "purify_pop_4.png"
+        ]
+      },
+      {
+        "effectId": "common",
+        "groupName": "pickup_sparkle",
+        "approvedEffect": true,
+        "approvedGroup": true,
+        "ready": true,
+        "frames": [
+          "pickup_sparkle_0.png",
+          "pickup_sparkle_1.png",
+          "pickup_sparkle_2.png",
+          "pickup_sparkle_3.png"
+        ]
+      }
+    ],
+    "solarReady": false,
+    "solarDrawFrame": false,
+    "solarFallbackCanvasPixelsBefore": 0,
+    "solarFallbackCanvasPixelsAfter": 3125,
+    "seedImageUsedWhenDisabled": false,
+    "seedFallbackPixels": 74,
+    "render120FramesMs": 14.5,
+    "state": {
+      "screen": "game",
+      "running": true,
+      "paused": true,
+      "ended": false,
+      "time": 8,
+      "enemies": 0,
+      "pickups": 0,
+      "player": {
+        "x": 1200,
+        "y": 800,
+        "hp": 110,
+        "maxHp": 110,
+        "level": 1,
+        "xp": 0,
+        "xpToNext": 2,
+        "pickupRange": 72,
+        "cooldownMult": 1,
+        "weapons": []
+      },
+      "save": {
+        "coins": 0,
+        "shop": {},
+        "knowledge": [],
+        "selectedCharacterId": "ranger",
+        "lastChar": "ranger",
+        "audio": {
+          "master": 80,
+          "music": 70,
+          "sfx": 80,
+          "mute": false
+        }
+      }
+    }
+  },
+  "effectResponses": [
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/projectile_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/projectile_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/projectile_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/projectile_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/hit_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/hit_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/hit_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/seed_blade/hit_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/recycle_net/aoe_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/recycle_net/aoe_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/recycle_net/aoe_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/recycle_net/aoe_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/recycle_net/aoe_4.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/recycle_net/aoe_5.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/wind_blade/blade_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/wind_blade/blade_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/wind_blade/blade_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/wind_blade/blade_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/compost_spore/area_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/compost_spore/area_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/compost_spore/area_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/compost_spore/area_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/compost_spore/area_4.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/compost_spore/area_5.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/hit_small_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/hit_small_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/hit_small_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/hit_small_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/purify_pop_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/purify_pop_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/purify_pop_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/purify_pop_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/purify_pop_4.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/pickup_sparkle_0.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/pickup_sparkle_1.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/pickup_sparkle_2.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8765/assets/images/effects/common/pickup_sparkle_3.png?v=skill_effect_promote_20260702_2258",
+      "status": 200
+    }
+  ],
+  "effect404": [],
+  "pageErrors": [
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)",
+    "Failed to load resource: the server responded with a status of 404 (File not found)"
+  ]
+}

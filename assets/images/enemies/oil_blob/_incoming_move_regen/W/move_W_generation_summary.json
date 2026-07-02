@@ -1,0 +1,185 @@
+{
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_01ae5e0b97a6bdb8016a46a8c2d1548191ab1f77b1f7fcf6c5.png",
+  "outputDir": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\oil_blob\\_incoming_move_regen\\W",
+  "direction": "W",
+  "sourceSize": [
+    2172,
+    724
+  ],
+  "cellSize": [
+    543,
+    724
+  ],
+  "target": {
+    "size": [
+      256,
+      256
+    ],
+    "w": 213.75,
+    "h": 157.5,
+    "cx": 128.375,
+    "bottom": 218.0,
+    "count": 20656.75,
+    "referenceMetrics": [
+      {
+        "w": 213,
+        "h": 146,
+        "cx": 128.5,
+        "bottom": 218,
+        "count": 19292
+      },
+      {
+        "w": 212,
+        "h": 183,
+        "cx": 128.0,
+        "bottom": 218,
+        "count": 23974
+      },
+      {
+        "w": 217,
+        "h": 155,
+        "cx": 128.5,
+        "bottom": 218,
+        "count": 20043
+      },
+      {
+        "w": 213,
+        "h": 146,
+        "cx": 128.5,
+        "bottom": 218,
+        "count": 19318
+      }
+    ]
+  },
+  "frames": [
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\oil_blob\\_incoming_move_regen\\W\\move_W_0.png",
+      "bbox": [
+        21,
+        67,
+        235,
+        218
+      ],
+      "pixelCount": 20953,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          72,
+          208,
+          535,
+          535
+        ],
+        "normalizedBBox": [
+          21,
+          67,
+          235,
+          218
+        ],
+        "pixelCount": 20953,
+        "scale": 0.46166306695464365
+      }
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\oil_blob\\_incoming_move_regen\\W\\move_W_1.png",
+      "bbox": [
+        29,
+        60,
+        227,
+        218
+      ],
+      "pixelCount": 19808,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          35,
+          164,
+          511,
+          543
+        ],
+        "normalizedBBox": [
+          29,
+          60,
+          227,
+          218
+        ],
+        "pixelCount": 19808,
+        "scale": 0.4155672823218997
+      }
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\oil_blob\\_incoming_move_regen\\W\\move_W_2.png",
+      "bbox": [
+        21,
+        77,
+        235,
+        218
+      ],
+      "pixelCount": 19299,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          9,
+          211,
+          501,
+          535
+        ],
+        "normalizedBBox": [
+          21,
+          77,
+          235,
+          218
+        ],
+        "pixelCount": 19299,
+        "scale": 0.4344512195121951
+      }
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\oil_blob\\_incoming_move_regen\\W\\move_W_3.png",
+      "bbox": [
+        21,
+        75,
+        235,
+        218
+      ],
+      "pixelCount": 19195,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          0,
+          211,
+          483,
+          535
+        ],
+        "normalizedBBox": [
+          21,
+          75,
+          235,
+          218
+        ],
+        "pixelCount": 19195,
+        "scale": 0.44254658385093165
+      }
+    }
+  ],
+  "contactSheet": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\oil_blob-move-W-incoming-contact-sheet.png"
+}

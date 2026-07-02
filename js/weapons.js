@@ -17,18 +17,31 @@
     this.life = 2.2;
     this.dead = false;
     this.spin = Math.random() * Math.PI;
+    this.visualAge = 0;
     this.hitSet = [];   // 已命中的敵人，避免同一發重複打同一隻
   }
   Projectile.prototype.update = function (dt) {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.spin += dt * 12;
+    this.visualAge += dt;
     this.life -= dt;
     if (this.life <= 0) this.dead = true;
   };
   Projectile.prototype.draw = function (ctx) {
     // 視覺大小取自 RENDER_SIZES（碰撞半徑 this.radius 不變，不影響命中判定）
     var vr = (global.Config ? (global.Config.RENDER_SIZES.projectile / 2) / global.Config.CAMERA_ZOOM : this.radius);
+    var fx = global.SkillEffectRenderer;
+    if (fx && fx.drawFrame) {
+      var imgSize = (global.Config ? global.Config.RENDER_SIZES.projectile / global.Config.CAMERA_ZOOM : this.radius * 2.4);
+      var frame = Math.floor(this.visualAge * 18);
+      var angle = Math.atan2(this.vy, this.vx);
+      if (fx.drawFrame(ctx, "seed_blade", "projectile", frame, this.x, this.y, {
+        size: imgSize * 1.8,
+        rotation: angle,
+        alpha: 0.95
+      })) return;
+    }
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.spin);
@@ -91,6 +104,22 @@
   Zone.prototype.draw = function (ctx) {
     var t = this.life / this.duration;
     var wob = Math.sin(this.pulse) * 3;
+    var fx = global.SkillEffectRenderer;
+    if (fx && fx.drawFrame) {
+      if (this.style === "net") {
+        var netFrame = Math.floor(this.pulse * 1.4);
+        if (fx.drawFrame(ctx, "recycle_net", "aoe", netFrame, this.x, this.y, {
+          size: (this.radius + wob) * 2,
+          alpha: 0.86
+        })) return;
+      } else {
+        var areaFrame = Math.floor(this.pulse * 1.2);
+        if (fx.drawFrame(ctx, "compost_spore", "area", areaFrame, this.x, this.y, {
+          size: (this.radius + wob) * 2,
+          alpha: 0.82
+        })) return;
+      }
+    }
     ctx.save();
     if (this.style === "net") {
       ctx.globalAlpha = 0.18 + 0.10 * t;
@@ -133,6 +162,15 @@
   Pulse.prototype.draw = function (ctx) {
     var t = this.age / this.life;
     var r = this.maxR * t;
+    var fx = global.SkillEffectRenderer;
+    if (fx && fx.drawFrame) {
+      var count = fx.frameCount("solar_pulse", "pulse");
+      var frame = count ? Math.min(count - 1, Math.floor(t * count)) : 0;
+      if (fx.drawFrame(ctx, "solar_pulse", "pulse", frame, this.x, this.y, {
+        size: Math.max(8, this.maxR * 2),
+        alpha: Math.max(0, 1 - t)
+      })) return;
+    }
     ctx.save();
     ctx.globalAlpha = (1 - t) * 0.8;
     ctx.strokeStyle = "#ffce3d";
@@ -260,6 +298,15 @@
     if (this.skill.type !== "orbit") return;
     for (var i = 0; i < this.blades.length; i++) {
       var bl = this.blades[i];
+      var fx = global.SkillEffectRenderer;
+      if (fx && fx.drawFrame) {
+        var bladeSize = (global.Config ? 42 / global.Config.CAMERA_ZOOM : 24);
+        if (fx.drawFrame(ctx, "wind_blade", "blade", Math.floor(this.angle * 4 + i), bl.x, bl.y, {
+          size: bladeSize,
+          rotation: this.angle * 2 + i,
+          alpha: 0.95
+        })) continue;
+      }
       ctx.save();
       ctx.translate(bl.x, bl.y);
       ctx.rotate(this.angle * 2 + i);

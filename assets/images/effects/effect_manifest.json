@@ -1,0 +1,250 @@
+{
+  "version": "skill_effect_promote_20260702_2258",
+  "generatedAt": "2026-07-02T22:58:30",
+  "runtimeNote": "Visual effect manifest only. Skill damage, cooldown, collision, range, and upgrade logic remain unchanged. Canvas fallback remains mandatory.",
+  "effects": {
+    "seed_blade": {
+      "displayName": "Seed Blade / seed_blade",
+      "codeSkillId": "seed_blade",
+      "approvedEffect": true,
+      "runtimePath": "assets/images/effects/seed_blade/",
+      "incomingPath": "assets/images/effects/seed_blade/_incoming/",
+      "fallback": "Canvas fallback remains required if frames are missing or fail to load.",
+      "groups": {
+        "projectile": {
+          "prefix": "projectile",
+          "frameCount": 4,
+          "canvasSize": [
+            64,
+            64
+          ],
+          "frames": [
+            "projectile_0.png",
+            "projectile_1.png",
+            "projectile_2.png",
+            "projectile_3.png"
+          ],
+          "approved": true,
+          "centerNote": "ok"
+        },
+        "hit": {
+          "prefix": "hit",
+          "frameCount": 4,
+          "canvasSize": [
+            64,
+            64
+          ],
+          "frames": [
+            "hit_0.png",
+            "hit_1.png",
+            "hit_2.png",
+            "hit_3.png"
+          ],
+          "approved": true,
+          "centerNote": "ok"
+        }
+      },
+      "qaReport": "SKILL_EFFECT_QA_seed_blade.md",
+      "promotionReport": "SKILL_EFFECT_PROMOTION_REPORT_seed_blade.md",
+      "contactSheet": "screenshots/seed_blade-effect-contact-sheet.png",
+      "gameplayPreview": "screenshots/seed_blade-effect-gameplay.png",
+      "failReasons": []
+    },
+    "recycle_net": {
+      "displayName": "Recycle Net / recycle_net",
+      "codeSkillId": "recycle_net",
+      "approvedEffect": true,
+      "runtimePath": "assets/images/effects/recycle_net/",
+      "incomingPath": "assets/images/effects/recycle_net/_incoming/",
+      "fallback": "Canvas fallback remains required if frames are missing or fail to load.",
+      "groups": {
+        "aoe": {
+          "prefix": "aoe",
+          "frameCount": 6,
+          "canvasSize": [
+            192,
+            192
+          ],
+          "frames": [
+            "aoe_0.png",
+            "aoe_1.png",
+            "aoe_2.png",
+            "aoe_3.png",
+            "aoe_4.png",
+            "aoe_5.png"
+          ],
+          "approved": true,
+          "centerNote": "normalized_on_promote (max center deviation 27.2px)"
+        }
+      },
+      "qaReport": "SKILL_EFFECT_QA_recycle_net.md",
+      "promotionReport": "SKILL_EFFECT_PROMOTION_REPORT_recycle_net.md",
+      "contactSheet": "screenshots/recycle_net-effect-contact-sheet.png",
+      "gameplayPreview": "screenshots/recycle_net-effect-gameplay.png",
+      "failReasons": []
+    },
+    "wind_blade": {
+      "displayName": "Wind Blade / wind_blade",
+      "codeSkillId": "wind_blades",
+      "approvedEffect": true,
+      "runtimePath": "assets/images/effects/wind_blade/",
+      "incomingPath": "assets/images/effects/wind_blade/_incoming/",
+      "fallback": "Canvas fallback remains required if frames are missing or fail to load.",
+      "groups": {
+        "blade": {
+          "prefix": "blade",
+          "frameCount": 4,
+          "canvasSize": [
+            64,
+            64
+          ],
+          "frames": [
+            "blade_0.png",
+            "blade_1.png",
+            "blade_2.png",
+            "blade_3.png"
+          ],
+          "approved": true,
+          "centerNote": "ok"
+        }
+      },
+      "qaReport": "SKILL_EFFECT_QA_wind_blade.md",
+      "promotionReport": "SKILL_EFFECT_PROMOTION_REPORT_wind_blade.md",
+      "contactSheet": "screenshots/wind_blade-effect-contact-sheet.png",
+      "gameplayPreview": "screenshots/wind_blade-effect-gameplay.png",
+      "failReasons": []
+    },
+    "compost_spore": {
+      "displayName": "Compost Spore / compost_spore",
+      "codeSkillId": "compost_spores",
+      "approvedEffect": true,
+      "runtimePath": "assets/images/effects/compost_spore/",
+      "incomingPath": "assets/images/effects/compost_spore/_incoming/",
+      "fallback": "Canvas fallback remains required if frames are missing or fail to load.",
+      "groups": {
+        "area": {
+          "prefix": "area",
+          "frameCount": 6,
+          "canvasSize": [
+            192,
+            192
+          ],
+          "frames": [
+            "area_0.png",
+            "area_1.png",
+            "area_2.png",
+            "area_3.png",
+            "area_4.png",
+            "area_5.png"
+          ],
+          "approved": true,
+          "centerNote": "normalized_on_promote (max center deviation 31.1px)"
+        }
+      },
+      "qaReport": "SKILL_EFFECT_QA_compost_spore.md",
+      "promotionReport": "SKILL_EFFECT_PROMOTION_REPORT_compost_spore.md",
+      "contactSheet": "screenshots/compost_spore-effect-contact-sheet.png",
+      "gameplayPreview": "screenshots/compost_spore-effect-gameplay.png",
+      "failReasons": []
+    },
+    "common": {
+      "displayName": "Common Combat Effects / common",
+      "codeSkillId": null,
+      "approvedEffect": true,
+      "runtimePath": "assets/images/effects/common/",
+      "incomingPath": "assets/images/effects/common/_incoming/",
+      "fallback": "Canvas fallback remains required if frames are missing or fail to load.",
+      "groups": {
+        "hit_small": {
+          "prefix": "hit_small",
+          "frameCount": 4,
+          "canvasSize": [
+            64,
+            64
+          ],
+          "frames": [
+            "hit_small_0.png",
+            "hit_small_1.png",
+            "hit_small_2.png",
+            "hit_small_3.png"
+          ],
+          "approved": true,
+          "centerNote": "ok"
+        },
+        "purify_pop": {
+          "prefix": "purify_pop",
+          "frameCount": 5,
+          "canvasSize": [
+            96,
+            96
+          ],
+          "frames": [
+            "purify_pop_0.png",
+            "purify_pop_1.png",
+            "purify_pop_2.png",
+            "purify_pop_3.png",
+            "purify_pop_4.png"
+          ],
+          "approved": true,
+          "centerNote": "ok"
+        },
+        "pickup_sparkle": {
+          "prefix": "pickup_sparkle",
+          "frameCount": 4,
+          "canvasSize": [
+            64,
+            64
+          ],
+          "frames": [
+            "pickup_sparkle_0.png",
+            "pickup_sparkle_1.png",
+            "pickup_sparkle_2.png",
+            "pickup_sparkle_3.png"
+          ],
+          "approved": true,
+          "centerNote": "ok"
+        }
+      },
+      "qaReport": "SKILL_EFFECT_QA_common.md",
+      "promotionReport": "SKILL_EFFECT_PROMOTION_REPORT_common.md",
+      "contactSheet": "screenshots/common-effect-contact-sheet.png",
+      "gameplayPreview": "screenshots/common-effect-gameplay.png",
+      "failReasons": []
+    },
+    "solar_pulse": {
+      "displayName": "Solar Pulse / solar_pulse",
+      "codeSkillId": "solar_pulse",
+      "approvedEffect": false,
+      "runtimePath": "assets/images/effects/solar_pulse/",
+      "incomingPath": "assets/images/effects/solar_pulse/_incoming/",
+      "fallback": "Canvas fallback remains required if frames are missing or fail to load.",
+      "groups": {
+        "pulse": {
+          "prefix": "pulse",
+          "frameCount": 6,
+          "canvasSize": [
+            192,
+            192
+          ],
+          "frames": [
+            "pulse_0.png",
+            "pulse_1.png",
+            "pulse_2.png",
+            "pulse_3.png",
+            "pulse_4.png",
+            "pulse_5.png"
+          ],
+          "approved": false,
+          "centerNote": "ok"
+        }
+      },
+      "qaReport": "SKILL_EFFECT_QA_solar_pulse.md",
+      "promotionReport": "SKILL_EFFECT_PROMOTION_REPORT_solar_pulse.md",
+      "contactSheet": null,
+      "gameplayPreview": null,
+      "failReasons": [
+        "pulse: Missing frames: pulse_0.png, pulse_1.png, pulse_2.png, pulse_3.png, pulse_4.png, pulse_5.png"
+      ]
+    }
+  }
+}

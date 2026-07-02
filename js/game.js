@@ -70,6 +70,7 @@
       this.zones = [];
       this.pulses = [];
       this.pickups = [];
+      this.effects = [];
       this.puffs = [];
       this.floaters = [];
 
@@ -110,7 +111,7 @@
     abort: function () {
       this.running = false; this.ended = true; this.menuPaused = false; this.paused = false;
       this.enemies = []; this.projectiles = []; this.zones = []; this.pulses = [];
-      this.pickups = []; this.puffs = []; this.floaters = [];
+      this.pickups = []; this.effects = []; this.puffs = []; this.floaters = [];
       this.pendingLevelUps = 0; this.time = 0;
     },
 
@@ -262,6 +263,7 @@
       for (var f = 0; f < this.puffs.length; f++) {
         var pf = this.puffs[f]; pf.age += dt; if (pf.age >= pf.life) pf.dead = true;
       }
+      for (var ef = 0; ef < this.effects.length; ef++) this.effects[ef].update(dt);
       for (var fl = 0; fl < this.floaters.length; fl++) {
         var ft = this.floaters[fl]; ft.age += dt; ft.y -= 18 * dt; if (ft.age >= ft.life) ft.dead = true;
       }
@@ -286,9 +288,17 @@
         zones: this.zones,
         pulses: this.pulses,
         pickups: this.pickups,
+        effects: this.effects,
         findNearestEnemy: function (x, y) { return self.findNearestEnemy(x, y); },
         onPurified: function (en) { self.onPurified(en); }
       };
+    },
+
+    spawnEffect: function (effectId, groupName, x, y, opt) {
+      if (!global.SkillEffectRenderer || !global.SkillEffectRenderer.VisualEffect) return false;
+      if (!global.SkillEffectRenderer.ready(effectId, groupName)) return false;
+      this.effects.push(new global.SkillEffectRenderer.VisualEffect(effectId, groupName, x, y, opt || {}));
+      return true;
     },
 
     findNearestEnemy: function (x, y) {
@@ -311,7 +321,13 @@
         var dx = e.x - pr.x, dy = e.y - pr.y, rr = e.radius + pr.radius;
         if (dx * dx + dy * dy <= rr * rr) {
           pr.hitSet.push(e);
-          if (e.takeDamage(pr.damage)) this.onPurified(e);
+          var killed = e.takeDamage(pr.damage);
+          this.spawnEffect("seed_blade", "hit", pr.x, pr.y, {
+            life: 0.22,
+            size: (global.Config ? 42 / global.Config.CAMERA_ZOOM : 24),
+            rotation: Math.atan2(pr.vy, pr.vx)
+          });
+          if (killed) this.onPurified(e);
           if (pr.pierce <= 0) { pr.dead = true; return; }
           pr.pierce -= 1;
         }
@@ -325,6 +341,10 @@
 
       // 淨化特效
       this.puffs.push({ x: e.x, y: e.y, age: 0, life: 0.35, r: e.radius, color: e.isBoss ? "#6a5acd" : "#7cc36a" });
+      this.spawnEffect("common", "purify_pop", e.x, e.y, {
+        life: 0.38,
+        size: Math.max(e.radius * 3.4, (global.Config ? 58 / global.Config.CAMERA_ZOOM : 34))
+      });
 
       // 經驗晶體
       if (e.isBoss) {
@@ -358,9 +378,17 @@
       if (pk.type === "xp") {
         var ups = this.player.gainXp(pk.value);
         this.pendingLevelUps += ups;
+        this.spawnEffect("common", "pickup_sparkle", pk.x, pk.y, {
+          life: 0.32,
+          size: (global.Config ? 36 / global.Config.CAMERA_ZOOM : 22)
+        });
         this.floaters.push({ x: pk.x, y: pk.y, age: 0, life: 0.6, text: "+" + pk.value, color: "#7cf08a" });
       } else if (pk.type === "coin") {
         this.runCoins += pk.value;
+        this.spawnEffect("common", "pickup_sparkle", pk.x, pk.y, {
+          life: 0.32,
+          size: (global.Config ? 38 / global.Config.CAMERA_ZOOM : 24)
+        });
         this.floaters.push({ x: pk.x, y: pk.y, age: 0, life: 0.7, text: "♻+" + pk.value, color: "#4dd0c4" });
       } else if (pk.type === "health") {
         this.player.heal(pk.value);
@@ -377,6 +405,7 @@
       this.zones = this.zones.filter(function (z) { return !z.dead; });
       this.pulses = this.pulses.filter(function (u) { return !u.dead; });
       this.pickups = this.pickups.filter(function (p) { return !p.dead; });
+      this.effects = this.effects.filter(function (e) { return !e.dead; });
       this.puffs = this.puffs.filter(function (p) { return !p.dead; });
       this.floaters = this.floaters.filter(function (f) { return !f.dead; });
     },
@@ -594,6 +623,12 @@
 
       // 投射物
       for (var pr = 0; pr < this.projectiles.length; pr++) if (vis(this.projectiles[pr])) this.projectiles[pr].draw(ctx);
+
+      // 圖片化一次性特效（命中、淨化、拾取）
+      for (var ef = 0; ef < this.effects.length; ef++) {
+        var vfx = this.effects[ef];
+        if (vis(vfx, 80)) vfx.draw(ctx);
+      }
 
       // 玩家 + 環繞武器（葉片）
       this.player.draw(ctx);

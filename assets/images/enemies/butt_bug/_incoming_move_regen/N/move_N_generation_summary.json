@@ -1,0 +1,240 @@
+{
+  "direction": "N",
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_0f330f9dedbaf1d3016a46b4abad908191810af31b2c34541b.png",
+  "outputDir": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\N",
+  "target": {
+    "size": [
+      192,
+      192
+    ],
+    "w": 102.75,
+    "h": 102.5,
+    "cx": 95.625,
+    "bottom": 150.0,
+    "count": 5926.25,
+    "referenceMetrics": [
+      {
+        "file": "move_S_0.png",
+        "w": 103,
+        "h": 95,
+        "cx": 95.5,
+        "bottom": 150,
+        "count": 5115,
+        "bbox": [
+          44,
+          55,
+          147,
+          150
+        ]
+      },
+      {
+        "file": "move_S_1.png",
+        "w": 102,
+        "h": 111,
+        "cx": 96.0,
+        "bottom": 150,
+        "count": 7847,
+        "bbox": [
+          45,
+          39,
+          147,
+          150
+        ]
+      },
+      {
+        "file": "move_S_2.png",
+        "w": 103,
+        "h": 103,
+        "cx": 95.5,
+        "bottom": 150,
+        "count": 5401,
+        "bbox": [
+          44,
+          47,
+          147,
+          150
+        ]
+      },
+      {
+        "file": "move_S_3.png",
+        "w": 103,
+        "h": 101,
+        "cx": 95.5,
+        "bottom": 150,
+        "count": 5342,
+        "bbox": [
+          44,
+          49,
+          147,
+          150
+        ]
+      }
+    ]
+  },
+  "frames": [
+    {
+      "file": "move_N_0.png",
+      "path": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\N\\move_N_0.png",
+      "size": [
+        192,
+        192
+      ],
+      "bbox": [
+        53,
+        48,
+        138,
+        150
+      ],
+      "pixelCount": 5595,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "metrics": {
+        "sourceBBox": [
+          182,
+          188,
+          470,
+          536
+        ],
+        "normalizedBBox": [
+          53,
+          48,
+          138,
+          150
+        ],
+        "pixelCount": 5595,
+        "scale": 0.29454022988505746,
+        "placedAt": [
+          53,
+          48
+        ]
+      }
+    },
+    {
+      "file": "move_N_1.png",
+      "path": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\N\\move_N_1.png",
+      "size": [
+        192,
+        192
+      ],
+      "bbox": [
+        61,
+        48,
+        130,
+        150
+      ],
+      "pixelCount": 5065,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "metrics": {
+        "sourceBBox": [
+          159,
+          193,
+          391,
+          537
+        ],
+        "normalizedBBox": [
+          61,
+          48,
+          130,
+          150
+        ],
+        "pixelCount": 5065,
+        "scale": 0.29796511627906974,
+        "placedAt": [
+          61,
+          48
+        ]
+      }
+    },
+    {
+      "file": "move_N_2.png",
+      "path": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\N\\move_N_2.png",
+      "size": [
+        192,
+        192
+      ],
+      "bbox": [
+        53,
+        47,
+        138,
+        150
+      ],
+      "pixelCount": 5558,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "metrics": {
+        "sourceBBox": [
+          89,
+          188,
+          379,
+          537
+        ],
+        "normalizedBBox": [
+          53,
+          47,
+          138,
+          150
+        ],
+        "pixelCount": 5558,
+        "scale": 0.29369627507163326,
+        "placedAt": [
+          53,
+          47
+        ]
+      }
+    },
+    {
+      "file": "move_N_3.png",
+      "path": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\butt_bug\\_incoming_move_regen\\N\\move_N_3.png",
+      "size": [
+        192,
+        192
+      ],
+      "bbox": [
+        54,
+        47,
+        137,
+        150
+      ],
+      "pixelCount": 5584,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "metrics": {
+        "sourceBBox": [
+          70,
+          188,
+          351,
+          537
+        ],
+        "normalizedBBox": [
+          54,
+          47,
+          137,
+          150
+        ],
+        "pixelCount": 5584,
+        "scale": 0.29369627507163326,
+        "placedAt": [
+          54,
+          47
+        ]
+      }
+    }
+  ]
+}

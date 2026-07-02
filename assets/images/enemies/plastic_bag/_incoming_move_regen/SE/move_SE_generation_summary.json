@@ -1,0 +1,185 @@
+{
+  "source": "C:\\Users\\aswen\\.codex\\generated_images\\019f17ad-e565-7c73-b527-e212fbfba3af\\ig_02d0b71a4e198b13016a46acd8dce88191b3c0d25c6c5cf0f0.png",
+  "outputDir": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\plastic_bag\\_incoming_move_regen\\SE",
+  "direction": "SE",
+  "sourceSize": [
+    2172,
+    724
+  ],
+  "cellSize": [
+    543,
+    724
+  ],
+  "target": {
+    "size": [
+      192,
+      192
+    ],
+    "w": 133.5,
+    "h": 146.25,
+    "cx": 96.0,
+    "bottom": 160.0,
+    "count": 11500.75,
+    "referenceMetrics": [
+      {
+        "w": 128,
+        "h": 137,
+        "cx": 96.0,
+        "bottom": 160,
+        "count": 11710
+      },
+      {
+        "w": 134,
+        "h": 152,
+        "cx": 96.0,
+        "bottom": 160,
+        "count": 10991
+      },
+      {
+        "w": 144,
+        "h": 160,
+        "cx": 96.0,
+        "bottom": 160,
+        "count": 11634
+      },
+      {
+        "w": 128,
+        "h": 136,
+        "cx": 96.0,
+        "bottom": 160,
+        "count": 11668
+      }
+    ]
+  },
+  "frames": [
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\plastic_bag\\_incoming_move_regen\\SE\\move_SE_0.png",
+      "bbox": [
+        30,
+        14,
+        163,
+        160
+      ],
+      "pixelCount": 11279,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          122,
+          187,
+          450,
+          547
+        ],
+        "normalizedBBox": [
+          30,
+          14,
+          163,
+          160
+        ],
+        "pixelCount": 11279,
+        "scale": 0.40625
+      }
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\plastic_bag\\_incoming_move_regen\\SE\\move_SE_1.png",
+      "bbox": [
+        29,
+        25,
+        163,
+        160
+      ],
+      "pixelCount": 9404,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          85,
+          145,
+          504,
+          570
+        ],
+        "normalizedBBox": [
+          29,
+          25,
+          163,
+          160
+        ],
+        "pixelCount": 9404,
+        "scale": 0.31861575178997614
+      }
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\plastic_bag\\_incoming_move_regen\\SE\\move_SE_2.png",
+      "bbox": [
+        29,
+        30,
+        163,
+        160
+      ],
+      "pixelCount": 9873,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          50,
+          203,
+          440,
+          583
+        ],
+        "normalizedBBox": [
+          29,
+          30,
+          163,
+          160
+        ],
+        "pixelCount": 9873,
+        "scale": 0.3423076923076923
+      }
+    },
+    {
+      "file": "C:\\Users\\aswen\\Downloads\\new_game\\assets\\images\\enemies\\plastic_bag\\_incoming_move_regen\\SE\\move_SE_3.png",
+      "bbox": [
+        29,
+        14,
+        163,
+        160
+      ],
+      "pixelCount": 11337,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "normalize": {
+        "sourceBBox": [
+          30,
+          187,
+          359,
+          547
+        ],
+        "normalizedBBox": [
+          29,
+          14,
+          163,
+          160
+        ],
+        "pixelCount": 11337,
+        "scale": 0.40577507598784196
+      }
+    }
+  ],
+  "contactSheet": "C:\\Users\\aswen\\Downloads\\new_game\\screenshots\\plastic_bag-move-SE-incoming-contact-sheet.png"
+}

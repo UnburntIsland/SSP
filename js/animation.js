@@ -427,6 +427,12 @@
           ? this.isWalkApproved(this.dir)
           : this.framesOf(this.action, this.dir).length > 0
       ),
+      // 敵人（moveAction="move"）語意別名：approvedMove 與 approvedWalk 同值
+      approvedMove: this.action === this.moveAction && (
+        this.strictDirection
+          ? this.isWalkApproved(this.dir)
+          : this.framesOf(this.action, this.dir).length > 0
+      ),
       frameIndex: this.frame,
       frameName: frameName,
       requestedFrameName: resolved.requestedFrameName || frameName,
@@ -476,7 +482,8 @@
       durations: {
         idle: enemyDef && enemyDef.isBoss ? 0.6 : 0.46,
         move: enemyDef && enemyDef.isBoss ? 0.22 : 0.16
-      }
+      },
+      strictDirection: true
     });
     this.enemyId = this.assetId;
   }
@@ -829,7 +836,7 @@
       "requested=" + (info.requestedKey || "-"),
       "resolved=" + (info.resolvedKey || "-"),
       "hasSprite=" + info.hasSprite + " type=" + info.fallbackType,
-      "approvedWalk=" + info.approvedWalk + " flipX=" + info.flipX
+      (info.entityType === "Enemy" ? "approvedMove=" : "approvedWalk=") + info.approvedWalk + " flipX=" + info.flipX
     ];
     var x = opts.x || 0;
     var y = (opts.y || 0) - (opts.offsetY || 52);
