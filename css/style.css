@@ -1635,22 +1635,176 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
    手機顯示適配（js/mobile.js 於觸控裝置加上 .is-mobile）
    #stage 固定 1280x720，transform:scale 整體等比縮放 → UI 不爆版
    ============================================================ */
+:root{
+  --safe-top:env(safe-area-inset-top, 0px);
+  --safe-right:env(safe-area-inset-right, 0px);
+  --safe-bottom:env(safe-area-inset-bottom, 0px);
+  --safe-left:env(safe-area-inset-left, 0px);
+}
 html.is-mobile, .is-mobile body{
-  overflow:hidden;
+  margin:0;
+  padding:0;
+  width:100%;
   height:100%;
+  overflow:hidden;
+  background:#000;
+  touch-action:none;
   overscroll-behavior:none;
   -webkit-text-size-adjust:100%;
 }
+.is-mobile body{ position:fixed; inset:0; }
 .is-mobile #game-root{
+  position:fixed;
+  inset:0;
   overflow:hidden;
-  width:100vw;
-  height:100vh;
+  width:100dvw;
+  height:100dvh;
+  margin:0;
+  padding:0;
+  background:#000;
 }
 .is-mobile #stage{
   width:1280px;
   height:720px;
   flex:0 0 auto;
   transform-origin:center center;
+  box-shadow:none;           /* 手機滿版：移除外框描邊 */
+}
+.is-mobile #game-canvas{
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+/* ---- 可見遊戲區內縮：HUD 與畫面邊緣元件避開 cover 裁切與瀏海 ---- */
+.is-mobile .screen{
+  padding-top:calc(14px + var(--vis-inset-top, 0px));
+  padding-bottom:calc(14px + var(--vis-inset-bottom, 0px));
+  padding-left:calc(14px + var(--vis-inset-left, 0px));
+  padding-right:calc(14px + var(--vis-inset-right, 0px));
+  box-sizing:border-box;
+}
+.is-mobile .hud-tl{
+  left:calc(16px + var(--vis-inset-left, 0px));
+  top:calc(12px + var(--vis-inset-top, 0px));
+}
+.is-mobile .hud-tr{
+  right:calc(16px + var(--vis-inset-right, 0px));
+  top:calc(12px + var(--vis-inset-top, 0px));
+}
+.is-mobile .hud-center{
+  top:calc(6px + var(--vis-inset-top, 0px));
+}
+.is-mobile .hud-skills{
+  left:calc(16px + var(--vis-inset-left, 0px));
+  bottom:calc(12px + var(--vis-inset-bottom, 0px));
+}
+#mobile-coin-chip{
+  position:absolute;
+  left:18px;
+  top:14px;
+  z-index:5;
+  padding:8px 14px;
+  font-size:18px;
+  color:#ffd84a;
+  background:rgba(10, 26, 35, 0.85);
+  border:2px solid #0a1a23;
+  border-radius:20px;
+  text-shadow:1px 1px 0 rgba(0,0,0,.6);
+}
+.is-mobile #mobile-coin-chip{
+  left:calc(18px + var(--vis-inset-left, 0px));
+  top:calc(12px + var(--vis-inset-top, 0px));
+}
+/* 手機暫停按鈕（HUD 內、右上、避開裁切與瀏海；桌機不顯示） */
+#mobile-pause-btn{ display:none; }
+.is-mobile #mobile-pause-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:absolute;
+  right:calc(14px + var(--vis-inset-right, 0px));
+  top:calc(12px + var(--vis-inset-top, 0px));
+  width:52px;
+  height:52px;
+  z-index:30;
+  pointer-events:auto;
+  font-size:20px;
+  color:#eafff7;
+  background:rgba(10, 26, 35, 0.82);
+  border:2px solid rgba(77, 208, 196, 0.5);
+  border-radius:14px;
+  cursor:pointer;
+  text-shadow:1px 1px 0 rgba(0,0,0,.6);
+  touch-action:manipulation;
+}
+.is-mobile #mobile-pause-btn:active{ transform:scale(.94); background:rgba(24, 52, 63, 0.92); }
+/* HUD 右上資訊讓位給暫停鈕；鍵盤提示在手機上無意義 */
+.is-mobile .hud-tr{ right:calc(78px + var(--vis-inset-right, 0px)); }
+.is-mobile .hud-hint{ display:none; }
+/* debugUI hitbox 檢查 */
+.debug-ui #mobile-pause-btn{ outline:1px solid #ffd400 !important; }
+
+/* 窄可見區（直向）：面板縮窄、確認按鈕上下排列 */
+.narrow-visible .pause-panel{ width:min(300px, 92%); min-height:0; padding:26px 16px; }
+.narrow-visible .settings-panel{ width:min(305px, 94%); }
+.narrow-visible #overlay-confirm .confirm-panel{ width:min(305px, 94%); }
+.narrow-visible #overlay-confirm .confirm-panel.has-asset .confirm-buttons{
+  position:static;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  width:86%;
+  height:auto;
+  margin:14px auto 4px;
+}
+.narrow-visible #overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn,
+.narrow-visible.is-mobile #overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn{
+  width:100%;
+  height:52px;
+  min-height:48px;
+  background-image:var(--ui-btn-normal);
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+}
+.narrow-visible #overlay-confirm .confirm-panel.has-asset .confirm-title{ position:static; margin:6px 0 4px; }
+.narrow-visible #overlay-confirm .confirm-panel.has-asset .confirm-desc{ position:static; margin:0 0 4px; }
+.narrow-visible #overlay-confirm .confirm-panel.has-asset{ display:flex; flex-direction:column; justify-content:center; padding:24px 16px; }
+
+/* 全螢幕按鈕（右上角，避開裁切區） */
+#mobile-fullscreen-btn{
+  position:absolute;
+  right:calc(18px + var(--vis-inset-right, 0px));
+  top:calc(12px + var(--vis-inset-top, 0px));
+  z-index:5;
+  padding:8px 14px;
+  font-size:16px;
+  font-family:inherit;
+  color:#bfe8dc;
+  background:rgba(10, 26, 35, 0.85);
+  border:2px solid rgba(77, 208, 196, 0.4);
+  border-radius:18px;
+  cursor:pointer;
+  text-shadow:1px 1px 0 rgba(0,0,0,.6);
+}
+#mobile-fullscreen-btn:active{ transform:scale(.96); }
+.rotate-hint-close{
+  margin-top:12px;
+  font-size:13px;
+  color:#9fd8c6;
+}
+/* debugLayout 面板（viewport 座標，不隨 stage 縮放） */
+#debug-layout{
+  position:fixed;
+  left:8px;
+  top:8px;
+  z-index:99999;
+  padding:8px 10px;
+  font:11px/1.5 monospace;
+  color:#d9fff4;
+  background:rgba(4, 12, 16, 0.85);
+  border:1px solid rgba(87, 235, 218, 0.6);
+  pointer-events:none;
+  white-space:nowrap;
 }
 
 /* ============================================================
@@ -1661,12 +1815,12 @@ html.is-mobile, .is-mobile body{
    ============================================================ */
 .is-mobile #screen-menu [data-action="characters"]{ display:none; }
 .is-mobile #screen-menu .coin-display{ display:none; }
-.is-mobile #screen-menu{ position:relative; overflow:visible; }
+.is-mobile #screen-menu{ overflow:visible; }  /* absolute(inset:0) 本身即定位基準，滿版置中 */
 .is-mobile #screen-menu .menu-buttons{ transform:translateX(-165px); }
 .is-mobile #home-character-preview{
   position:absolute;
   left:50%;
-  top:160px;              /* 與左側按鈕列頂對齊 */
+  top:180px;              /* 與左側按鈕列對齊（cover 內縮後） */
   height:264px;           /* = 4 顆按鈕 + 間距總高，底部對齊 */
   transform:translateX(65px);
   width:360px;
@@ -1757,7 +1911,7 @@ html.is-mobile, .is-mobile body{
   border:3px solid #0a1a23;
   box-shadow:0 8px 0 rgba(10,26,35,.6), 0 14px 30px rgba(0,0,0,.5);
 }
-.is-mobile #mobile-char-list{ top:430px; }
+.is-mobile #mobile-char-list{ top:450px; }
 #mobile-char-list.hidden{ display:none; }
 .mobile-char-item{
   display:flex;
