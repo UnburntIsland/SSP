@@ -185,7 +185,7 @@
 
     var chevron = document.createElement("div");
     chevron.className = "mobile-char-chevron";
-    chevron.textContent = "▼ 點擊切換角色";
+    chevron.textContent = "從右側選擇角色";
     preview.appendChild(chevron);
 
     var stats = document.createElement("div");
@@ -208,63 +208,46 @@
     }
     setTimeout(syncStats, 500);
 
-    var list = null;
-    function buildList() {
-      list = document.createElement("div");
-      list.id = "mobile-char-list";
-      list.className = "hidden";
+    // 右側常駐角色欄：每個角色一張小卡（頭像 + 名字），點擊即切換左側大卡
+    var rail = document.createElement("div");
+    rail.id = "mobile-char-rail";
+    menu.appendChild(rail);
+    function refreshRail() {
+      var cur = global.App ? global.App.selectedCharacterId : null;
+      Array.prototype.forEach.call(rail.children, function (it) {
+        it.classList.toggle("active", it.dataset.charId === cur);
+      });
+    }
+    function buildRail() {
       var chars = (global.GameData && global.GameData.characters) || [];
       chars.forEach(function (ch) {
         var item = document.createElement("div");
-        item.className = "mobile-char-item";
+        item.className = "mobile-rail-item";
         item.dataset.charId = ch.id;
         if (global.Sprites && global.Sprites.makeCanvas) {
           var icon = global.Sprites.makeCanvas(ch.spriteId, 3);
-          icon.className = "mobile-char-item-icon";
+          icon.className = "mobile-rail-icon";
           item.appendChild(icon);
         }
-        var txt = document.createElement("div");
-        txt.className = "mobile-char-item-text";
-        txt.innerHTML = "<div class='mobile-char-item-name'>" + ch.name + "</div>" +
-                        "<div class='mobile-char-item-role'>" + ch.role + "・" + (ch.passiveText || "") + "</div>";
-        item.appendChild(txt);
-        var mark = document.createElement("div");
-        mark.className = "mobile-char-item-mark";
-        mark.textContent = "✓";
-        item.appendChild(mark);
+        var nm = document.createElement("div");
+        nm.className = "mobile-rail-name";
+        nm.textContent = ch.name;
+        item.appendChild(nm);
         item.addEventListener("click", function (e) {
           e.stopPropagation();
           var app = global.App;
           if (app && app.saveSelectedCharacter) app.saveSelectedCharacter(ch.id);
           if (app && app.ui && app.ui.updateHomeCharacterPreview) app.ui.updateHomeCharacterPreview(ch.id);
           syncStats();
-          refreshMarks();
-          toggle(false);
+          refreshRail();
           if (global.AudioManager) global.AudioManager.playSfx("click");
         });
-        list.appendChild(item);
+        rail.appendChild(item);
       });
-      menu.appendChild(list);
+      refreshRail();
     }
-    function refreshMarks() {
-      if (!list) return;
-      var cur = global.App ? global.App.selectedCharacterId : null;
-      Array.prototype.forEach.call(list.children, function (it) {
-        it.classList.toggle("active", it.dataset.charId === cur);
-      });
-    }
-    function toggle(show) {
-      if (!list) buildList();
-      var willShow = (show != null) ? show : list.classList.contains("hidden");
-      list.classList.toggle("hidden", !willShow);
-      preview.classList.toggle("expanded", willShow);
-      if (willShow) refreshMarks();
-    }
-    preview.addEventListener("click", function () { toggle(); });
-    menu.addEventListener("click", function (e) {
-      if (list && !list.classList.contains("hidden") &&
-          !preview.contains(e.target) && !list.contains(e.target)) toggle(false);
-    });
+    // GameData / Sprites / App 皆已載入後建欄（首屏延遲建構）
+    setTimeout(function () { buildRail(); }, 400);
 
     var chip = document.createElement("div");
     chip.id = "mobile-coin-chip";

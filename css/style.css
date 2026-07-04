@@ -1820,14 +1820,13 @@ html.is-mobile, .is-mobile body{
 .is-mobile #home-character-preview{
   position:absolute;
   left:50%;
-  top:180px;              /* 與左側按鈕列對齊（cover 內縮後） */
-  height:264px;           /* = 4 顆按鈕 + 間距總高，底部對齊 */
-  transform:translateX(65px);
-  width:360px;
+  top:50%;                              /* 垂直置中：任何機型都與按鈕列（flex 置中）對齊 */
+  height:264px;
+  transform:translate(65px, -35%);      /* 垂直微偏，對齊按鈕列視覺重心 */
+  width:340px;
   margin:0;
-  cursor:pointer;
+  cursor:default;
   z-index:5;
-  transition:border-color .12s ease;
   display:flex;
   flex-flow:row wrap;
   align-items:center;
@@ -1837,6 +1836,44 @@ html.is-mobile, .is-mobile body{
   box-sizing:border-box;
   text-align:left;
 }
+/* 右側常駐角色欄 */
+#mobile-char-rail{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(425px, -35%);
+  width:150px;
+  z-index:5;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.mobile-rail-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  padding:8px 6px;
+  min-height:78px;
+  cursor:pointer;
+  background:linear-gradient(180deg, rgba(20,71,83,.85), rgba(11,44,58,.9));
+  border:2px solid rgba(77, 208, 196, 0.30);
+  box-shadow:0 3px 0 rgba(5,18,25,.8);
+}
+.mobile-rail-item:active{ transform:scale(.96); }
+.mobile-rail-item.active{
+  border-color:#ffd84a;
+  background:linear-gradient(180deg, rgba(38,96,104,.95), rgba(18,60,74,.95));
+}
+.mobile-rail-icon{ width:44px; height:44px; image-rendering:pixelated; }
+.mobile-rail-name{
+  font-size:13px;
+  color:#dff7ee;
+  letter-spacing:1px;
+  white-space:nowrap;
+  text-shadow:1px 1px 0 rgba(0,0,0,.55);
+}
+.mobile-rail-item.active .mobile-rail-name{ color:#ffd84a; }
 /* 左：放大的人物頭像 */
 .is-mobile #home-character-preview .current-character-portrait{
   flex:0 0 132px;
@@ -1889,7 +1926,6 @@ html.is-mobile, .is-mobile body{
   text-overflow:ellipsis;
 }
 .is-mobile .mobile-char-chevron{ flex:1 0 100%; margin-top:auto; text-align:center; }
-.is-mobile #home-character-preview:active{ transform:translateX(65px) scale(.98); }
 .is-mobile #home-character-preview.expanded{ border-color:var(--sun, #ffd84a); }
 .mobile-char-chevron{
   display:none;
