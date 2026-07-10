@@ -15,12 +15,17 @@
       world: { w: 2400, h: 1600 },
       spawnRadius: 560,         // 從玩家周圍此半徑（畫面外）生成
       maxEnemies: 320,
+      maxElites: 5,
       contaminationZone: {
-        startsAt: 125,
+        startsAt: 105,
         startRadius: 1020,
-        endRadius: 430,
-        damagePerTick: 4,
-        tickInterval: 0.75
+        endRadius: 500,
+        steps: 4,
+        warningDuration: 12,
+        shrinkDuration: 8,
+        holdDuration: 26,
+        damagePerTick: 2,
+        tickInterval: 1.0
       },
       // 各時段的生成規則
       waves: [
@@ -43,7 +48,7 @@
           types: [
             { enemy: "plastic_bag", weight: 3 },
             { enemy: "butt_bug", weight: 3 },
-            { enemy: "battery_slime", weight: 1 }
+            { enemy: "battery_slime", weight: 0.5 }
           ]
         },
         {
@@ -52,7 +57,7 @@
           types: [
             { enemy: "plastic_bag", weight: 3 },
             { enemy: "butt_bug", weight: 3 },
-            { enemy: "battery_slime", weight: 2 }
+            { enemy: "battery_slime", weight: 1 }
           ]
         }
       ],

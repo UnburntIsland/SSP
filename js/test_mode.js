@@ -36,6 +36,7 @@
     stage.duration = Number(params.get("duration")) || 30;
     stage.spawnRadius = 520;
     stage.maxEnemies = 90;
+    stage.maxElites = 2;
     stage.waves = [
       {
         from: 0, to: 10,
@@ -56,7 +57,7 @@
         types: [
           { enemy: "plastic_bag", weight: 2 },
           { enemy: "butt_bug", weight: 2 },
-          { enemy: "battery_slime", weight: 1 }
+          { enemy: "battery_slime", weight: 0.45 }
         ]
       }
     ];
@@ -91,6 +92,7 @@
       characters: "screen-characters",
       shop: "screen-shop",
       codex: "screen-codex",
+      help: "screen-help",
       victory: "screen-victory",
       gameover: "screen-gameover"
     };
@@ -119,11 +121,17 @@
            pickups: g.pickups ? g.pickups.length : 0,
            quizCorrect: g.quizCorrect || 0,
            quizIncorrect: g.quizIncorrect || 0,
+           quizStreak: g.quizStreak || 0,
+           bestQuizStreak: g.bestQuizStreak || 0,
+           eliteRewardLevel: g.eliteRewardLevel || 0,
            mapCleaned: g.mapCleanedCount || 0,
            contamination: g.contamination ? {
              active: !!g.contamination.active,
              outside: !!g.contamination.outside,
-             radius: g.contamination.radius
+             radius: g.contamination.radius,
+             projectedRadius: g.contamination.projectedRadius,
+             phase: g.contamination.phase,
+             secondsUntilShrink: g.contamination.secondsUntilShrink
            } : null,
           player: p ? {
             x: p.x, y: p.y,
@@ -131,6 +139,9 @@
             level: p.level, xp: p.xp, xpToNext: p.xpToNext,
             pickupRange: p.pickupRange,
             cooldownMult: p.cooldownMult,
+            dashCooldown: p.dashCooldown,
+            dashTimer: p.dashTimer,
+            eliteDamageMult: p.eliteDamageMult,
             weapons: p.weapons.map(function (w) { return { id: w.skill.id, level: w.level, timer: w.timer }; })
           } : null,
           save: global.Storage ? JSON.parse(JSON.stringify(global.Storage.data)) : null
@@ -158,6 +169,11 @@
          global.Game.time = Math.max(0, Number(seconds) || 0);
          return global.Game.time;
        },
+       requestDash: function () {
+         if (!global.Input || !global.Input.requestDash) return false;
+         global.Input.requestDash();
+         return true;
+       },
        spawnEnemy: function (enemyId, x, y) {
          if (!global.Game || !global.Game.running) return null;
          var def = global.GameData.getEnemy(enemyId);
@@ -181,16 +197,23 @@
 
     var wantsScenario = params.get("qaLevelUp") === "1" || params.get("qaRanged") === "1" ||
       params.get("qaZone") === "1" || params.get("qaDefeat") === "1" ||
-      !!params.get("qaKnowledge") || params.get("qaMap") === "1" || params.get("qaZoneOutside") === "1";
+      !!params.get("qaKnowledge") || params.get("qaMap") === "1" || params.get("qaZoneOutside") === "1" ||
+      !!params.get("qaQuizStreak");
     if (wantsScenario) {
       var scenarioPoll = setInterval(function () {
         if (!global.Game || !global.Game.running || !global.Game.player) return;
         clearInterval(scenarioPoll);
 
         if (params.get("qaZone") === "1" && global.Game.contamination) {
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
           global.Game.time = global.Game.contamination.startsAt + 2;
         }
         if (params.get("qaZoneOutside") === "1" && global.Game.contamination) {
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
           global.Game.time = global.Game.contamination.startsAt + 2;
           global.Game.player.x = 24;
           global.Game.player.y = 24;
@@ -209,6 +232,10 @@
             global.Game.pendingLevelUps += 1;
             if (!global.Game.paused) global.Game.triggerLevelUp();
           }, 450);
+        }
+        if (params.get("qaQuizStreak")) {
+          var streakTarget = Math.max(0, Math.min(10, Number(params.get("qaQuizStreak")) || 0));
+          for (var qs = 0; qs < streakTarget; qs++) global.Game.applyQuizAnswer({ correct: true });
         }
         if (params.get("qaKnowledge")) {
           var near = params.get("qaKnowledge") === "collect" ? 8 : 105;

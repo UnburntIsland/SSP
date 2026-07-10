@@ -14,6 +14,7 @@
     characters: "screen-characters",
     shop: "screen-shop",
     codex: "screen-codex",
+    help: "screen-help",
     settings: "screen-settings",
     victory: "screen-victory",
     gameover: "screen-gameover"
@@ -104,7 +105,7 @@
         else if (c === "Escape") {
           if (st === "SETTINGS_FROM_PAUSE" || st === "SETTINGS_FROM_HOME") { e.preventDefault(); self.closeSettings(); }
           else if (st === "CONFIRM_HOME" || st === "CONFIRM_RESTART") { e.preventDefault(); self.confirmCancel(); }
-          else if (st === "CHARACTER_SELECT" || st === "SHOP" || st === "CODEX") { e.preventDefault(); self.handleAction("back"); }
+          else if (st === "CHARACTER_SELECT" || st === "SHOP" || st === "CODEX" || st === "HELP") { e.preventDefault(); self.handleAction("back"); }
         }
       });
     },
@@ -116,6 +117,7 @@
         case "characters":    this.openCharacterSelect(); break;
         case "shop":          this.showScreen("shop"); this.ui.buildShop(); this.ui.updateCoinLabels(); this.setState("SHOP"); break;
         case "codex":         this.showScreen("codex"); this.ui.buildCodex(); this.setState("CODEX"); break;
+        case "help":          this.showScreen("help"); this.setState("HELP"); break;
         case "settings-home": this.openSettings("home"); break;
         case "start":         this.startRun(this.selectedCharacterId); break;
         case "confirm-character": this.confirmCharacterSelection(); break;

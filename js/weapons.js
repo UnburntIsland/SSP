@@ -8,10 +8,11 @@
 (function (global) {
 
   /* ---------------- 投射物（種子飛刃） ---------------- */
-  function Projectile(x, y, vx, vy, damage, pierce, radius) {
+  function Projectile(x, y, vx, vy, damage, pierce, radius, eliteMult) {
     this.x = x; this.y = y;
     this.vx = vx; this.vy = vy;
     this.damage = damage;
+    this.eliteMult = eliteMult || 1;
     this.pierce = pierce;
     this.radius = radius || 6;
     this.life = 2.2;
@@ -64,6 +65,7 @@
     this.follow = opt.follow || null;       // 跟隨的 player（磁網）或 null（靜態孢子）
     this.pullXP = !!opt.pullXP;
     this.pull = opt.pull || 0;
+    this.eliteMult = opt.eliteMult || 1;
     this.style = opt.style || "compost";    // 'net' or 'compost'
     this.dead = false;
     this.pulse = Math.random() * Math.PI * 2;
@@ -81,7 +83,8 @@
       if (e.dead) continue;
       var dx = e.x - this.x, dy = e.y - this.y;
       if (dx * dx + dy * dy <= (this.radius + e.radius) * (this.radius + e.radius)) {
-        if (e.takeDamage(this.dps * dt)) ctx.onPurified(e);
+        var zoneDamage = this.dps * dt * (e.isElite ? this.eliteMult : 1);
+        if (e.takeDamage(zoneDamage)) ctx.onPurified(e);
       }
     }
 
@@ -215,7 +218,8 @@
               ctx.projectiles.push(new Projectile(
                 this.player.x, this.player.y,
                 Math.cos(ang) * s.speed, Math.sin(ang) * s.speed,
-                s.damage, s.pierce, 6
+                s.damage, s.pierce, 6,
+                (s.eliteMult || 1) * (this.player.eliteDamageMult || 1)
               ));
             }
             this.timer = this.cd(s.cooldown);
@@ -231,7 +235,8 @@
         if (this.timer <= 0) {
           ctx.zones.push(new Zone(this.player.x, this.player.y, {
             radius: s.radius, dps: s.dps, duration: s.duration,
-            follow: this.player, pullXP: true, pull: s.pull, style: "net"
+            follow: this.player, pullXP: true, pull: s.pull, style: "net",
+            eliteMult: this.player.eliteDamageMult || 1
           }));
           this.timer = this.cd(s.cooldown);
         }
@@ -243,7 +248,8 @@
         if (this.timer <= 0) {
           ctx.zones.push(new Zone(this.player.x, this.player.y, {
             radius: s.radius, dps: s.dps, duration: s.duration,
-            follow: null, pullXP: false, style: "compost"
+            follow: null, pullXP: false, style: "compost",
+            eliteMult: this.player.eliteDamageMult || 1
           }));
           this.timer = this.cd(s.cooldown);
         }
@@ -260,7 +266,8 @@
             if (e.dead) continue;
             var dx = e.x - this.player.x, dy = e.y - this.player.y;
             if (dx * dx + dy * dy <= (s.radius + e.radius) * (s.radius + e.radius)) {
-              if (e.takeDamage(s.damage)) ctx.onPurified(e);
+              var pulseDamage = s.damage * (e.isElite ? (this.player.eliteDamageMult || 1) : 1);
+              if (e.takeDamage(pulseDamage)) ctx.onPurified(e);
             }
           }
           this.timer = this.cd(s.cooldown);
@@ -284,7 +291,8 @@
             var bdx = ee.x - bx, bdy = ee.y - by;
             var rr2 = ((s.hitRadius || 12) + ee.radius);
             if (bdx * bdx + bdy * bdy <= rr2 * rr2) {
-              if (ee.takeDamage(s.dps * dt)) {
+              var orbitDamage = s.dps * dt * (ee.isElite ? (this.player.eliteDamageMult || 1) : 1);
+              if (ee.takeDamage(orbitDamage)) {
                 ctx.onPurified(ee);
               } else if (s.knockback) {
                 var pushDist = Math.sqrt(bdx * bdx + bdy * bdy) || 1;

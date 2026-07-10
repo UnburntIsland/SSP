@@ -34,6 +34,7 @@
       skinnedButtons: [
         "#screen-menu .menu-buttons .btn",
         "#screen-characters .screen-footer .btn",
+        "#screen-help .screen-footer .btn",
         "#screen-settings .screen-footer .btn",
         "#overlay-pause .btn",
         "#overlay-confirm .btn",
@@ -213,7 +214,9 @@
         timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
         level: $("hud-level"), xpFill: $("xp-fill"),
         coins: $("hud-coins"), purified: $("hud-purified"),
+        quizStreak: $("hud-quiz-streak"),
         skills: $("hud-skills"), charname: $("hud-charname"),
+        dashButton: $("dash-btn"), dashCooldown: $("dash-cooldown"),
         levelupOverlay: $("overlay-levelup"), levelupOptions: $("levelup-options"),
         levelupTitle: $("levelup-title"), levelupFeedback: $("levelup-feedback"),
         victoryStats: $("victory-stats"), gameoverStats: $("gameover-stats"),
@@ -236,6 +239,13 @@
       };
       this._hudSig = "";
       this.initSettings();
+      if (this.dom.dashButton) {
+        this.dom.dashButton.addEventListener("pointerdown", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (global.Input && global.Input.requestDash) global.Input.requestDash();
+        });
+      }
       this.applyUiAssets();
       this.updateHomeCharacterPreview(app && app.selectedCharacterId);
       this.scheduleUiAssetRefresh();
@@ -463,11 +473,27 @@
       if (d.zone && game.contaminationStatus) {
         d.zone.textContent = game.contaminationStatus();
         d.zone.classList.toggle("danger", !!(game.contamination && game.contamination.outside));
+        d.zone.classList.toggle("warning", !!(game.contamination && !game.contamination.outside &&
+          (game.contamination.phase === "warning" || game.contamination.phase === "shrinking")));
       }
       d.level.textContent = p.level;
       d.xpFill.style.width = Math.min(100, (p.xp / p.xpToNext) * 100) + "%";
       d.coins.textContent = game.runCoins;
       d.purified.textContent = game.purifiedCount;
+      if (d.quizStreak) {
+        var streak = game.quizStreak || 0;
+        var eliteMult = p.eliteDamageMult || 1;
+        d.quizStreak.textContent = eliteMult > 1
+          ? "精英解析 ×" + eliteMult.toFixed(2) + "｜連勝 " + streak
+          : "答題連勝 " + streak + "（5 題解鎖）";
+        d.quizStreak.classList.toggle("active", eliteMult > 1);
+      }
+      if (d.dashButton && d.dashCooldown) {
+        var dashReady = (p.dashCooldown || 0) <= 0;
+        d.dashButton.classList.toggle("cooldown", !dashReady);
+        d.dashButton.setAttribute("aria-label", dashReady ? "衝刺，已就緒" : "衝刺冷卻中");
+        d.dashCooldown.textContent = dashReady ? "" : Math.ceil(p.dashCooldown) + "s";
+      }
       if (d.charname && p.character) d.charname.textContent = p.character.name;
       var sig = p.weapons.map(function (w) { return w.skill.id + w.level; }).join(",");
       if (sig !== this._hudSig) {
@@ -550,7 +576,9 @@
         feedback.classList.remove("hidden");
         feedback.classList.toggle("correct", correct);
         feedback.classList.toggle("wrong", !correct);
-        feedback.appendChild(el("div", "quiz-result", correct ? "答對了：回復生命並獲得 ♻2" : "答錯了：承受少量污染壓力"));
+        feedback.appendChild(el("div", "quiz-result", correct
+          ? "答對了：回復生命、獲得 ♻2，並累積連勝"
+          : "答錯了：承受少量污染壓力，連勝重新計算"));
         feedback.appendChild(el("div", "quiz-explanation", question.explanation));
         var proceed = el("button", "btn btn-primary quiz-continue", "查看升級選項");
         proceed.type = "button";
@@ -1026,6 +1054,7 @@
       box.appendChild(row("淨化污染物", stats.purified + " 個"));
       box.appendChild(row("清理地圖物件", (stats.mapCleaned || 0) + " 個"));
       box.appendChild(row("永續問答", (stats.quizCorrect || 0) + " 對 / " + (stats.quizIncorrect || 0) + " 錯"));
+      box.appendChild(row("最佳答題連勝", (stats.bestQuizStreak || 0) + " 題"));
       box.appendChild(row("達到等級", "Lv." + stats.level));
       box.appendChild(row("拾取循環幣", "♻ " + stats.collected));
       box.appendChild(row("淨化獎勵", "♻ " + stats.purifyBonus));

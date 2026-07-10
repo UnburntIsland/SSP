@@ -47,6 +47,18 @@
     this.invulnTimer = 0;
     this.facing = 1;
     this.hitFlash = 0;
+    this.eliteDamageMult = 1;
+
+    // 全角色共用衝刺。只改位移與短暫無敵，不影響方向判定或攻擊數值。
+    this.dashCooldownMax = 3.0;
+    this.dashCooldown = 0;
+    this.dashDuration = 0.18;
+    this.dashTimer = 0;
+    this.dashSpeedMult = 3.4;
+    this.dashDirX = 0;
+    this.dashDirY = 1;
+    this.lastMoveX = 0;
+    this.lastMoveY = 1;
 
     this.weapons = [];   // Weapon 實例
 
@@ -113,12 +125,37 @@
 
   Player.prototype.update = function (dt, world) {
     var mv = global.Input.getMoveVector();
-    if (mv.x !== 0) this.facing = mv.x > 0 ? 1 : -1;
-    if (this.animator) this.animator.update(dt, mv.x, mv.y);
+    var moveLen = Math.sqrt(mv.x * mv.x + mv.y * mv.y);
+    if (moveLen > 0.001) {
+      this.lastMoveX = mv.x / moveLen;
+      this.lastMoveY = mv.y / moveLen;
+    }
+
+    if (this.dashCooldown > 0) this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+    var wantsDash = global.Input.consumeDash ? global.Input.consumeDash() : false;
+    if (wantsDash && this.dashCooldown <= 0 && this.dashTimer <= 0) {
+      this.dashDirX = moveLen > 0.001 ? mv.x / moveLen : this.lastMoveX;
+      this.dashDirY = moveLen > 0.001 ? mv.y / moveLen : this.lastMoveY;
+      this.dashTimer = this.dashDuration;
+      this.dashCooldown = this.dashCooldownMax;
+      this.invulnTimer = Math.max(this.invulnTimer, this.dashDuration + 0.08);
+    }
+
+    var moveX = mv.x;
+    var moveY = mv.y;
+    var moveSpeed = this.speed * (this.environmentSpeedMult || 1);
+    if (this.dashTimer > 0) {
+      moveX = this.dashDirX;
+      moveY = this.dashDirY;
+      moveSpeed = this.speed * this.dashSpeedMult;
+      this.dashTimer = Math.max(0, this.dashTimer - dt);
+    }
+
+    if (moveX !== 0) this.facing = moveX > 0 ? 1 : -1;
+    if (this.animator) this.animator.update(dt, moveX, moveY);
     this._bobT = (this._bobT || 0) + dt;   // 走路 bob 相位
-    var environmentSpeed = this.environmentSpeedMult || 1;
-    this.x += mv.x * this.speed * environmentSpeed * dt;
-    this.y += mv.y * this.speed * environmentSpeed * dt;
+    this.x += moveX * moveSpeed * dt;
+    this.y += moveY * moveSpeed * dt;
 
     // 限制在世界範圍內
     this.x = Math.max(this.radius, Math.min(world.w - this.radius, this.x));
@@ -129,6 +166,19 @@
   };
 
   Player.prototype.draw = function (ctx) {
+    if (this.dashTimer > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = "#9df6e5";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(this.x - this.dashDirX * 28, this.y - this.dashDirY * 28);
+      ctx.lineTo(this.x - this.dashDirX * 8, this.y - this.dashDirY * 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     // 影子
     ctx.save();
     ctx.globalAlpha = 0.3;

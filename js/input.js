@@ -7,6 +7,7 @@
 (function (global) {
   var keys = {};
   var pressedOnce = {};
+  var dashRequested = false;
 
   function norm(code) { return code; }
 
@@ -18,7 +19,7 @@
     }
   });
   global.addEventListener("keyup", function (e) { keys[e.code] = false; });
-  global.addEventListener("blur", function () { keys = {}; });
+  global.addEventListener("blur", function () { keys = {}; pressedOnce = {}; dashRequested = false; });
 
   var Input = {
     // 內部座標的滑鼠位置（0..canvas.width, 0..canvas.height）
@@ -31,7 +32,20 @@
       return false;
     },
 
-    clearPresses: function () { pressedOnce = {}; },
+    clearPresses: function () { pressedOnce = {}; dashRequested = false; },
+
+    requestDash: function () { dashRequested = true; },
+
+    consumeDash: function () {
+      if (dashRequested) {
+        dashRequested = false;
+        return true;
+      }
+      if (this.consumePress("Space")) return true;
+      if (this.consumePress("ShiftLeft")) return true;
+      if (this.consumePress("ShiftRight")) return true;
+      return false;
+    },
 
     getMoveVector: function () {
       var x = 0, y = 0;

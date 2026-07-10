@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=gameplay-20260710" />
+  <link rel="stylesheet" href="css/style.css?v=gameplay-20260711" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -38,9 +38,14 @@
       <div class="hud-corner hud-tr">
         <div class="hud-stat hud-coins">♻ <span id="hud-coins">0</span> 循環幣</div>
         <div class="hud-stat hud-purified">淨化 <span id="hud-purified">0</span></div>
+        <div id="hud-quiz-streak" class="hud-quiz-streak">答題連勝 0</div>
         <div class="hud-hint">暫停 P / ESC</div>
       </div>
       <div id="hud-skills" class="hud-skills"></div>
+      <button id="dash-btn" class="dash-btn" type="button" aria-label="衝刺" title="衝刺（Space / Shift）">
+        <span class="dash-icon" aria-hidden="true">»</span>
+        <span id="dash-cooldown" class="dash-cooldown"></span>
+      </button>
     </div>
 
     <!-- ===== Start / Main Menu ===== -->
@@ -70,6 +75,7 @@
       </div>
       <div class="coin-display">目前持有：<span class="coin-amount" id="menu-coins">0</span> 枚循環幣 ♻</div>
       <button class="link-reset" data-action="reset">重置存檔</button>
+      <button id="gameplay-help-btn" class="gameplay-help-btn" type="button" data-action="help" aria-label="遊戲說明" title="遊戲說明">?</button>
     </section>
 
     <!-- ===== Character Select ===== -->
@@ -98,6 +104,23 @@
       <h2 class="screen-title">永續圖鑑</h2>
       <p class="screen-desc">在關卡中拾取「知識卡」即可解鎖一則永續小知識。</p>
       <div id="codex-list" class="codex-list"></div>
+      <div class="screen-footer">
+        <button class="btn" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Gameplay Help ===== -->
+    <section id="screen-help" class="screen hidden">
+      <h2 class="screen-title">遊戲說明</h2>
+      <p class="screen-desc">靠近互動物件就會自動觸發；留意污染圈預告與敵人攻擊線。</p>
+      <div class="help-list">
+        <div class="help-row"><span class="help-icon" aria-hidden="true">♻</span><div><strong>回收站</strong><span>靠近後啟動一次，獲得循環幣與經驗。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">+</span><div><strong>散落海廢</strong><span>走近即可清理並獲得經驗，有機會掉落循環幣。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">!</span><div><strong>地面油污</strong><span>站在油污上會減速，請儘快離開。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">◎</span><div><strong>污染圈</strong><span>紅色虛線是下一個安全邊界；倒數結束後才開始縮小。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">?</span><div><strong>永續知識卡</strong><span>拾取後解鎖圖鑑；升級答題連勝 5 / 10 題可強化對綠色精英的傷害。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">»</span><div><strong>衝刺</strong><span>按 Space / Shift，或點右下角按鈕；衝刺期間短暫免傷。</span></div></div>
+      </div>
       <div class="screen-footer">
         <button class="btn" data-action="back">返回</button>
       </div>
@@ -199,11 +222,11 @@
   <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
   <!-- Data layer -->
   <script src="js/data/characters.js?v=gameplay-20260710"></script>
-  <script src="js/data/skills.js?v=gameplay-20260710"></script>
-  <script src="js/data/enemies.js?v=gameplay-20260710"></script>
+  <script src="js/data/skills.js?v=gameplay-20260711"></script>
+  <script src="js/data/enemies.js?v=gameplay-20260711"></script>
   <script src="js/data/shop.js"></script>
-  <script src="js/data/stages.js?v=gameplay-20260710"></script>
-  <script src="js/data/knowledge.js?v=gameplay-20260710b"></script>
+  <script src="js/data/stages.js?v=gameplay-20260711"></script>
+  <script src="js/data/knowledge.js?v=gameplay-20260711"></script>
   <!-- Engine -->
   <script src="js/config.js?v=gameplay-20260710"></script>
   <script src="js/uiTheme.js"></script>
@@ -215,15 +238,15 @@
   <script src="js/effects.js"></script>
   <script src="js/sprites.js"></script>
   <script src="js/animation.js"></script>
-  <script src="js/input.js"></script>
+  <script src="js/input.js?v=gameplay-20260711"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
-  <script src="js/player.js?v=gameplay-20260710"></script>
-  <script src="js/enemy.js?v=gameplay-20260710"></script>
-  <script src="js/weapons.js?v=gameplay-20260710"></script>
-  <script src="js/ui.js?v=gameplay-20260710"></script>
-  <script src="js/game.js?v=gameplay-20260710c"></script>
+  <script src="js/player.js?v=gameplay-20260711"></script>
+  <script src="js/enemy.js?v=gameplay-20260711"></script>
+  <script src="js/weapons.js?v=gameplay-20260711"></script>
+  <script src="js/ui.js?v=gameplay-20260711"></script>
+  <script src="js/game.js?v=gameplay-20260711"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=gameplay-20260710b"></script>
-  <script src="js/main.js?v=gameplay-20260710"></script>
+  <script src="js/test_mode.js?v=gameplay-20260711"></script>
+  <script src="js/main.js?v=gameplay-20260711"></script>
 </body>
 </html>

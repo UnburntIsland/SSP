@@ -81,6 +81,10 @@
       this.mapCleanedCount = 0;
       this.quizCorrect = 0;
       this.quizIncorrect = 0;
+      this.quizStreak = 0;
+      this.bestQuizStreak = 0;
+      this.eliteRewardLevel = 0;
+      this.player.eliteDamageMult = 1;
       this.quizIndex = 0;
       this.quizOrder = shuffle((global.GameData.sustainabilityQuestions || []).slice());
       this.pendingLevelUps = 0;
@@ -326,6 +330,10 @@
         x: this.world.w / 2,
         y: this.world.h / 2,
         radius: def.startRadius,
+        projectedRadius: null,
+        phase: "pending",
+        step: 0,
+        secondsUntilShrink: Math.max(0, startsAt - this.time),
         active: false,
         outside: false
       };
@@ -333,11 +341,55 @@
 
     updateContamination: function (dt) {
       var zone = this.contamination;
-      if (!zone || this.time < zone.startsAt) return;
+      if (!zone) return;
+      if (this.time < zone.startsAt) {
+        zone.active = false;
+        zone.outside = false;
+        zone.phase = "pending";
+        zone.projectedRadius = null;
+        zone.secondsUntilShrink = Math.max(0, zone.startsAt - this.time);
+        return;
+      }
+
       zone.active = true;
-      var duration = Math.max(1, this.stage.duration - zone.startsAt);
-      var t = clamp((this.time - zone.startsAt) / duration, 0, 1);
-      zone.radius = zone.def.startRadius + (zone.def.endRadius - zone.def.startRadius) * t;
+      var steps = Math.max(1, zone.def.steps || 4);
+      var warning = Math.max(1, zone.def.warningDuration || 12);
+      var shrinking = Math.max(1, zone.def.shrinkDuration || 8);
+      var hold = Math.max(0, zone.def.holdDuration || 26);
+      var cycle = warning + shrinking + hold;
+      var elapsed = Math.max(0, this.time - zone.startsAt);
+      var step = Math.floor(elapsed / cycle);
+      var phaseTime = elapsed - step * cycle;
+
+      if (step >= steps) {
+        zone.step = steps;
+        zone.phase = "final";
+        zone.radius = zone.def.endRadius;
+        zone.projectedRadius = null;
+        zone.secondsUntilShrink = 0;
+      } else {
+        var baseRadius = lerp(zone.def.startRadius, zone.def.endRadius, step / steps);
+        var targetRadius = lerp(zone.def.startRadius, zone.def.endRadius, (step + 1) / steps);
+        zone.step = step;
+        if (phaseTime < warning) {
+          zone.phase = "warning";
+          zone.radius = baseRadius;
+          zone.projectedRadius = targetRadius;
+          zone.secondsUntilShrink = warning - phaseTime;
+        } else if (phaseTime < warning + shrinking) {
+          zone.phase = "shrinking";
+          zone.radius = lerp(baseRadius, targetRadius, (phaseTime - warning) / shrinking);
+          zone.projectedRadius = targetRadius;
+          zone.secondsUntilShrink = 0;
+        } else {
+          zone.phase = "hold";
+          zone.radius = targetRadius;
+          zone.projectedRadius = null;
+          zone.secondsUntilShrink = step + 1 < steps
+            ? (cycle - phaseTime) + warning
+            : 0;
+        }
+      }
 
       var dx = this.player.x - zone.x;
       var dy = this.player.y - zone.y;
@@ -349,14 +401,14 @@
 
       this.zoneDamageTimer -= dt;
       if (this.zoneDamageTimer <= 0) {
-        this.zoneDamageTimer = zone.def.tickInterval || 0.75;
-        if (this.player.takeDamage(zone.def.damagePerTick || 4)) {
+        this.zoneDamageTimer = zone.def.tickInterval || 1;
+        if (this.player.takeDamage(zone.def.damagePerTick || 2)) {
           this.floaters.push({
             x: this.player.x,
             y: this.player.y - 24,
             age: 0,
             life: 0.7,
-            text: "污染區 -" + (zone.def.damagePerTick || 4),
+            text: "污染區 -" + (zone.def.damagePerTick || 2),
             color: "#e97885"
           });
         }
@@ -366,9 +418,12 @@
     contaminationStatus: function () {
       var zone = this.contamination;
       if (!zone) return "";
-      if (!zone.active) return "污染圈將於 " + Math.max(0, Math.ceil(zone.startsAt - this.time)) + " 秒後收縮";
-      if (zone.outside) return "警告：回到安全區內";
-      return "安全區半徑 " + Math.round(zone.radius) + "";
+      if (!zone.active) return "污染圈預告 " + Math.max(0, Math.ceil(zone.startsAt - this.time)) + "s";
+      if (zone.outside) return "警告：回到綠色安全圈";
+      if (zone.phase === "warning") return "紅圈縮小倒數 " + Math.max(0, Math.ceil(zone.secondsUntilShrink)) + "s";
+      if (zone.phase === "shrinking") return "污染圈縮小中";
+      if (zone.phase === "hold" && zone.secondsUntilShrink > 0) return "下次縮圈 " + Math.ceil(zone.secondsUntilShrink) + "s";
+      return "最終安全區";
     },
 
     updateMapInteractions: function () {
@@ -488,7 +543,8 @@
         var dx = e.x - pr.x, dy = e.y - pr.y, rr = e.radius + pr.radius;
         if (dx * dx + dy * dy <= rr * rr) {
           pr.hitSet.push(e);
-          var killed = e.takeDamage(pr.damage);
+          var projectileDamage = pr.damage * (e.isElite ? (pr.eliteMult || 1) : 1);
+          var killed = e.takeDamage(projectileDamage);
           this.spawnEffect("seed_blade", "hit", pr.x, pr.y, {
             life: 0.22,
             size: (global.Config ? 42 / global.Config.CAMERA_ZOOM : 24),
@@ -614,6 +670,15 @@
     spawnOne: function (enemyId, forceBoss) {
       var def = global.GameData.getEnemy(enemyId);
       if (!def) return;
+      if (def.isElite && !forceBoss) {
+        var eliteCount = 0;
+        for (var i = 0; i < this.enemies.length; i++) {
+          if (!this.enemies[i].dead && this.enemies[i].isElite) eliteCount += 1;
+        }
+        if (eliteCount >= (this.stage.maxElites || 5)) {
+          def = global.GameData.getEnemy(Math.random() < 0.5 ? "plastic_bag" : "butt_bug");
+        }
+      }
       var ang = Math.random() * Math.PI * 2;
       var rad = this.stage.spawnRadius + rand(0, 80);
       var x = this.player.x + Math.cos(ang) * rad;
@@ -670,12 +735,24 @@
       if (!result) return;
       if (result.correct) {
         this.quizCorrect += 1;
+        this.quizStreak += 1;
+        this.bestQuizStreak = Math.max(this.bestQuizStreak, this.quizStreak);
         var heal = Math.max(6, Math.round(this.player.maxHp * 0.08));
         this.player.heal(heal);
         this.runCoins += 2;
-        this.floaters.push({ x: this.player.x, y: this.player.y - 30, age: 0, life: 0.9, text: "答對！+" + heal + " HP  ♻+2", color: "#8ff0a0" });
+        this.floaters.push({ x: this.player.x, y: this.player.y - 30, age: 0, life: 0.9, text: "答對！連勝 " + this.quizStreak + "  +" + heal + " HP", color: "#8ff0a0" });
+        if (this.quizStreak >= 10 && this.eliteRewardLevel < 2) {
+          this.eliteRewardLevel = 2;
+          this.player.eliteDamageMult = 1.7;
+          if (this.app) this.app.showToast("精英解析 II", "連續答對 10 題：對綠色精英傷害提升至 1.7 倍。 ");
+        } else if (this.quizStreak >= 5 && this.eliteRewardLevel < 1) {
+          this.eliteRewardLevel = 1;
+          this.player.eliteDamageMult = 1.35;
+          if (this.app) this.app.showToast("精英解析 I", "連續答對 5 題：對綠色精英傷害提升至 1.35 倍。 ");
+        }
       } else {
         this.quizIncorrect += 1;
+        this.quizStreak = 0;
         var penalty = Math.max(4, Math.round(this.player.maxHp * 0.05));
         this.player.hp = Math.max(1, this.player.hp - penalty);
         this.player.hitFlash = 0.18;
@@ -744,6 +821,7 @@
         this.triggerLevelUp();
       } else {
         this.paused = false;
+        if (global.Input && global.Input.clearPresses) global.Input.clearPresses();
         this.lastTs = 0; // 重置時間戳，避免暫停期間累積 dt
       }
     },
@@ -774,6 +852,8 @@
         mapCleaned: this.mapCleanedCount,
         quizCorrect: this.quizCorrect,
         quizIncorrect: this.quizIncorrect,
+        bestQuizStreak: this.bestQuizStreak,
+        eliteRewardLevel: this.eliteRewardLevel,
         level: this.player.level,
         collected: collected,
         purifyBonus: purifyBonus,
@@ -813,6 +893,20 @@
       ctx.beginPath();
       ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
       ctx.stroke();
+
+      if (zone.projectedRadius != null && zone.projectedRadius < zone.radius - 1) {
+        ctx.fillStyle = "rgba(255, 78, 96, 0.08)";
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+        ctx.arc(zone.x, zone.y, zone.projectedRadius, 0, Math.PI * 2, true);
+        ctx.fill("evenodd");
+        ctx.strokeStyle = "rgba(255, 78, 96, 0.95)";
+        ctx.lineWidth = 3 / ZOOM();
+        ctx.setLineDash([7 / ZOOM(), 5 / ZOOM()]);
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, zone.projectedRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     },
 
@@ -909,6 +1003,7 @@
 
   /* ---------------- 小工具 ---------------- */
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * clamp(t, 0, 1); }
   function rand(a, b) { return a + Math.random() * (b - a); }
   function shuffle(arr) {
     for (var i = arr.length - 1; i > 0; i--) {

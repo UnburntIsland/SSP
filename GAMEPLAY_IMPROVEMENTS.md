@@ -1,6 +1,6 @@
 # Gameplay Improvements
 
-Date: 2026-07-10
+Date: 2026-07-11
 
 ## Scope
 
@@ -16,19 +16,29 @@ visibility, and map exploration. It does not change input mapping,
 | Ranger passive | Max HP +10% | Max HP +16% |
 | Beachcomber passive | Pickup range +25% | Pickup range +35%, speed +6% |
 | Solar Engineer passive | Cooldown -10% | Cooldown -4%, max HP -8% |
-| Recycle Net Lv.1 | 78 radius, 8 DPS, 6.0 sec cooldown | 84 radius, 12 DPS, 5.2 sec cooldown |
-| Solar Pulse Lv.1 | 110 radius, 16 damage, 3.2 sec cooldown | 100 radius, 12 damage, 3.8 sec cooldown |
-| Wind Blades Lv.1 | 62 radius, 24 DPS | 78 radius, 34 DPS, larger hit area and knockback |
+| Seed Blade Lv.1 | 10 damage | 14 damage, increasing every level, plus elite bonus |
+| Recycle Net Lv.1 | 78 radius, 8 DPS, 6.0 sec cooldown | 84 radius, 10 DPS, 5.2 sec cooldown |
+| Solar Pulse Lv.1 | 110 radius, 16 damage, 3.2 sec cooldown | 100 radius, 10 damage, 3.8 sec cooldown |
+| Wind Blades Lv.1 | 62 radius, 24 DPS | 78 radius, 32 DPS, larger hit area and knockback |
 
-Wind Blades now scale to 116 orbit radius, 58 DPS, five blades, and a 25-unit
+Wind Blades now scale to 116 orbit radius, 52 DPS, five blades, and a 25-unit
 blade hit radius at max level. The skill is intended to create a visible
 protective lane rather than only damaging enemies that are already touching
 the player.
+
+Seed Blade now scales from 14 to 36 damage with an additional per-level elite
+multiplier. Area attacks were reduced slightly so focused projectiles have a
+clear role without removing the utility of pull, knockback, and persistent zones.
 
 ## Enemy Pressure
 
 - `battery_slime` now maintains medium range, telegraphs an aimed toxic shot,
   and fires a readable projectile.
+- `battery_slime` is marked as the green elite. HP was reduced from 70 to 58,
+  contact damage from 10 to 8, projectile damage from 7 to 5, and its attack
+  cooldown was increased from 2.8 to 3.2 seconds.
+- Elite wave weights were halved and no more than five elites may remain alive
+  at once (two in test mode). Excess elite spawns become ordinary small enemies.
 - `oil_blob` now telegraphs and fires a ten-shot radial barrage.
 - Enemy projectiles are capped at 220 active instances to protect mobile FPS.
 - Small and medium enemy render targets increased to 58 px and 74 px.
@@ -38,11 +48,14 @@ the player.
 
 ## Sustainability Loop
 
-- Every level-up begins with one of six sustainability questions.
+- Every level-up begins with one of 19 sustainability questions.
 - Correct answer: heal 8% max HP (minimum 6) and gain 2 run coins.
 - Incorrect answer: lose 5% max HP (minimum 4), never reducing HP below 1.
 - Every answer displays the correct explanation before upgrade selection.
-- Results show correct and incorrect answer totals.
+- Five consecutive correct answers unlock `Elite Analysis I` (1.35x damage to
+  green elites); ten unlock `Elite Analysis II` (1.70x). A wrong answer resets
+  the streak but does not remove an already earned run reward.
+- HUD and results show the current and best answer streaks.
 
 ## Exploration And Survival
 
@@ -50,10 +63,15 @@ the player.
 - Loose trash can be cleaned for 2 XP and has a coin drop chance.
 - Oil-stain props slow movement to 72% while occupied.
 - HUD points toward the nearest unused recycling station.
-- A contamination ring begins closing during the second half of the run.
-  Remaining outside deals four damage every 0.75 seconds and shows a HUD warning.
+- The contamination ring now closes in four readable stages. Each stage shows a
+  red projected boundary for a 12-second warning, shrinks for eight seconds,
+  then holds for 26 seconds. Remaining outside deals two damage per second.
 - Knowledge cards have a larger sprite, pulse ring, light beam, guaranteed
   milestone drops, and a six-second unlock card containing the full knowledge text.
+- A dedicated help screen explains recycling stations, loose trash, oil stains,
+  knowledge cards, projected contamination boundaries, and dash controls.
+- Every character can dash with `Space`, either `Shift`, or the lower-right
+  touch button. Dash has a three-second cooldown and brief damage immunity.
 
 ## Death Recovery
 
@@ -67,6 +85,12 @@ The defeat screen now also provides a direct `再試一次` action.
 - All JavaScript files pass `node --check`.
 - `git diff --check` passes.
 - Browser console warnings/errors: none.
+- Desktop and 844x390 mobile layouts verified without HUD/button overlap.
+- Dash displacement, cooldown, and temporary invulnerability verified.
+- Projected contamination ring, countdown phases, and two-damage ticks verified.
+- Question count, answer indexes, five/ten-answer rewards, and elite damage
+  multiplication verified with automated assertions.
+- Elite cap replacement and reduced enemy values verified with automated assertions.
 - Correct-answer reward and incorrect-answer penalty both verified.
 - Death -> retry verified with the timer advancing in the new run.
 - Battery Slime telegraph and projectile verified.
@@ -74,4 +98,3 @@ The defeat screen now also provides a direct `再試一次` action.
 - Recycling-station reward and knowledge-card unlock verified.
 - Desktop test URL: `http://127.0.0.1:8765/index.html?test=1`
 - Debug test URL: `http://127.0.0.1:8765/index.html?test=1&debugAnimation=1`
-

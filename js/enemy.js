@@ -20,6 +20,7 @@
     this.coinChance = def.coinChance;
     this.coinAmount = def.coinAmount || 1;
     this.isBoss = !!def.isBoss;
+    this.isElite = !!def.isElite;
     this.knowledgeId = def.knowledgeId || null;
 
     this.dead = false;
