@@ -35,11 +35,11 @@
       eduText: "妥善分類回收，能讓資源重新進入循環、減少進入海洋的廢棄物。",
       maxLevel: 5,
       levels: [
-        { radius: 78, dps: 8, cooldown: 6.0, duration: 3.0, pull: 1.4, up: "解鎖：展開回收磁網" },
-        { radius: 96, dps: 8, cooldown: 5.6, duration: 3.0, pull: 1.6, up: "磁網範圍擴大" },
-        { radius: 96, dps: 14, cooldown: 5.2, duration: 3.5, pull: 1.8, up: "傷害提升，持續時間延長" },
-        { radius: 116, dps: 14, cooldown: 4.8, duration: 4.0, pull: 2.0, up: "範圍再擴大，吸引力增強" },
-        { radius: 130, dps: 20, cooldown: 4.4, duration: 4.5, pull: 2.4, up: "範圍與傷害皆大幅提升（滿級）" }
+        { radius: 84, dps: 12, cooldown: 5.2, duration: 3.4, pull: 1.5, up: "解鎖：展開回收磁網" },
+        { radius: 100, dps: 14, cooldown: 5.0, duration: 3.6, pull: 1.8, up: "磁網範圍與吸力提升" },
+        { radius: 104, dps: 18, cooldown: 4.7, duration: 4.0, pull: 2.0, up: "傷害提升，持續時間延長" },
+        { radius: 122, dps: 22, cooldown: 4.4, duration: 4.2, pull: 2.3, up: "範圍再擴大，吸引力增強" },
+        { radius: 138, dps: 28, cooldown: 4.0, duration: 4.8, pull: 2.7, up: "範圍與傷害皆大幅提升（滿級）" }
       ]
     },
     {
@@ -51,11 +51,11 @@
       eduText: "太陽能是潔淨的再生能源，一片屋頂也能成為小型電廠。",
       maxLevel: 5,
       levels: [
-        { radius: 110, damage: 16, cooldown: 3.2, up: "解鎖：釋放能量脈衝" },
-        { radius: 122, damage: 16, cooldown: 2.8, up: "冷卻縮短，更頻繁釋放" },
-        { radius: 122, damage: 24, cooldown: 2.8, up: "脈衝傷害提升" },
-        { radius: 148, damage: 24, cooldown: 2.5, up: "波及範圍擴大" },
-        { radius: 160, damage: 32, cooldown: 2.2, up: "傷害與範圍皆大幅提升（滿級）" }
+        { radius: 100, damage: 12, cooldown: 3.8, up: "解鎖：釋放能量脈衝" },
+        { radius: 114, damage: 14, cooldown: 3.4, up: "冷卻縮短，更頻繁釋放" },
+        { radius: 124, damage: 20, cooldown: 3.2, up: "脈衝傷害提升" },
+        { radius: 142, damage: 24, cooldown: 2.9, up: "波及範圍擴大" },
+        { radius: 154, damage: 30, cooldown: 2.6, up: "傷害與範圍皆大幅提升（滿級）" }
       ]
     },
     {
@@ -67,11 +67,11 @@
       eduText: "風力發電不需燃燒燃料，運轉時幾乎不排放溫室氣體。",
       maxLevel: 5,
       levels: [
-        { count: 2, radius: 62, dps: 24, rotSpeed: 3.2, up: "解鎖：2 片旋轉葉片" },
-        { count: 3, radius: 62, dps: 24, rotSpeed: 3.4, up: "葉片 +1（共 3 片）" },
-        { count: 3, radius: 80, dps: 30, rotSpeed: 3.6, up: "旋轉半徑擴大，傷害提升" },
-        { count: 4, radius: 80, dps: 30, rotSpeed: 3.8, up: "葉片 +1（共 4 片）" },
-        { count: 5, radius: 96, dps: 38, rotSpeed: 4.0, up: "葉片 +1、半徑與傷害提升（滿級）" }
+        { count: 2, radius: 78, dps: 34, hitRadius: 18, knockback: 22, rotSpeed: 3.4, up: "解鎖：2 片護身風葉" },
+        { count: 3, radius: 82, dps: 36, hitRadius: 18, knockback: 24, rotSpeed: 3.6, up: "葉片 +1（共 3 片）" },
+        { count: 3, radius: 96, dps: 44, hitRadius: 21, knockback: 28, rotSpeed: 3.8, up: "旋轉半徑與有效範圍擴大" },
+        { count: 4, radius: 104, dps: 48, hitRadius: 22, knockback: 30, rotSpeed: 4.0, up: "葉片 +1，推離接近的污染物" },
+        { count: 5, radius: 116, dps: 58, hitRadius: 25, knockback: 34, rotSpeed: 4.2, up: "形成大型護身風場（滿級）" }
       ]
     },
     {

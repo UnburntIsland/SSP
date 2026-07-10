@@ -114,8 +114,17 @@
           paused: !!g.paused,
           ended: !!g.ended,
           time: g.time || 0,
-          enemies: g.enemies ? g.enemies.length : 0,
-          pickups: g.pickups ? g.pickups.length : 0,
+           enemies: g.enemies ? g.enemies.length : 0,
+           enemyProjectiles: g.enemyProjectiles ? g.enemyProjectiles.length : 0,
+           pickups: g.pickups ? g.pickups.length : 0,
+           quizCorrect: g.quizCorrect || 0,
+           quizIncorrect: g.quizIncorrect || 0,
+           mapCleaned: g.mapCleanedCount || 0,
+           contamination: g.contamination ? {
+             active: !!g.contamination.active,
+             outside: !!g.contamination.outside,
+             radius: g.contamination.radius
+           } : null,
           player: p ? {
             x: p.x, y: p.y,
             hp: p.hp, maxHp: p.maxHp,
@@ -135,9 +144,29 @@
       forceVictory: function () {
         if (global.Game && global.Game.running) global.Game.end("victory");
       },
-      forceDefeat: function () {
-        if (global.Game && global.Game.running) global.Game.end("defeat");
-      },
+       forceDefeat: function () {
+         if (global.Game && global.Game.running) global.Game.end("defeat");
+       },
+       forceLevelUp: function () {
+         if (!global.Game || !global.Game.running || global.Game.ended) return false;
+         global.Game.pendingLevelUps += 1;
+         if (!global.Game.paused) global.Game.triggerLevelUp();
+         return true;
+       },
+       setGameTime: function (seconds) {
+         if (!global.Game || !global.Game.running) return false;
+         global.Game.time = Math.max(0, Number(seconds) || 0);
+         return global.Game.time;
+       },
+       spawnEnemy: function (enemyId, x, y) {
+         if (!global.Game || !global.Game.running) return null;
+         var def = global.GameData.getEnemy(enemyId);
+         if (!def) return null;
+         var p = global.Game.player;
+         var enemy = new global.Enemy(def, x == null ? p.x + 240 : x, y == null ? p.y : y, 1);
+         global.Game.enemies.push(enemy);
+         return enemy;
+       },
       unlockKnowledge: function () {
         var entry = global.Storage.unlockNextKnowledge();
         if (global.App && global.App.ui) global.App.ui.buildCodex();
@@ -149,6 +178,56 @@
         return global.Storage.data;
       }
     };
+
+    var wantsScenario = params.get("qaLevelUp") === "1" || params.get("qaRanged") === "1" ||
+      params.get("qaZone") === "1" || params.get("qaDefeat") === "1" ||
+      !!params.get("qaKnowledge") || params.get("qaMap") === "1" || params.get("qaZoneOutside") === "1";
+    if (wantsScenario) {
+      var scenarioPoll = setInterval(function () {
+        if (!global.Game || !global.Game.running || !global.Game.player) return;
+        clearInterval(scenarioPoll);
+
+        if (params.get("qaZone") === "1" && global.Game.contamination) {
+          global.Game.time = global.Game.contamination.startsAt + 2;
+        }
+        if (params.get("qaZoneOutside") === "1" && global.Game.contamination) {
+          global.Game.time = global.Game.contamination.startsAt + 2;
+          global.Game.player.x = 24;
+          global.Game.player.y = 24;
+        }
+        if (params.get("qaRanged") === "1") {
+          var def = global.GameData.getEnemy("battery_slime");
+          var p = global.Game.player;
+          var enemy = new global.Enemy(def, p.x + 230, p.y, 1);
+          enemy.spawnAge = enemy.spawnDuration;
+          enemy.attackTimer = 0.12;
+          global.Game.enemies.push(enemy);
+        }
+        if (params.get("qaLevelUp") === "1") {
+          setTimeout(function () {
+            if (!global.Game.running || global.Game.ended) return;
+            global.Game.pendingLevelUps += 1;
+            if (!global.Game.paused) global.Game.triggerLevelUp();
+          }, 450);
+        }
+        if (params.get("qaKnowledge")) {
+          var near = params.get("qaKnowledge") === "collect" ? 8 : 105;
+          global.Game.pickups.push(new global.Pickup("card", global.Game.player.x + near, global.Game.player.y));
+        }
+        if (params.get("qaMap") === "1" && global.StageRenderer && global.StageRenderer.props) {
+          var station = global.StageRenderer.props.find(function (prop) { return prop.type === "recycleBin"; });
+          if (station) {
+            global.Game.player.x = station.x;
+            global.Game.player.y = station.y;
+          }
+        }
+        if (params.get("qaDefeat") === "1") {
+          setTimeout(function () {
+            if (global.Game.running && !global.Game.ended) global.Game.end("defeat");
+          }, 850);
+        }
+      }, 100);
+    }
   }
 
   applyStageTuning();

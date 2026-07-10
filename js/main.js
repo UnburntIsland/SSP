@@ -121,6 +121,7 @@
         case "confirm-character": this.confirmCharacterSelection(); break;
         case "back":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
         case "menu":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
+        case "retry":         this.retryRun(); break;
         case "reset":         this.resetSave(); break;
 
         // 暫停選單
@@ -299,8 +300,18 @@
       this.setState("PLAYING");
     },
 
+    retryRun: function () {
+      var characterId = this.currentChar || this.selectedCharacterId || "ranger";
+      global.Game.abort();
+      this.startRun(characterId);
+    },
+
     onLevelUp: function (options, cb) {
       this.ui.showLevelUp(options, cb);
+    },
+
+    onSustainabilityQuiz: function (question, cb) {
+      this.ui.showSustainabilityQuiz(question, cb);
     },
 
     onRunEnd: function (stats) {
@@ -313,7 +324,8 @@
     },
 
     onKnowledgeUnlocked: function (entry) {
-      this.ui.showToast("解鎖永續知識", entry.title + "（已收入圖鑑）");
+      if (this.ui.showKnowledgeCard) this.ui.showKnowledgeCard(entry);
+      else this.ui.showToast("解鎖永續知識", entry.title + "（已收入圖鑑）");
     },
 
     showToast: function (title, text) {

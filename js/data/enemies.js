@@ -41,6 +41,17 @@
       contact: 10,
       xp: 3,
       coinChance: 0.12,
+      ranged: {
+        kind: "aimed",
+        range: 430,
+        preferredDistance: 220,
+        cooldown: 2.8,
+        telegraph: 0.55,
+        projectileSpeed: 155,
+        projectileDamage: 7,
+        projectileRadius: 7,
+        color: "#d6e34a"
+      },
       knowledgeId: "k_battery"
     },
     oil_blob: {
@@ -55,6 +66,17 @@
       coinChance: 1.0,
       coinAmount: 12,
       isBoss: true,
+      ranged: {
+        kind: "radial",
+        count: 10,
+        range: 620,
+        cooldown: 3.4,
+        telegraph: 0.8,
+        projectileSpeed: 125,
+        projectileDamage: 10,
+        projectileRadius: 9,
+        color: "#9b73e8"
+      },
       knowledgeId: "k_wetland"
     }
   };

@@ -29,8 +29,8 @@
     // 因此不論 zoom 多少，物件在畫面上的大小都等於這裡的數值；zoom 只改變「看多遠 / 世界遠近」。
     RENDER_SIZES: {
       player: 72,
-      enemySmall: 48,
-      enemyMedium: 64,
+      enemySmall: 58,
+      enemyMedium: 74,
       enemyBoss: 144,
       projectile: 18,
       pickup: 30,

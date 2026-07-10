@@ -15,6 +15,13 @@
       world: { w: 2400, h: 1600 },
       spawnRadius: 560,         // 從玩家周圍此半徑（畫面外）生成
       maxEnemies: 320,
+      contaminationZone: {
+        startsAt: 125,
+        startRadius: 1020,
+        endRadius: 430,
+        damagePerTick: 4,
+        tickInterval: 0.75
+      },
       // 各時段的生成規則
       waves: [
         {

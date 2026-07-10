@@ -112,8 +112,21 @@
       // ---- props（世界座標；螢幕尺寸固定 = RENDER_SIZES ÷ zoom，與角色一致） ----
       for (var i = 0; i < this.props.length; i++) {
         var p = this.props[i];
+        if (p.cleaned) continue;
         if (p.x < camX - 120 || p.x > camX + viewW + 120 || p.y < camY - 120 || p.y > camY + viewH + 120) continue;
         var sz = (sizes[p.size] || 64) / zoom;
+        var interactive = (p.type === 'recycleBin' && !p.used) || p.type === 'trash';
+        if (interactive) {
+          var pulse = 0.5 + Math.sin(((global.Game && global.Game.time) || 0) * 4 + i) * 0.18;
+          ctx.save();
+          ctx.globalAlpha = pulse;
+          ctx.strokeStyle = p.type === 'recycleBin' ? '#5fe1ce' : '#d8ef78';
+          ctx.lineWidth = 2 / zoom;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, sz * 0.48, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
         // 影子
         ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#000';
         ctx.beginPath(); ctx.ellipse(p.x, p.y + sz * 0.30, sz * 0.34, sz * 0.14, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();

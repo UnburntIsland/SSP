@@ -282,9 +282,15 @@
             var ee = en[m];
             if (ee.dead) continue;
             var bdx = ee.x - bx, bdy = ee.y - by;
-            var rr2 = (12 + ee.radius);
+            var rr2 = ((s.hitRadius || 12) + ee.radius);
             if (bdx * bdx + bdy * bdy <= rr2 * rr2) {
-              if (ee.takeDamage(s.dps * dt)) ctx.onPurified(ee);
+              if (ee.takeDamage(s.dps * dt)) {
+                ctx.onPurified(ee);
+              } else if (s.knockback) {
+                var pushDist = Math.sqrt(bdx * bdx + bdy * bdy) || 1;
+                ee.x += (bdx / pushDist) * s.knockback * dt;
+                ee.y += (bdy / pushDist) * s.knockback * dt;
+              }
             }
           }
         }

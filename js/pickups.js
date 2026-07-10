@@ -52,6 +52,20 @@
 
   Pickup.prototype.draw = function (ctx) {
     var floatY = Math.sin(this.bob) * 2;
+    if (this.type === "card") {
+      var pulse = 0.55 + Math.sin(this.bob * 1.5) * 0.2;
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = "#ffe67a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y + floatY, 18 + Math.sin(this.bob) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = "#fff4a8";
+      ctx.fillRect(this.x - 2, this.y - 42, 4, 42);
+      ctx.restore();
+    }
     // 影子
     ctx.save();
     ctx.globalAlpha = 0.25;
@@ -61,6 +75,7 @@
     ctx.fill();
     ctx.restore();
     var __pk = (global.Config ? global.Config.RENDER_SIZES.pickup / global.Config.CAMERA_ZOOM : this.scale * 8);
+    if (this.type === "card") __pk *= 1.35;
     global.Sprites.drawSized(ctx, this.spriteId, this.x, this.y + floatY, __pk, __pk);
   };
 

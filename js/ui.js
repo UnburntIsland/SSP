@@ -210,11 +210,12 @@
         codexList: $("codex-list"),
         hud: $("hud"),
         hpFill: $("hp-fill"), hpText: $("hp-text"),
-        timer: $("hud-timer"),
+        timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
         level: $("hud-level"), xpFill: $("xp-fill"),
         coins: $("hud-coins"), purified: $("hud-purified"),
         skills: $("hud-skills"), charname: $("hud-charname"),
         levelupOverlay: $("overlay-levelup"), levelupOptions: $("levelup-options"),
+        levelupTitle: $("levelup-title"), levelupFeedback: $("levelup-feedback"),
         victoryStats: $("victory-stats"), gameoverStats: $("gameover-stats"),
         toast: $("toast"), menuArt: $("menu-art"),
         homeCharacterPreview: $("home-character-preview"),
@@ -281,6 +282,7 @@
 
     showToast: function (title, text) {
       var t = this.dom.toast;
+      t.classList.remove("knowledge-toast");
       t.innerHTML = "";
       t.appendChild(el("span", "t-title", title));
       t.appendChild(document.createTextNode(text));
@@ -293,6 +295,23 @@
         t.classList.remove("show");
         setTimeout(function () { t.classList.add("hidden"); }, 300);
       }, 2600);
+    },
+
+    showKnowledgeCard: function (entry) {
+      var t = this.dom.toast;
+      t.innerHTML = "";
+      t.classList.add("knowledge-toast");
+      t.appendChild(el("span", "t-title", "永續圖鑑 +1"));
+      t.appendChild(el("strong", "knowledge-toast-title", entry.title));
+      t.appendChild(el("span", "knowledge-toast-text", entry.text));
+      t.classList.remove("hidden");
+      void t.offsetWidth;
+      t.classList.add("show");
+      clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(function () {
+        t.classList.remove("show");
+        setTimeout(function () { t.classList.add("hidden"); }, 300);
+      }, 6200);
     },
 
     buildCharacters: function (selectedId) {
@@ -439,7 +458,12 @@
       var d = this.dom;
       d.hpFill.style.width = Math.max(0, (p.hp / p.maxHp) * 100) + "%";
       d.hpText.textContent = Math.ceil(p.hp) + " / " + p.maxHp;
-      d.timer.textContent = fmtTime(game.stage.duration - game.time);
+      d.timer.textContent = fmtTime(Math.max(0, game.stage.duration - game.time));
+      if (d.objective && game.mapObjectiveStatus) d.objective.textContent = game.mapObjectiveStatus();
+      if (d.zone && game.contaminationStatus) {
+        d.zone.textContent = game.contaminationStatus();
+        d.zone.classList.toggle("danger", !!(game.contamination && game.contamination.outside));
+      }
       d.level.textContent = p.level;
       d.xpFill.style.width = Math.min(100, (p.xp / p.xpToNext) * 100) + "%";
       d.coins.textContent = game.runCoins;
@@ -463,6 +487,13 @@
     showLevelUp: function (options, onPick) {
       var box = this.dom.levelupOptions;
       box.innerHTML = "";
+      box.classList.remove("quiz-options");
+      if (this.dom.levelupTitle) this.dom.levelupTitle.textContent = "升級！選擇你的成長";
+      if (this.dom.levelupFeedback) {
+        this.dom.levelupFeedback.classList.add("hidden");
+        this.dom.levelupFeedback.innerHTML = "";
+      }
+      if (this._keyHandler) { global.removeEventListener("keydown", this._keyHandler); this._keyHandler = null; }
       var self = this;
       function pick(opt) { self.hideLevelUp(); onPick(opt); }
       options.forEach(function (opt, i) {
@@ -473,7 +504,7 @@
         card.appendChild(el("div", "levelup-name", opt.name));
         card.appendChild(el("div", "levelup-tag", opt.tag));
         card.appendChild(el("div", "levelup-effect", opt.effect));
-        card.appendChild(el("div", "levelup-edu", "種子 " + opt.edu));
+        card.appendChild(el("div", "levelup-edu", "永續知識：" + opt.edu));
         card.appendChild(el("div", "levelup-key", "按 " + (i + 1) + " 或點擊選擇"));
         card.addEventListener("click", function () { pick(opt); });
         box.appendChild(card);
@@ -489,8 +520,78 @@
       this.dom.levelupOverlay.classList.remove("hidden");
     },
 
+    showSustainabilityQuiz: function (question, onAnswer) {
+      var box = this.dom.levelupOptions;
+      var feedback = this.dom.levelupFeedback;
+      var title = this.dom.levelupTitle;
+      var self = this;
+      var answered = false;
+      var proceeded = false;
+      box.innerHTML = "";
+      box.classList.add("quiz-options");
+      if (title) title.textContent = "永續快問快答";
+      if (feedback) { feedback.innerHTML = ""; feedback.classList.add("hidden"); }
+      if (this._keyHandler) { global.removeEventListener("keydown", this._keyHandler); this._keyHandler = null; }
+
+      function choose(index) {
+        if (answered) return;
+        answered = true;
+        var correct = index === question.answer;
+        var cards = box.querySelectorAll(".quiz-card");
+        Array.prototype.forEach.call(cards, function (card, i) {
+          card.classList.add(i === question.answer ? "correct" : (i === index ? "wrong" : "muted"));
+          card.setAttribute("aria-disabled", "true");
+          card.tabIndex = -1;
+        });
+        if (self._keyHandler) { global.removeEventListener("keydown", self._keyHandler); self._keyHandler = null; }
+        if (!feedback) { onAnswer({ correct: correct, selected: index, question: question }); return; }
+
+        feedback.innerHTML = "";
+        feedback.classList.remove("hidden");
+        feedback.classList.toggle("correct", correct);
+        feedback.classList.toggle("wrong", !correct);
+        feedback.appendChild(el("div", "quiz-result", correct ? "答對了：回復生命並獲得 ♻2" : "答錯了：承受少量污染壓力"));
+        feedback.appendChild(el("div", "quiz-explanation", question.explanation));
+        var proceed = el("button", "btn btn-primary quiz-continue", "查看升級選項");
+        proceed.type = "button";
+        proceed.addEventListener("click", function () {
+          if (proceeded) return;
+          proceeded = true;
+          proceed.disabled = true;
+          onAnswer({ correct: correct, selected: index, question: question });
+        });
+        feedback.appendChild(proceed);
+        proceed.focus();
+      }
+
+      box.appendChild(el("div", "quiz-question", question.prompt));
+      question.options.forEach(function (option, i) {
+        var card = el("div", "levelup-card quiz-card");
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
+        card.appendChild(el("div", "quiz-index", String(i + 1)));
+        card.appendChild(el("div", "quiz-answer", option));
+        card.addEventListener("click", function () { choose(i); });
+        card.addEventListener("keydown", function (e) {
+          if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); choose(i); }
+        });
+        box.appendChild(card);
+      });
+      this._keyHandler = function (e) {
+        var n = -1;
+        if (e.code === "Digit1" || e.code === "Numpad1") n = 0;
+        else if (e.code === "Digit2" || e.code === "Numpad2") n = 1;
+        else if (e.code === "Digit3" || e.code === "Numpad3") n = 2;
+        if (n >= 0 && question.options[n]) { e.preventDefault(); choose(n); }
+      };
+      global.addEventListener("keydown", this._keyHandler);
+      this.dom.levelupOverlay.classList.remove("hidden");
+    },
+
     hideLevelUp: function () {
       this.dom.levelupOverlay.classList.add("hidden");
+      if (this.dom.levelupOptions) this.dom.levelupOptions.classList.remove("quiz-options");
+      if (this.dom.levelupFeedback) this.dom.levelupFeedback.classList.add("hidden");
       if (this._keyHandler) { global.removeEventListener("keydown", this._keyHandler); this._keyHandler = null; }
     },
 
@@ -923,6 +1024,8 @@
       }
       box.appendChild(row("存活時間", fmtTime(stats.survived)));
       box.appendChild(row("淨化污染物", stats.purified + " 個"));
+      box.appendChild(row("清理地圖物件", (stats.mapCleaned || 0) + " 個"));
+      box.appendChild(row("永續問答", (stats.quizCorrect || 0) + " 對 / " + (stats.quizIncorrect || 0) + " 錯"));
       box.appendChild(row("達到等級", "Lv." + stats.level));
       box.appendChild(row("拾取循環幣", "♻ " + stats.collected));
       box.appendChild(row("淨化獎勵", "♻ " + stats.purifyBonus));

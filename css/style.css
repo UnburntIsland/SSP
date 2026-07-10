@@ -2019,3 +2019,95 @@ html.is-mobile, .is-mobile body{
   left:96px;
   right:78px;
 }
+
+/* Gameplay feedback: contamination zone, sustainability quiz, and knowledge cards. */
+.hud-zone{
+  min-height:16px;
+  margin-top:3px;
+  font-size:11px;
+  color:#8fe4bd;
+  text-shadow:var(--text-outline-soft);
+  white-space:nowrap;
+}
+.hud-zone.danger{
+  color:#ff8d9a;
+  animation:hud-zone-pulse .7s steps(2,end) infinite;
+}
+@keyframes hud-zone-pulse{ 50%{ opacity:.55; } }
+
+#overlay-levelup .quiz-options{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  width:min(900px, 96%);
+  margin:0 auto;
+  gap:18px;
+  align-items:stretch;
+}
+.quiz-question{
+  grid-column:1 / -1;
+  margin:0 auto 6px;
+  max-width:780px;
+  font-size:22px;
+  line-height:1.5;
+  color:#f4f7e8;
+  text-shadow:var(--text-outline-soft);
+}
+.quiz-card{
+  width:auto;
+  min-height:132px;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+}
+.quiz-card[aria-disabled="true"]{ cursor:default; transform:none; }
+.quiz-card.correct{ border-color:#72db8a; background:#173d35; }
+.quiz-card.wrong{ border-color:#ed6c78; background:#482b35; }
+.quiz-card.muted{ opacity:.45; }
+.quiz-index{
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  color:#102028;
+  background:#ffd84a;
+  border:2px solid #0a1a23;
+  font-size:17px;
+}
+.quiz-answer{ font-size:17px; line-height:1.5; color:#eff9f2; }
+.levelup-feedback{
+  width:min(720px, 90%);
+  margin:0 auto 18px;
+  padding:13px 18px;
+  background:rgba(12, 37, 43, .95);
+  border:2px solid #72db8a;
+  color:#eef9f0;
+  line-height:1.55;
+}
+.levelup-feedback.wrong{ border-color:#ed6c78; }
+.quiz-result{ font-size:16px; color:#ffd84a; }
+.quiz-explanation{ margin-top:5px; font-size:13px; color:#cbe4da; }
+.quiz-continue{ margin-top:12px; min-width:210px; }
+
+.toast.knowledge-toast{
+  bottom:86px;
+  width:min(650px, 78%);
+  padding:16px 20px;
+  border-color:#ffd84a;
+  background:rgba(13, 42, 48, .97);
+  box-shadow:0 0 0 3px rgba(255,216,74,.16), 0 5px 0 #0a1a23;
+}
+.knowledge-toast .t-title{ display:block; margin:0 0 5px; font-size:12px; }
+.knowledge-toast-title{ display:block; color:#fff0a6; font-size:17px; margin-bottom:5px; }
+.knowledge-toast-text{ display:block; color:#e1f1e9; font-size:12px; line-height:1.6; }
+
+#screen-gameover .screen-footer{ display:flex; gap:14px; }
+
+@media (max-width:760px){
+  #overlay-levelup .quiz-options{ grid-template-columns:1fr; gap:9px; }
+  .quiz-question{ font-size:18px; }
+  .quiz-card{ min-height:72px; padding:10px 14px; }
+  .levelup-feedback{ margin-bottom:10px; }
+}

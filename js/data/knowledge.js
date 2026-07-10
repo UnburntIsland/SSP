@@ -33,6 +33,52 @@
     }
   ];
 
+  // 升級前的永續快問快答。answer 為 options 的零起始索引。
+  global.GameData.sustainabilityQuestions = [
+    {
+      id: "q_reduce_first",
+      prompt: "要減少一次性塑膠，哪個行動最優先？",
+      options: ["全部先丟一般垃圾", "自備可重複使用容器", "買更多塑膠袋備用"],
+      answer: 1,
+      explanation: "源頭減量與重複使用通常比事後回收更有效。"
+    },
+    {
+      id: "q_battery",
+      prompt: "使用完的乾電池應該怎麼處理？",
+      options: ["埋進土裡", "和廚餘混在一起", "投入專用回收點"],
+      answer: 2,
+      explanation: "廢電池可能含重金屬，應交由專用回收系統處理。"
+    },
+    {
+      id: "q_cigarette",
+      prompt: "為什麼菸蒂不應丟進排水溝？",
+      options: ["可能釋出污染物並流入水體", "會立刻變成肥料", "能幫助魚類築巢"],
+      answer: 0,
+      explanation: "菸蒂濾嘴難分解，也可能把尼古丁與重金屬帶入水環境。"
+    },
+    {
+      id: "q_wetland",
+      prompt: "潮間帶與濕地能提供哪項重要功能？",
+      options: ["讓所有海水停止流動", "淨化水質與緩衝洪水", "製造更多一次性用品"],
+      answer: 1,
+      explanation: "濕地兼具棲地、水質淨化、固碳與防洪等價值。"
+    },
+    {
+      id: "q_recycle",
+      prompt: "資源循環的正確優先順序較接近哪一個？",
+      options: ["先丟棄、再購買", "只要回收就能無限使用", "減量、重複使用、再回收"],
+      answer: 2,
+      explanation: "減量與重複使用可直接避免資源消耗，回收則是後續手段。"
+    },
+    {
+      id: "q_energy",
+      prompt: "下列哪個做法能直接減少不必要的用電？",
+      options: ["整天開著空房照明", "關閉未使用的電器與待機電源", "把冷氣開到最低溫"],
+      answer: 1,
+      explanation: "減少待機與空轉用電，是容易執行的節能行動。"
+    }
+  ];
+
   global.GameData.getKnowledge = function (id) {
     return global.GameData.knowledge.find(function (k) { return k.id === id; });
   };

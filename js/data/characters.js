@@ -14,10 +14,10 @@
       spriteId: "char_ranger",
       startingSkill: "seed_blade",
       passive: {
-        // 最大生命值 +10%
-        maxHpMult: 1.10
+        // 平衡型：較高容錯，讓近身壓力下仍能站穩。
+        maxHpMult: 1.16
       },
-      passiveText: "最大生命值 +10%",
+      passiveText: "最大生命值 +16%",
       flavour: "守護森林邊界的巡守員，相信健康的土地能擋下污染潮。"
     },
     {
@@ -27,10 +27,11 @@
       spriteId: "char_beach",
       startingSkill: "recycle_net",
       passive: {
-        // 拾取範圍 +25%
-        pickupRangeMult: 1.25
+        // 收集型：更容易吃到散落資源，並有少量移動優勢。
+        pickupRangeMult: 1.35,
+        speedMult: 1.06
       },
-      passiveText: "拾取範圍 +25%",
+      passiveText: "拾取範圍 +35%、移動速度 +6%",
       flavour: "習慣彎腰撿起每一片海廢，深知資源不該被丟進大海。"
     },
     {
@@ -40,10 +41,11 @@
       spriteId: "char_solar",
       startingSkill: "solar_pulse",
       passive: {
-        // 技能冷卻 -10%
-        cooldownMult: 0.90
+        // 技能型仍保有冷卻優勢，但以較低生命換取範圍火力。
+        cooldownMult: 0.96,
+        maxHpMult: 0.92
       },
-      passiveText: "技能冷卻 -10%",
+      passiveText: "技能冷卻 -4%、最大生命值 -8%",
       flavour: "用乾淨能源驅動裝置，相信節能行動能讓世界更明亮。"
     }
   ];

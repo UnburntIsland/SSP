@@ -9,6 +9,7 @@
    ============================================================ */
 (function (global) {
   var BASE_W = 1280, BASE_H = 720;
+  var FORCE_MOBILE_QA = new URLSearchParams(global.location.search).get("forceMobile") === "1";
   var MOBILE_CANVAS_SCALE_MODE = "cover";   // 手機：cover（滿版）；桌機維持原 CSS contain
   var UI_SAFE_MARGIN = 24;
   var state = {
@@ -19,7 +20,7 @@
   };
 
   function isTouchDevice() {
-    return ("ontouchstart" in global) || !!(global.navigator && navigator.maxTouchPoints > 0);
+    return FORCE_MOBILE_QA || ("ontouchstart" in global) || !!(global.navigator && navigator.maxTouchPoints > 0);
   }
 
   function getViewportSize() {

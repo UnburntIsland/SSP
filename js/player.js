@@ -24,7 +24,8 @@
     this.maxHp = Math.round((BASE.maxHp + (meta.bonusMaxHp || 0)) * (p.maxHpMult || 1));
     this.hp = this.maxHp;
 
-    this.speed = BASE.speed;
+    this.speed = BASE.speed * (p.speedMult || 1);
+    this.environmentSpeedMult = 1;
     this.radius = BASE.radius;
 
     // 拾取範圍：基礎 × 角色倍率 ×（1 + 商店生態感知）
@@ -115,8 +116,9 @@
     if (mv.x !== 0) this.facing = mv.x > 0 ? 1 : -1;
     if (this.animator) this.animator.update(dt, mv.x, mv.y);
     this._bobT = (this._bobT || 0) + dt;   // 走路 bob 相位
-    this.x += mv.x * this.speed * dt;
-    this.y += mv.y * this.speed * dt;
+    var environmentSpeed = this.environmentSpeedMult || 1;
+    this.x += mv.x * this.speed * environmentSpeed * dt;
+    this.y += mv.y * this.speed * environmentSpeed * dt;
 
     // 限制在世界範圍內
     this.x = Math.max(this.radius, Math.min(world.w - this.radius, this.x));

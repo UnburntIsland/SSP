@@ -67,6 +67,7 @@
 
       this.enemies = [];
       this.projectiles = [];
+      this.enemyProjectiles = [];
       this.zones = [];
       this.pulses = [];
       this.pickups = [];
@@ -77,9 +78,16 @@
       this.time = 0;
       this.runCoins = 0;
       this.purifiedCount = 0;
+      this.mapCleanedCount = 0;
+      this.quizCorrect = 0;
+      this.quizIncorrect = 0;
+      this.quizIndex = 0;
+      this.quizOrder = shuffle((global.GameData.sustainabilityQuestions || []).slice());
       this.pendingLevelUps = 0;
       this.firedEvents = {};
       this.spawnAcc = 0;
+      this.zoneDamageTimer = 0;
+      this.contamination = this.makeContaminationState();
 
       this.camera = { x: 0, y: 0 };
       this.player.x = this.world.w / 2;
@@ -110,7 +118,7 @@
     // 立即中止本局並清空世界（回首頁用），確保不殘留敵人/子彈/掉落物/計時器/暫停狀態
     abort: function () {
       this.running = false; this.ended = true; this.menuPaused = false; this.paused = false;
-      this.enemies = []; this.projectiles = []; this.zones = []; this.pulses = [];
+      this.enemies = []; this.projectiles = []; this.enemyProjectiles = []; this.zones = []; this.pulses = [];
       this.pickups = []; this.effects = []; this.puffs = []; this.floaters = [];
       this.pendingLevelUps = 0; this.time = 0;
     },
@@ -222,6 +230,7 @@
 
       var ctx = this.makeCtx();
 
+      this.updateMapInteractions(dt);
       this.player.update(dt, this.world);
 
       // 武器自動攻擊
@@ -235,6 +244,12 @@
         this.collideProjectile(pr);
       }
 
+      for (var ep = 0; ep < this.enemyProjectiles.length; ep++) {
+        var enemyProjectile = this.enemyProjectiles[ep];
+        enemyProjectile.update(dt, this.world);
+        this.collideEnemyProjectile(enemyProjectile);
+      }
+
       // 區域（磁網 / 孢子）
       for (var z = 0; z < this.zones.length; z++) this.zones[z].update(dt, ctx);
 
@@ -245,12 +260,16 @@
       for (var e = 0; e < this.enemies.length; e++) {
         var en = this.enemies[e];
         en.update(dt, this.player);
+        var attack = en.consumeAttack ? en.consumeAttack() : null;
+        if (attack) this.fireEnemyAttack(en, attack);
         var dx = en.x - this.player.x, dy = en.y - this.player.y;
         var rr = en.radius + this.player.radius;
-        if (dx * dx + dy * dy <= rr * rr) {
+        if ((!en.isSpawning || !en.isSpawning()) && dx * dx + dy * dy <= rr * rr) {
           this.player.takeDamage(en.contact);
         }
       }
+
+      this.updateContamination(dt);
 
       // 掉落物拾取
       for (var k = 0; k < this.pickups.length; k++) {
@@ -271,12 +290,12 @@
       this.cleanup();
       this.updateCamera();
 
-      // 升級暫停
-      if (this.pendingLevelUps > 0 && !this.paused) this.triggerLevelUp();
-
       // 勝負判定
       if (this.player.hp <= 0) { this.end("defeat"); return; }
       if (this.time >= this.stage.duration) { this.end("victory"); return; }
+
+      // 升級暫停放在死亡判定後，避免同一幀同時開啟問答與結算畫面。
+      if (this.pendingLevelUps > 0 && !this.paused) this.triggerLevelUp();
     },
 
     makeCtx: function () {
@@ -292,6 +311,154 @@
         findNearestEnemy: function (x, y) { return self.findNearestEnemy(x, y); },
         onPurified: function (en) { self.onPurified(en); }
       };
+    },
+
+    makeContaminationState: function () {
+      var def = this.stage && this.stage.contaminationZone;
+      if (!def) return null;
+      var startsAt = def.startsAt || 0;
+      if (global.TestMode && global.TestMode.enabled) {
+        startsAt = Math.min(startsAt, this.stage.duration * 0.48);
+      }
+      return {
+        def: def,
+        startsAt: startsAt,
+        x: this.world.w / 2,
+        y: this.world.h / 2,
+        radius: def.startRadius,
+        active: false,
+        outside: false
+      };
+    },
+
+    updateContamination: function (dt) {
+      var zone = this.contamination;
+      if (!zone || this.time < zone.startsAt) return;
+      zone.active = true;
+      var duration = Math.max(1, this.stage.duration - zone.startsAt);
+      var t = clamp((this.time - zone.startsAt) / duration, 0, 1);
+      zone.radius = zone.def.startRadius + (zone.def.endRadius - zone.def.startRadius) * t;
+
+      var dx = this.player.x - zone.x;
+      var dy = this.player.y - zone.y;
+      zone.outside = dx * dx + dy * dy > Math.pow(Math.max(0, zone.radius - this.player.radius), 2);
+      if (!zone.outside) {
+        this.zoneDamageTimer = 0;
+        return;
+      }
+
+      this.zoneDamageTimer -= dt;
+      if (this.zoneDamageTimer <= 0) {
+        this.zoneDamageTimer = zone.def.tickInterval || 0.75;
+        if (this.player.takeDamage(zone.def.damagePerTick || 4)) {
+          this.floaters.push({
+            x: this.player.x,
+            y: this.player.y - 24,
+            age: 0,
+            life: 0.7,
+            text: "污染區 -" + (zone.def.damagePerTick || 4),
+            color: "#e97885"
+          });
+        }
+      }
+    },
+
+    contaminationStatus: function () {
+      var zone = this.contamination;
+      if (!zone) return "";
+      if (!zone.active) return "污染圈將於 " + Math.max(0, Math.ceil(zone.startsAt - this.time)) + " 秒後收縮";
+      if (zone.outside) return "警告：回到安全區內";
+      return "安全區半徑 " + Math.round(zone.radius) + "";
+    },
+
+    updateMapInteractions: function () {
+      this.player.environmentSpeedMult = 1;
+      var renderer = global.StageRenderer;
+      var props = renderer && renderer.props;
+      if (!props) return;
+
+      var nearest = null;
+      for (var i = 0; i < props.length; i++) {
+        var p = props[i];
+        if (p.cleaned) continue;
+        var dx = this.player.x - p.x;
+        var dy = this.player.y - p.y;
+        var d2 = dx * dx + dy * dy;
+
+        if (p.type === "oil" && d2 < 48 * 48) {
+          this.player.environmentSpeedMult = Math.min(this.player.environmentSpeedMult, 0.72);
+        }
+
+        if (p.type === "trash" && d2 < 34 * 34) {
+          p.cleaned = true;
+          this.mapCleanedCount += 1;
+          this.pickups.push(new global.Pickup("xp", p.x, p.y, 2));
+          if (Math.random() < 0.32) this.pickups.push(new global.Pickup("coin", p.x + 8, p.y, 1));
+          this.puffs.push({ x: p.x, y: p.y, age: 0, life: 0.45, r: 12, color: "#7cc36a" });
+          this.floaters.push({ x: p.x, y: p.y, age: 0, life: 0.8, text: "清理海廢 +2 XP", color: "#8ff0a0" });
+        } else if (p.type === "recycleBin" && !p.used) {
+          if (d2 < 48 * 48) {
+            p.used = true;
+            this.mapCleanedCount += 1;
+            this.runCoins += 3;
+            this.pickups.push(new global.Pickup("xp", p.x - 10, p.y, 2));
+            this.pickups.push(new global.Pickup("xp", p.x + 10, p.y, 2));
+            this.puffs.push({ x: p.x, y: p.y, age: 0, life: 0.65, r: 18, color: "#4dd0c4" });
+            this.floaters.push({ x: p.x, y: p.y, age: 0, life: 0.9, text: "回收站啟動 ♻+3", color: "#ffd84a" });
+            if (this.app) this.app.showToast("探索獎勵", "回收站已啟動，獲得循環幣與經驗。 ");
+          } else if (!nearest || d2 < nearest.distance2) nearest = { prop: p, distance2: d2 };
+        }
+      }
+      this.nearestMapObjective = nearest;
+    },
+
+    mapObjectiveStatus: function () {
+      var target = this.nearestMapObjective;
+      if (!target || !target.prop) return "附近回收站皆已啟動";
+      var dx = target.prop.x - this.player.x;
+      var dy = target.prop.y - this.player.y;
+      var angle = Math.atan2(dy, dx);
+      var arrows = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"];
+      var index = Math.round(angle / (Math.PI / 4));
+      if (index < 0) index += 8;
+      return "回收站 " + Math.round(Math.sqrt(target.distance2)) + "m " + arrows[index % 8];
+    },
+
+    fireEnemyAttack: function (enemy, attack) {
+      if (!global.EnemyProjectile) return;
+      if (this.enemyProjectiles.length >= 220) return;
+      var r = attack.config;
+      var count = r.kind === "radial" ? (r.count || 8) : 1;
+      var baseAngle = r.kind === "radial" ? this.time * 0.35 : Math.atan2(attack.aimY, attack.aimX);
+      for (var i = 0; i < count; i++) {
+        if (this.enemyProjectiles.length >= 220) break;
+        var angle = r.kind === "radial" ? baseAngle + i * Math.PI * 2 / count : baseAngle;
+        var speed = r.projectileSpeed || 140;
+        var radius = r.projectileRadius || 7;
+        this.enemyProjectiles.push(new global.EnemyProjectile(
+          enemy.x + Math.cos(angle) * (enemy.radius + radius + 2),
+          enemy.y + Math.sin(angle) * (enemy.radius + radius + 2),
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed,
+          {
+            damage: r.projectileDamage || 6,
+            radius: radius,
+            color: r.color,
+            sourceId: enemy.id
+          }
+        ));
+      }
+    },
+
+    collideEnemyProjectile: function (projectile) {
+      if (projectile.dead) return;
+      var dx = projectile.x - this.player.x;
+      var dy = projectile.y - this.player.y;
+      var rr = projectile.radius + this.player.radius;
+      if (dx * dx + dy * dy > rr * rr) return;
+      projectile.dead = true;
+      this.player.takeDamage(projectile.damage);
+      this.puffs.push({ x: projectile.x, y: projectile.y, age: 0, life: 0.24, r: projectile.radius, color: projectile.color });
     },
 
     spawnEffect: function (effectId, groupName, x, y, opt) {
@@ -365,8 +532,11 @@
         this.pickups.push(new global.Pickup("health", e.x + rand(-10, 10), e.y + rand(-10, 10)));
       }
       // 知識卡（仍有未解鎖時才掉落）
-      if (this.lockedKnowledgeRemain() && (e.isBoss || Math.random() < 0.01)) {
+      var knowledgeMilestone = this.purifiedCount > 0 && this.purifiedCount % 32 === 0;
+      if (this.lockedKnowledgeRemain() && (e.isBoss || knowledgeMilestone || Math.random() < 0.018)) {
         this.pickups.push(new global.Pickup("card", e.x + rand(-12, 12), e.y + rand(-12, 12)));
+        this.puffs.push({ x: e.x, y: e.y, age: 0, life: 0.8, r: 22, color: "#ffd84a" });
+        this.floaters.push({ x: e.x, y: e.y - 10, age: 0, life: 1.2, text: "永續知識卡出現！", color: "#fff19a" });
       }
     },
 
@@ -395,6 +565,8 @@
         this.floaters.push({ x: pk.x, y: pk.y, age: 0, life: 0.7, text: "+" + pk.value + "HP", color: "#7fd0f5" });
       } else if (pk.type === "card") {
         var entry = global.Storage.unlockNextKnowledge();
+        this.puffs.push({ x: pk.x, y: pk.y, age: 0, life: 0.9, r: 28, color: "#ffd84a" });
+        this.spawnEffect("common", "purify_pop", pk.x, pk.y, { life: 0.5, size: 58 / ZOOM() });
         if (entry && this.app) this.app.onKnowledgeUnlocked(entry);
       }
     },
@@ -402,6 +574,7 @@
     cleanup: function () {
       this.enemies = this.enemies.filter(function (e) { return !e.dead; });
       this.projectiles = this.projectiles.filter(function (p) { return !p.dead; });
+      this.enemyProjectiles = this.enemyProjectiles.filter(function (p) { return !p.dead; });
       this.zones = this.zones.filter(function (z) { return !z.dead; });
       this.pulses = this.pulses.filter(function (u) { return !u.dead; });
       this.pickups = this.pickups.filter(function (p) { return !p.dead; });
@@ -470,7 +643,44 @@
       this.paused = true;
       var options = this.generateLevelUpOptions();
       var self = this;
-      this.app.onLevelUp(options, function (choice) { self.resolveLevelUp(choice); });
+      var question = this.nextQuizQuestion();
+      function showChoices() {
+        self.app.onLevelUp(options, function (choice) { self.resolveLevelUp(choice); });
+      }
+      if (question && this.app && this.app.onSustainabilityQuiz) {
+        this.app.onSustainabilityQuiz(question, function (result) {
+          self.applyQuizAnswer(result);
+          showChoices();
+        });
+      } else {
+        showChoices();
+      }
+    },
+
+    nextQuizQuestion: function () {
+      if (!this.quizOrder || !this.quizOrder.length) return null;
+      if (this.quizIndex >= this.quizOrder.length) {
+        this.quizOrder = shuffle(this.quizOrder.slice());
+        this.quizIndex = 0;
+      }
+      return this.quizOrder[this.quizIndex++];
+    },
+
+    applyQuizAnswer: function (result) {
+      if (!result) return;
+      if (result.correct) {
+        this.quizCorrect += 1;
+        var heal = Math.max(6, Math.round(this.player.maxHp * 0.08));
+        this.player.heal(heal);
+        this.runCoins += 2;
+        this.floaters.push({ x: this.player.x, y: this.player.y - 30, age: 0, life: 0.9, text: "答對！+" + heal + " HP  ♻+2", color: "#8ff0a0" });
+      } else {
+        this.quizIncorrect += 1;
+        var penalty = Math.max(4, Math.round(this.player.maxHp * 0.05));
+        this.player.hp = Math.max(1, this.player.hp - penalty);
+        this.player.hitFlash = 0.18;
+        this.floaters.push({ x: this.player.x, y: this.player.y - 30, age: 0, life: 0.9, text: "答錯：污染壓力 -" + penalty + " HP", color: "#ff9a9a" });
+      }
     },
 
     generateLevelUpOptions: function () {
@@ -543,6 +753,12 @@
       if (this.ended) return;
       this.ended = true;
       this.running = false;
+      this.paused = false;
+      this.menuPaused = false;
+      // end() 可能在既有 animation frame 中途發生；主迴圈不會再進入開頭分支，
+      // 因此要在這裡明確釋放旗標，讓「再試一次」能重新 requestAnimationFrame。
+      this._looping = false;
+      this.lastTs = 0;
 
       var collected = this.runCoins;
       var purifyBonus = Math.floor(this.purifiedCount * 0.5);
@@ -555,6 +771,9 @@
         result: result,
         survived: this.time,
         purified: this.purifiedCount,
+        mapCleaned: this.mapCleanedCount,
+        quizCorrect: this.quizCorrect,
+        quizIncorrect: this.quizIncorrect,
         level: this.player.level,
         collected: collected,
         purifyBonus: purifyBonus,
@@ -577,6 +796,24 @@
       var maxY = Math.max(0, this.world.h - vh);
       this.camera.x = clamp(this.player.x - vw / 2, 0, maxX);
       this.camera.y = clamp(this.player.y - vh / 2, 0, maxY);
+    },
+
+    drawContaminationZone: function (ctx) {
+      var zone = this.contamination;
+      if (!zone || !zone.active) return;
+      ctx.save();
+      ctx.fillStyle = "rgba(93, 33, 91, 0.16)";
+      ctx.beginPath();
+      ctx.rect(0, 0, this.world.w, this.world.h);
+      ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2, true);
+      ctx.fill("evenodd");
+      ctx.strokeStyle = zone.outside ? "rgba(255, 103, 121, 0.95)" : "rgba(113, 231, 168, 0.85)";
+      ctx.lineWidth = 4 / ZOOM();
+      ctx.setLineDash([12 / ZOOM(), 8 / ZOOM()]);
+      ctx.beginPath();
+      ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     },
 
     /* ---------------- 繪製 ---------------- */
@@ -602,6 +839,8 @@
         ctx.drawImage(this.bg, cam.x, cam.y, vw, vh, cam.x, cam.y, vw, vh);
       }
 
+      this.drawContaminationZone(ctx);
+
       var minX = cam.x - 40, maxX = cam.x + vw + 40, minY = cam.y - 40, maxY = cam.y + vh + 40;
       function vis(o, m) { m = m || 0; return o.x > minX - m && o.x < maxX + m && o.y > minY - m && o.y < maxY + m; }
 
@@ -623,6 +862,11 @@
 
       // 投射物
       for (var pr = 0; pr < this.projectiles.length; pr++) if (vis(this.projectiles[pr])) this.projectiles[pr].draw(ctx);
+
+      // 敵方彈幕（在玩家下方，保持閃避路徑清楚）
+      for (var ep = 0; ep < this.enemyProjectiles.length; ep++) {
+        if (vis(this.enemyProjectiles[ep], 30)) this.enemyProjectiles[ep].draw(ctx);
+      }
 
       // 圖片化一次性特效（命中、淨化、拾取）
       for (var ef = 0; ef < this.effects.length; ef++) {
