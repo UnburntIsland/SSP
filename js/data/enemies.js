@@ -31,7 +31,7 @@
       contact: 5,
       xp: 1,
       coinChance: 0.06,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "由瓶蓋與微塑膠聚成的小型甲蟲，會沿潮池邊快速包圍。",
       introHint: "保持走位，別讓牠們從兩側形成包夾。",
       knowledgeId: "k_plastic"
@@ -46,7 +46,7 @@
       contact: 7,
       xp: 2,
       coinChance: 0.09,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "藏在清潔劑泡沫中的寄居蟹，甲殼能承受較多淨化攻擊。",
       introHint: "集中火力處理，避免牠堵住潮池通道。",
       knowledgeId: "k_wetland"
@@ -63,7 +63,7 @@
       coinChance: 1,
       coinAmount: 12,
       isBoss: true,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "廢棄漁網、浮球與塑膠碎片纏成的潮間帶污染核心。",
       introHint: "穿過繩結彈幕的空隙，持續攻擊中央網囊。",
       ranged: {
@@ -130,7 +130,7 @@
       contact: 6,
       xp: 2,
       coinChance: 0.08,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "失控的磁選機會保持距離，朝回收動線發射金屬碎片。",
       introHint: "看到瞄準線後橫向閃避，再靠近快速淨化。",
       ranged: {
@@ -157,7 +157,7 @@
       xp: 5,
       coinChance: 0.18,
       isElite: true,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "壓縮鋁罐堆成的精英污染物，移動緩慢但非常耐打。",
       introHint: "先清掉周圍快怪，再保持距離集中輸出。",
       knowledgeId: "k_reduce"
@@ -174,7 +174,7 @@
       coinChance: 1,
       coinAmount: 20,
       isBoss: true,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "回收工廠的主壓縮設備失控，會用液壓臂與金屬彈幕封鎖動線。",
       introHint: "遠離雙臂正面，利用機甲轉向較慢的空檔輸出。",
       ranged: {
@@ -200,7 +200,7 @@
       contact: 8,
       xp: 2,
       coinChance: 0.08,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "從黑水渠道分裂出的油膜滴怪，會沿著平台快速滲近。",
       introHint: "別被多個方向同時包圍，優先清出退路。",
       knowledgeId: "k_wetland"
@@ -216,7 +216,7 @@
       xp: 3,
       coinChance: 0.11,
       isElite: true,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "故障的排放監測機反而釋放煙塵能量彈，並在遠處繞行。",
       introHint: "觀察預警線，利用衝刺穿過單發彈道。",
       ranged: {
@@ -243,7 +243,7 @@
       xp: 5,
       coinChance: 0.16,
       isElite: true,
-      runtimeAnimated: false,
+      runtimeAnimated: true,
       introText: "高溫排放留下的灰燼聚成旋渦，會高速穿過怪群逼近。",
       introHint: "保留衝刺躲開突進，答題連勝能更快處理精英怪。",
       knowledgeId: "k_battery"
@@ -311,6 +311,7 @@
         enemy.animationSet = { idle: {}, move: {} };
       } else {
         enemy.spriteBasePath = "assets/images/enemies/" + (FOLDER[id] || id) + "/";
+        enemy.spriteVersion = "enemy_8dir_20260711a";
         enemy.animationSet = buildAnimSet();
       }
     });
