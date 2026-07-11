@@ -244,7 +244,7 @@
         shopCoins: $("shop-coins"),
         characterList: $("character-list"),
         shopList: $("shop-list"),
-        codexList: $("codex-list"),
+        codexList: $("codex-list"), codexDesc: $("codex-view-desc"),
         hud: $("hud"),
         hpFill: $("hp-fill"), hpText: $("hp-text"),
         timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
@@ -266,6 +266,7 @@
         levelupOverlay: $("overlay-levelup"), levelupOptions: $("levelup-options"),
         levelupTitle: $("levelup-title"), levelupFeedback: $("levelup-feedback"),
         knowledgeOverlay: $("overlay-knowledge"),
+        knowledgeIcon: $("knowledge-card-icon"),
         knowledgeTitle: $("knowledge-card-title"), knowledgeText: $("knowledge-card-text"),
         knowledgeContinue: $("knowledge-card-continue"),
         victoryStats: $("victory-stats"), gameoverStats: $("gameover-stats"),
@@ -332,6 +333,11 @@
           uiSelf.hideKnowledgeCard(true);
         });
       }
+      Array.prototype.forEach.call(document.querySelectorAll("[data-codex-view]"), function (tab) {
+        tab.addEventListener("click", function () {
+          uiSelf.setCodexView(tab.dataset.codexView);
+        });
+      });
       this.applyUiAssets();
       this.updateHomeCharacterPreview(app && app.selectedCharacterId);
       this.scheduleUiAssetRefresh();
@@ -406,6 +412,16 @@
         this.dom.toast.classList.add("hidden");
       }
       this._knowledgeContinue = onContinue || null;
+      if (this.dom.knowledgeIcon) {
+        this.dom.knowledgeIcon.innerHTML = "";
+        if (entry.iconPath) {
+          var knowledgeImg = document.createElement("img");
+          knowledgeImg.src = entry.iconPath;
+          knowledgeImg.alt = "";
+          knowledgeImg.decoding = "async";
+          this.dom.knowledgeIcon.appendChild(knowledgeImg);
+        }
+      }
       this.dom.knowledgeTitle.textContent = entry.title;
       this.dom.knowledgeText.textContent = entry.text;
       overlay.classList.remove("hidden");
@@ -442,9 +458,31 @@
       if (d.enemyIntroHint) d.enemyIntroHint.textContent = intro.hint || "觀察行動模式，再選擇淨化方式。";
       if (d.enemyIntroPortrait) {
         d.enemyIntroPortrait.innerHTML = "";
-        var portrait = global.Sprites.makeCanvas(intro.spriteId, intro.isBoss ? 12 : 10);
-        portrait.className = "enemy-intro-portrait-canvas";
-        d.enemyIntroPortrait.appendChild(portrait);
+        var enemyDef = global.GameData && global.GameData.getEnemy ? global.GameData.getEnemy(intro.id) : null;
+        var portraitBase = enemyDef && enemyDef.spriteBasePath;
+        var introImage = null;
+
+        function appendCanvasFallback() {
+          if (!global.Sprites || !global.Sprites.makeCanvas) return;
+          var portrait = global.Sprites.makeCanvas(intro.spriteId, intro.isBoss ? 12 : 10);
+          portrait.className = "enemy-intro-portrait-canvas";
+          d.enemyIntroPortrait.appendChild(portrait);
+        }
+
+        if (portraitBase) {
+          introImage = document.createElement("img");
+          introImage.className = "enemy-intro-portrait-image";
+          introImage.alt = intro.name;
+          introImage.decoding = "async";
+          introImage.src = portraitBase + "idle_S_0.png?v=" + (enemyDef.spriteVersion || "intro1");
+          introImage.onerror = function () {
+            introImage.remove();
+            appendCanvasFallback();
+          };
+          d.enemyIntroPortrait.appendChild(introImage);
+        } else {
+          appendCanvasFallback();
+        }
       }
 
       overlay.classList.remove("hidden");
@@ -589,17 +627,109 @@
       }, 100);
     },
 
+    setCodexView: function (view) {
+      if (view !== "knowledge") view = "enemies";
+      this._codexView = view;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-codex-view]"), function (tab) {
+        var active = tab.dataset.codexView === view;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+      this.buildCodex();
+    },
+
     buildCodex: function () {
       var list = this.dom.codexList;
+      if (!list) return;
+      var view = this._codexView === "knowledge" ? "knowledge" : "enemies";
       list.innerHTML = "";
-      var all = global.GameData.knowledge;
+      list.className = "codex-list " + (view === "knowledge" ? "codex-knowledge-list" : "codex-enemy-list");
+      list.setAttribute("aria-labelledby", view === "knowledge" ? "codex-tab-knowledge" : "codex-tab-enemies");
+      if (this.dom.codexDesc) {
+        this.dom.codexDesc.textContent = view === "knowledge"
+          ? "在關卡中拾取知識卡，逐步解鎖永續行動與環境知識。"
+          : "查看各關卡出現的污染物、威脅類型與行動提示。";
+      }
+      if (view === "knowledge") this.buildKnowledgeCodex(list);
+      else this.buildEnemyCodex(list);
+    },
+
+    buildKnowledgeCodex: function (list) {
+      var all = global.GameData.knowledge || [];
       all.forEach(function (k, idx) {
         var unlocked = global.Storage.isKnowledgeUnlocked(k.id);
-        var item = el("div", "codex-item" + (unlocked ? "" : " locked"));
-        item.appendChild(el("div", "codex-num", unlocked ? String(idx + 1) : "?"));
+        var item = el("article", "codex-item codex-knowledge-card" + (unlocked ? "" : " locked"));
+
+        var art = el("div", "codex-knowledge-art");
+        if (k.iconPath) {
+          var img = document.createElement("img");
+          img.src = k.iconPath;
+          img.alt = unlocked ? k.title : "";
+          img.loading = "lazy";
+          img.decoding = "async";
+          art.appendChild(img);
+        }
+        art.appendChild(el("span", "codex-num", unlocked ? String(idx + 1) : "?"));
+        item.appendChild(art);
+
         var body = el("div", "codex-body");
         body.appendChild(el("div", "codex-title", unlocked ? k.title : "未解鎖的知識卡"));
-        body.appendChild(el("div", "codex-text", unlocked ? k.text : "在「海廢潮間帶」中拾取知識卡即可解鎖這一則永續知識。"));
+        body.appendChild(el("div", "codex-text", unlocked ? k.text : "在關卡中拾取知識卡，即可解鎖這一則永續知識。"));
+        item.appendChild(body);
+        list.appendChild(item);
+      });
+    },
+
+    buildEnemyCodex: function (list) {
+      var defs = global.GameData.enemies || {};
+      var stages = global.GameData.stages || [];
+      var entries = [];
+      var added = {};
+
+      function addEnemy(id, stage) {
+        if (!id || added[id] || !defs[id]) return;
+        added[id] = true;
+        entries.push({ enemy: defs[id], stage: stage });
+      }
+
+      stages.forEach(function (stage) {
+        (stage.fallbackEnemies || []).forEach(function (id) { addEnemy(id, stage); });
+        (stage.waves || []).forEach(function (wave) {
+          (wave.types || []).forEach(function (entry) { addEnemy(entry.enemy, stage); });
+        });
+        (stage.events || []).forEach(function (event) { addEnemy(event.enemy, stage); });
+        addEnemy(stage.bossId, stage);
+      });
+      Object.keys(defs).forEach(function (id) { addEnemy(id, null); });
+
+      entries.forEach(function (entry) {
+        var def = entry.enemy;
+        var type = def.isBoss ? "BOSS" : (def.isElite ? "精英污染物" : (def.ranged ? "遠程污染物" : "一般污染物"));
+        var item = el("article", "codex-enemy-card" + (def.isBoss ? " boss" : (def.isElite ? " elite" : "")));
+
+        var art = el("div", "codex-enemy-art");
+        var img = document.createElement("img");
+        var base = def.spriteBasePath || ("assets/images/enemies/" + def.id + "/");
+        img.src = base + "idle_S_0.png?v=" + (def.spriteVersion || "codex1");
+        img.alt = def.name;
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.onerror = function () {
+          img.remove();
+          if (!global.Sprites || !global.Sprites.makeCanvas) return;
+          var fallback = global.Sprites.makeCanvas(def.spriteId, def.isBoss ? 9 : 7);
+          fallback.className = "codex-enemy-canvas";
+          art.appendChild(fallback);
+        };
+        art.appendChild(img);
+        art.appendChild(el("span", "codex-enemy-type", type));
+        item.appendChild(art);
+
+        var body = el("div", "codex-enemy-body");
+        body.appendChild(el("div", "codex-enemy-stage", entry.stage ? ("第 " + entry.stage.order + " 關 · " + entry.stage.shortName) : "特殊污染物"));
+        body.appendChild(el("div", "codex-enemy-name", def.name));
+        body.appendChild(el("div", "codex-enemy-text", def.introHint || def.introText || "觀察移動方式並保持安全距離。"));
         item.appendChild(body);
         list.appendChild(item);
       });

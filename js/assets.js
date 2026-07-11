@@ -56,6 +56,13 @@
     enemy_compactor_golem: { label: "壓縮機甲 (Boss)", paths: [
       "assets/images/enemies/compactor_golem/enemy_compactor_golem.png?v=stages-20260711a" ] },
 
+    // -------- 永續圖鑑知識圖示（GPT-image） --------
+    codex_knowledge_plastic:   { label: "塑膠袋與海洋", paths: ["assets/images/codex/knowledge/icon_plastic_ocean.png?v=codex1"] },
+    codex_knowledge_cigarette: { label: "菸蒂的隱形污染", paths: ["assets/images/codex/knowledge/icon_cigarette_pollution.png?v=codex1"] },
+    codex_knowledge_battery:   { label: "廢電池回收", paths: ["assets/images/codex/knowledge/icon_battery_recycling.png?v=codex1"] },
+    codex_knowledge_wetland:   { label: "潮間帶與濕地", paths: ["assets/images/codex/knowledge/icon_wetland_value.png?v=codex1"] },
+    codex_knowledge_reduce:    { label: "減量與重複使用", paths: ["assets/images/codex/knowledge/icon_reduce_reuse_recycle.png?v=codex1"] },
+
     // -------- 掉落物 --------
     pickup_xp:     { label: "經驗晶體", paths: [
       "assets/images/items/item_exp_crystal.png",
