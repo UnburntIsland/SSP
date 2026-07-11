@@ -114,6 +114,9 @@
           screen: activeScreenName(),
           running: !!g.running,
           paused: !!g.paused,
+          knowledgePaused: !!g.knowledgePaused,
+          runIntroActive: !!g.runIntroActive,
+          runIntroRemaining: g.runIntroRemaining || 0,
           ended: !!g.ended,
           time: g.time || 0,
            enemies: g.enemies ? g.enemies.length : 0,
@@ -198,11 +201,19 @@
     var wantsScenario = params.get("qaLevelUp") === "1" || params.get("qaRanged") === "1" ||
       params.get("qaZone") === "1" || params.get("qaDefeat") === "1" ||
       !!params.get("qaKnowledge") || params.get("qaMap") === "1" || params.get("qaZoneOutside") === "1" ||
-      !!params.get("qaQuizStreak");
+      params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak");
     if (wantsScenario) {
       var scenarioPoll = setInterval(function () {
         if (!global.Game || !global.Game.running || !global.Game.player) return;
+        if (global.Game.runIntroActive) return;
         clearInterval(scenarioPoll);
+
+        if (params.get("qaFinalCountdown") === "1") {
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
+          global.Game.time = Math.max(0, global.Game.stage.duration - 9.2);
+        }
 
         if (params.get("qaZone") === "1" && global.Game.contamination) {
           global.Game.stage.events = [];
@@ -239,6 +250,13 @@
         }
         if (params.get("qaKnowledge")) {
           var near = params.get("qaKnowledge") === "collect" ? 8 : 105;
+          if (params.get("qaKnowledge") === "collect" && global.Storage && global.GameData.knowledge.length) {
+            var unlockNextKnowledge = global.Storage.unlockNextKnowledge;
+            global.Storage.unlockNextKnowledge = function () {
+              global.Storage.unlockNextKnowledge = unlockNextKnowledge;
+              return global.GameData.knowledge[0];
+            };
+          }
           global.Game.pickups.push(new global.Pickup("card", global.Game.player.x + near, global.Game.player.y));
         }
         if (params.get("qaMap") === "1" && global.StageRenderer && global.StageRenderer.props) {

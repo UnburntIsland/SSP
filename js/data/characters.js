@@ -14,10 +14,10 @@
       spriteId: "char_ranger",
       startingSkill: "seed_blade",
       passive: {
-        // 平衡型：較高容錯，讓近身壓力下仍能站穩。
-        maxHpMult: 1.16
+        // 生存型：以高生命容錯保護剛接觸動作遊戲的玩家。
+        maxHpMult: 1.5
       },
-      passiveText: "最大生命值 +16%",
+      passiveText: "最大生命值 +50%",
       flavour: "守護森林邊界的巡守員，相信健康的土地能擋下污染潮。"
     },
     {
@@ -41,11 +41,11 @@
       spriteId: "char_solar",
       startingSkill: "solar_pulse",
       passive: {
-        // 技能型仍保有冷卻優勢，但以較低生命換取範圍火力。
-        cooldownMult: 0.96,
-        maxHpMult: 0.92
+        // 技能型：用明顯的冷卻優勢交換較低生命容錯。
+        cooldownMult: 0.8,
+        maxHpMult: 0.8
       },
-      passiveText: "技能冷卻 -4%、最大生命值 -8%",
+      passiveText: "技能冷卻 -20%、最大生命值 -20%",
       flavour: "用乾淨能源驅動裝置，相信節能行動能讓世界更明亮。"
     }
   ];

@@ -13,9 +13,9 @@ visibility, and map exploration. It does not change input mapping,
 
 | Item | Before | After |
 | --- | --- | --- |
-| Ranger passive | Max HP +10% | Max HP +16% |
+| Ranger passive | Max HP +10% | Max HP +50% |
 | Beachcomber passive | Pickup range +25% | Pickup range +35%, speed +6% |
-| Solar Engineer passive | Cooldown -10% | Cooldown -4%, max HP -8% |
+| Solar Engineer passive | Cooldown -10% | Cooldown -20%, max HP -20% |
 | Seed Blade Lv.1 | 10 damage | 14 damage, increasing every level, plus elite bonus |
 | Recycle Net Lv.1 | 78 radius, 8 DPS, 6.0 sec cooldown | 84 radius, 10 DPS, 5.2 sec cooldown |
 | Solar Pulse Lv.1 | 110 radius, 16 damage, 3.2 sec cooldown | 100 radius, 10 damage, 3.8 sec cooldown |
@@ -29,6 +29,11 @@ the player.
 Seed Blade now scales from 14 to 36 damage with an additional per-level elite
 multiplier. Area attacks were reduced slightly so focused projectiles have a
 clear role without removing the utility of pull, knockback, and persistent zones.
+
+Three low-impact passives now provide quick, one-level choices: `Lightweight
+Shoes` (+6% movement speed), `Sorting Pouch` (+12% pickup range), and `Refill
+Snack` (+8 max HP and 8 healing). Each is removed from the upgrade pool after
+selection, so it cannot consume later levels.
 
 ## Enemy Pressure
 
@@ -48,7 +53,7 @@ clear role without removing the utility of pull, knockback, and persistent zones
 
 ## Sustainability Loop
 
-- Every level-up begins with one of 19 sustainability questions.
+- Every level-up begins with one of 50 sustainability questions.
 - Correct answer: heal 8% max HP (minimum 6) and gain 2 run coins.
 - Incorrect answer: lose 5% max HP (minimum 4), never reducing HP below 1.
 - Every answer displays the correct explanation before upgrade selection.
@@ -59,6 +64,10 @@ clear role without removing the utility of pull, knockback, and persistent zones
 
 ## Exploration And Survival
 
+- Every run opens with a five-second objective briefing. Combat, movement, enemy
+  spawning, and the five-minute timer remain frozen until the briefing ends.
+- During the final ten seconds, the centered timer becomes a larger pulsing red
+  warning and the objective line reports the same remaining second count.
 - Recycling bins are one-use resource stations that award 3 coins and 4 XP.
 - Loose trash can be cleaned for 2 XP and has a coin drop chance.
 - Oil-stain props slow movement to 72% while occupied.
@@ -66,8 +75,9 @@ clear role without removing the utility of pull, knockback, and persistent zones
 - The contamination ring now closes in four readable stages. Each stage shows a
   red projected boundary for a 12-second warning, shrinks for eight seconds,
   then holds for 26 seconds. Remaining outside deals two damage per second.
-- Knowledge cards have a larger sprite, pulse ring, light beam, guaranteed
-  milestone drops, and a six-second unlock card containing the full knowledge text.
+- Knowledge cards have a larger sprite, pulse ring, light beam, and guaranteed
+  milestone drops. Collecting one now pauses the run and opens the full knowledge
+  text until the player chooses `Continue`; queued cards are shown one at a time.
 - A dedicated help screen explains recycling stations, loose trash, oil stains,
   knowledge cards, projected contamination boundaries, and dash controls.
 - Every character can dash with `Space`, either `Shift`, or the lower-right
@@ -86,9 +96,13 @@ The defeat screen now also provides a direct `再試一次` action.
 - `git diff --check` passes.
 - Browser console warnings/errors: none.
 - Desktop and 844x390 mobile layouts verified without HUD/button overlap.
+- Five-second objective briefing verified with the main timer held at `05:00`;
+  gameplay begins only after the overlay closes.
+- Final countdown verified at `00:09` with matching warning text, red styling,
+  and no overlap with the mobile pause control.
 - Dash displacement, cooldown, and temporary invulnerability verified.
 - Projected contamination ring, countdown phases, and two-damage ticks verified.
-- Question count, answer indexes, five/ten-answer rewards, and elite damage
+- All 50 question IDs, option counts, answer indexes, five/ten-answer rewards, and elite damage
   multiplication verified with automated assertions.
 - Elite cap replacement and reduced enemy values verified with automated assertions.
 - Correct-answer reward and incorrect-answer penalty both verified.
@@ -96,5 +110,8 @@ The defeat screen now also provides a direct `再試一次` action.
 - Battery Slime telegraph and projectile verified.
 - Contamination-zone warning and damage verified.
 - Recycling-station reward and knowledge-card unlock verified.
+- Knowledge-card modal verified to hold the timer at `02:59` and resume only
+  after `Continue`; desktop and 844x390 mobile captures have no page overflow.
+- One-shot passive appears with its one-shot tag and is removed after selection.
 - Desktop test URL: `http://127.0.0.1:8765/index.html?test=1`
 - Debug test URL: `http://127.0.0.1:8765/index.html?test=1&debugAnimation=1`

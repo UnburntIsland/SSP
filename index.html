@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=gameplay-20260711" />
+  <link rel="stylesheet" href="css/style.css?v=gameplay-20260711d" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -46,6 +46,17 @@
         <span class="dash-icon" aria-hidden="true">»</span>
         <span id="dash-cooldown" class="dash-cooldown"></span>
       </button>
+    </div>
+
+    <!-- ===== Run objective countdown ===== -->
+    <div id="overlay-run-intro" class="overlay hidden run-intro-overlay" role="dialog" aria-modal="true" aria-labelledby="run-intro-title">
+      <div class="overlay-inner run-intro-panel">
+        <div class="run-intro-eyebrow">本局通關條件</div>
+        <h2 id="run-intro-title" class="run-intro-title">撐過污染潮</h2>
+        <div id="run-intro-goal" class="run-intro-goal">存活 5 分鐘</div>
+        <p class="run-intro-desc">保持生命並活到中央計時歸零，即可完成本局。</p>
+        <div class="run-intro-start" aria-live="polite"><strong id="run-intro-countdown">5</strong><span>秒後開始</span></div>
+      </div>
     </div>
 
     <!-- ===== Start / Main Menu ===== -->
@@ -168,6 +179,17 @@
       </div>
     </div>
 
+    <!-- ===== Knowledge card reading pause ===== -->
+    <div id="overlay-knowledge" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="knowledge-card-title">
+      <div class="overlay-inner knowledge-card-panel">
+        <div class="knowledge-card-eyebrow">永續圖鑑 +1</div>
+        <h2 id="knowledge-card-title" class="knowledge-card-title">永續知識</h2>
+        <p id="knowledge-card-text" class="knowledge-card-text"></p>
+        <div class="knowledge-card-note">遊戲已暫停，讀完後再繼續行動。</div>
+        <button id="knowledge-card-continue" class="btn btn-primary" type="button">繼續遊戲</button>
+      </div>
+    </div>
+
     <!-- ===== Pause overlay ===== -->
     <div id="overlay-pause" class="overlay hidden">
       <div class="overlay-inner pause-panel" id="pause-panel">
@@ -221,12 +243,12 @@
 
   <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
   <!-- Data layer -->
-  <script src="js/data/characters.js?v=gameplay-20260710"></script>
+  <script src="js/data/characters.js?v=gameplay-20260711c"></script>
   <script src="js/data/skills.js?v=gameplay-20260711"></script>
   <script src="js/data/enemies.js?v=gameplay-20260711"></script>
   <script src="js/data/shop.js"></script>
   <script src="js/data/stages.js?v=gameplay-20260711"></script>
-  <script src="js/data/knowledge.js?v=gameplay-20260711"></script>
+  <script src="js/data/knowledge.js?v=gameplay-20260711b"></script>
   <!-- Engine -->
   <script src="js/config.js?v=gameplay-20260710"></script>
   <script src="js/uiTheme.js"></script>
@@ -240,13 +262,13 @@
   <script src="js/animation.js"></script>
   <script src="js/input.js?v=gameplay-20260711"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
-  <script src="js/player.js?v=gameplay-20260711"></script>
+  <script src="js/player.js?v=gameplay-20260711b"></script>
   <script src="js/enemy.js?v=gameplay-20260711"></script>
   <script src="js/weapons.js?v=gameplay-20260711"></script>
-  <script src="js/ui.js?v=gameplay-20260711"></script>
-  <script src="js/game.js?v=gameplay-20260711"></script>
+  <script src="js/ui.js?v=gameplay-20260711d"></script>
+  <script src="js/game.js?v=gameplay-20260711c"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=gameplay-20260711"></script>
-  <script src="js/main.js?v=gameplay-20260711"></script>
+  <script src="js/test_mode.js?v=gameplay-20260711d"></script>
+  <script src="js/main.js?v=gameplay-20260711c"></script>
 </body>
 </html>

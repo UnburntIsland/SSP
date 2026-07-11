@@ -26,7 +26,16 @@
       apply: function (p) { p.cooldownMult *= 0.94; } },
     { id: "mend", name: "淨水補給", icon: "shop_rain", effect: "立即回復 35 生命",
       edu: "潔淨的水，是所有生命賴以維繫的根本。",
-      apply: function (p) { p.heal(35); } }
+      apply: function (p) { p.heal(35); } },
+    { id: "eco_sneakers", name: "輕量步鞋", icon: "shop_energy", effect: "移動速度 +6%（一次滿級）",
+      edu: "舒適的步行裝備，能讓低碳移動更容易成為日常。", oneShot: true,
+      apply: function (p) { p.speed *= 1.06; } },
+    { id: "sorting_pouch", name: "分類小袋", icon: "shop_eco", effect: "拾取範圍 +12%（一次滿級）",
+      edu: "先分類再收集，能讓資源整理更有效率。", oneShot: true,
+      apply: function (p) { p.pickupRange *= 1.12; } },
+    { id: "refill_snack", name: "補給點心", icon: "shop_soil", effect: "最大生命 +8，並回復 8（一次滿級）",
+      edu: "適量補充體力，才能穩定完成長時間的環境行動。", oneShot: true,
+      apply: function (p) { p.maxHp += 8; p.heal(8); } }
   ];
 
   function mulberry32(a) {
@@ -88,6 +97,11 @@
       this.quizIndex = 0;
       this.quizOrder = shuffle((global.GameData.sustainabilityQuestions || []).slice());
       this.pendingLevelUps = 0;
+      this.knowledgePaused = false;
+      this.knowledgeQueue = [];
+      this.runIntroDuration = 5;
+      this.runIntroRemaining = this.runIntroDuration;
+      this.runIntroActive = true;
       this.firedEvents = {};
       this.spawnAcc = 0;
       this.zoneDamageTimer = 0;
@@ -103,7 +117,7 @@
       this.buildBackground();
 
       this.running = true;
-      this.paused = false;
+      this.paused = true;
       this.menuPaused = false;
       this.ended = false;
       this.lastTs = 0;
@@ -115,7 +129,7 @@
     stop: function () { this.running = false; },
 
     /* ---------------- 暫停 / 中止（選單用） ---------------- */
-    isPausable: function () { return this.running && !this.ended && !this.paused && !this.menuPaused; },
+    isPausable: function () { return this.running && !this.ended && !this.runIntroActive && !this.paused && !this.menuPaused; },
     pauseGame: function () { if (!this.isPausable()) return false; this.menuPaused = true; return true; },
     resumeGame: function () { if (!this.menuPaused) return false; this.menuPaused = false; this.lastTs = 0; return true; },
     isMenuPaused: function () { return !!this.menuPaused; },
@@ -124,7 +138,8 @@
       this.running = false; this.ended = true; this.menuPaused = false; this.paused = false;
       this.enemies = []; this.projectiles = []; this.enemyProjectiles = []; this.zones = []; this.pulses = [];
       this.pickups = []; this.effects = []; this.puffs = []; this.floaters = [];
-      this.pendingLevelUps = 0; this.time = 0;
+      this.pendingLevelUps = 0; this.knowledgePaused = false; this.knowledgeQueue = [];
+      this.runIntroActive = false; this.runIntroRemaining = 0; this.time = 0;
     },
 
     /* ---------------- 背景（離屏繪製一次） ---------------- */
@@ -219,10 +234,20 @@
       this.lastTs = ts;
       if (dt > 0.05) dt = 0.05;          // 防止切到背景分頁後的大跳躍
 
-      if (!this.paused && !this.menuPaused && !this.ended) this.update(dt);
+      if (this.runIntroActive && !this.ended) this.updateRunIntro(dt);
+      else if (!this.paused && !this.menuPaused && !this.ended) this.update(dt);
       this.render();
 
       if (this.running) global.requestAnimationFrame(this._loop);
+    },
+
+    updateRunIntro: function (dt) {
+      this.runIntroRemaining = Math.max(0, this.runIntroRemaining - dt);
+      if (this.runIntroRemaining > 0) return;
+      this.runIntroActive = false;
+      this.paused = false;
+      this.lastTs = 0;
+      if (global.Input && global.Input.clearPresses) global.Input.clearPresses();
     },
 
     /* ---------------- 更新 ---------------- */
@@ -280,6 +305,11 @@
         var pk = this.pickups[k];
         pk.update(dt, this.player);
         if (pk.collected) this.collect(pk);
+      }
+      if (this.knowledgePaused) {
+        this.cleanup();
+        this.updateCamera();
+        return;
       }
 
       // 特效
@@ -623,8 +653,41 @@
         var entry = global.Storage.unlockNextKnowledge();
         this.puffs.push({ x: pk.x, y: pk.y, age: 0, life: 0.9, r: 28, color: "#ffd84a" });
         this.spawnEffect("common", "purify_pop", pk.x, pk.y, { life: 0.5, size: 58 / ZOOM() });
-        if (entry && this.app) this.app.onKnowledgeUnlocked(entry);
+        if (entry) this.pauseForKnowledgeCard(entry);
       }
+    },
+
+    pauseForKnowledgeCard: function (entry) {
+      if (!entry || this.ended) return;
+      if (this.knowledgePaused) {
+        this.knowledgeQueue.push(entry);
+        return;
+      }
+      this.knowledgePaused = true;
+      this.paused = true;
+      var self = this;
+      if (this.app && this.app.onKnowledgeUnlocked) {
+        this.app.onKnowledgeUnlocked(entry, function () { self.resumeKnowledgeCard(); });
+      } else {
+        this.resumeKnowledgeCard();
+      }
+    },
+
+    resumeKnowledgeCard: function () {
+      if (!this.knowledgePaused) return;
+      if (this.knowledgeQueue.length) {
+        var next = this.knowledgeQueue.shift();
+        var self = this;
+        if (this.app && this.app.onKnowledgeUnlocked) {
+          this.app.onKnowledgeUnlocked(next, function () { self.resumeKnowledgeCard(); });
+          return;
+        }
+      }
+      this.knowledgePaused = false;
+      this.paused = false;
+      if (global.Input && global.Input.clearPresses) global.Input.clearPresses();
+      this.lastTs = 0;
+      if (this.pendingLevelUps > 0) this.triggerLevelUp();
     },
 
     cleanup: function () {
@@ -763,6 +826,7 @@
     generateLevelUpOptions: function () {
       var pool = [];
       var p = this.player;
+      p.oneShotUpgrades = p.oneShotUpgrades || {};
       // 已有技能可強化
       for (var i = 0; i < p.weapons.length; i++) {
         var w = p.weapons[i];
@@ -791,29 +855,42 @@
       // 通用能力（隨機若干，保證選項充足）
       var stats = shuffle(STAT_UPGRADES.slice());
       for (var t = 0; t < stats.length; t++) {
+        if (stats[t].oneShot && p.oneShotUpgrades[stats[t].id]) continue;
         pool.push({
           kind: "stat", id: stats[t].id, icon: stats[t].icon,
-          name: stats[t].name, tag: "能力", effect: stats[t].effect, edu: stats[t].edu
+          name: stats[t].name, tag: stats[t].oneShot ? "一次滿級" : "能力",
+          effect: stats[t].effect, edu: stats[t].edu, oneShot: !!stats[t].oneShot
         });
       }
-      // 洗牌後優先保留技能類，再補能力，取 3 個
+      // 每輪保留兩個主技能槽，另提供一個輕量能力槽；一次滿級能力優先出現。
       var skillOpts = pool.filter(function (o) { return o.kind !== "stat"; });
-      var statOpts = pool.filter(function (o) { return o.kind === "stat"; });
+      var oneShotOpts = pool.filter(function (o) { return o.kind === "stat" && o.oneShot; });
+      var repeatStatOpts = pool.filter(function (o) { return o.kind === "stat" && !o.oneShot; });
       shuffle(skillOpts);
-      var chosen = skillOpts.slice(0, 3);
-      var si = 0;
-      while (chosen.length < 3 && si < statOpts.length) chosen.push(statOpts[si++]);
-      return chosen;
+      shuffle(oneShotOpts);
+      shuffle(repeatStatOpts);
+      var chosen = skillOpts.slice(0, 2);
+      if (oneShotOpts.length) chosen.push(oneShotOpts[0]);
+      else if (repeatStatOpts.length) chosen.push(repeatStatOpts[0]);
+      var remaining = skillOpts.concat(oneShotOpts, repeatStatOpts);
+      for (var si = 0; chosen.length < 3 && si < remaining.length; si++) {
+        if (chosen.indexOf(remaining[si]) === -1) chosen.push(remaining[si]);
+      }
+      return shuffle(chosen);
     },
 
     resolveLevelUp: function (choice) {
       var p = this.player;
+      p.oneShotUpgrades = p.oneShotUpgrades || {};
       if (choice.kind === "skill_up" || choice.kind === "skill_new") {
         p.addSkill(choice.id);
       } else if (choice.kind === "stat") {
         var su = null;
         for (var i = 0; i < STAT_UPGRADES.length; i++) if (STAT_UPGRADES[i].id === choice.id) su = STAT_UPGRADES[i];
-        if (su) su.apply(p);
+        if (su && (!su.oneShot || !p.oneShotUpgrades[su.id])) {
+          su.apply(p);
+          if (su.oneShot) p.oneShotUpgrades[su.id] = true;
+        }
       }
       this.pendingLevelUps -= 1;
       if (this.pendingLevelUps > 0) {
@@ -833,6 +910,8 @@
       this.running = false;
       this.paused = false;
       this.menuPaused = false;
+      this.runIntroActive = false;
+      this.runIntroRemaining = 0;
       // end() 可能在既有 animation frame 中途發生；主迴圈不會再進入開頭分支，
       // 因此要在這裡明確釋放旗標，讓「再試一次」能重新 requestAnimationFrame。
       this._looping = false;

@@ -12,6 +12,12 @@
     var m = Math.floor(sec / 60), s = sec % 60;
     return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
   }
+  function objectiveTimeLabel(sec) {
+    sec = Math.max(0, Math.round(sec));
+    if (sec < 60) return "存活 " + sec + " 秒";
+    if (sec % 60 === 0) return "存活 " + (sec / 60) + " 分鐘";
+    return "存活 " + fmtTime(sec);
+  }
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -37,6 +43,7 @@
         "#screen-help .screen-footer .btn",
         "#screen-settings .screen-footer .btn",
         "#overlay-pause .btn",
+        "#overlay-knowledge .btn",
         "#overlay-confirm .btn",
         ".result-screen .screen-footer .btn"
       ].join(",")
@@ -212,6 +219,8 @@
         hud: $("hud"),
         hpFill: $("hp-fill"), hpText: $("hp-text"),
         timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
+        runIntroOverlay: $("overlay-run-intro"), runIntroGoal: $("run-intro-goal"),
+        runIntroCountdown: $("run-intro-countdown"),
         level: $("hud-level"), xpFill: $("xp-fill"),
         coins: $("hud-coins"), purified: $("hud-purified"),
         quizStreak: $("hud-quiz-streak"),
@@ -219,6 +228,9 @@
         dashButton: $("dash-btn"), dashCooldown: $("dash-cooldown"),
         levelupOverlay: $("overlay-levelup"), levelupOptions: $("levelup-options"),
         levelupTitle: $("levelup-title"), levelupFeedback: $("levelup-feedback"),
+        knowledgeOverlay: $("overlay-knowledge"),
+        knowledgeTitle: $("knowledge-card-title"), knowledgeText: $("knowledge-card-text"),
+        knowledgeContinue: $("knowledge-card-continue"),
         victoryStats: $("victory-stats"), gameoverStats: $("gameover-stats"),
         toast: $("toast"), menuArt: $("menu-art"),
         homeCharacterPreview: $("home-character-preview"),
@@ -244,6 +256,13 @@
           e.preventDefault();
           e.stopPropagation();
           if (global.Input && global.Input.requestDash) global.Input.requestDash();
+        });
+      }
+      var uiSelf = this;
+      if (this.dom.knowledgeContinue) {
+        this.dom.knowledgeContinue.addEventListener("click", function (e) {
+          e.preventDefault();
+          uiSelf.hideKnowledgeCard(true);
         });
       }
       this.applyUiAssets();
@@ -307,21 +326,34 @@
       }, 2600);
     },
 
-    showKnowledgeCard: function (entry) {
-      var t = this.dom.toast;
-      t.innerHTML = "";
-      t.classList.add("knowledge-toast");
-      t.appendChild(el("span", "t-title", "永續圖鑑 +1"));
-      t.appendChild(el("strong", "knowledge-toast-title", entry.title));
-      t.appendChild(el("span", "knowledge-toast-text", entry.text));
-      t.classList.remove("hidden");
-      void t.offsetWidth;
-      t.classList.add("show");
+    showKnowledgeCard: function (entry, onContinue) {
+      var overlay = this.dom.knowledgeOverlay;
+      if (!overlay) {
+        this.showToast("解鎖永續知識", entry.title + "（已收入圖鑑）");
+        if (onContinue) onContinue();
+        return;
+      }
       clearTimeout(this._toastTimer);
-      this._toastTimer = setTimeout(function () {
-        t.classList.remove("show");
-        setTimeout(function () { t.classList.add("hidden"); }, 300);
-      }, 6200);
+      if (this.dom.toast) {
+        this.dom.toast.classList.remove("show", "knowledge-toast");
+        this.dom.toast.classList.add("hidden");
+      }
+      this._knowledgeContinue = onContinue || null;
+      this.dom.knowledgeTitle.textContent = entry.title;
+      this.dom.knowledgeText.textContent = entry.text;
+      overlay.classList.remove("hidden");
+      if (this.dom.knowledgeContinue) this.dom.knowledgeContinue.focus();
+    },
+
+    hideKnowledgeCard: function (notify) {
+      if (this.dom && this.dom.knowledgeOverlay) this.dom.knowledgeOverlay.classList.add("hidden");
+      var cb = this._knowledgeContinue;
+      this._knowledgeContinue = null;
+      if (notify !== false && cb) cb();
+    },
+
+    isKnowledgeVisible: function () {
+      return !!(this.dom && this.dom.knowledgeOverlay && !this.dom.knowledgeOverlay.classList.contains("hidden"));
     },
 
     buildCharacters: function (selectedId) {
@@ -463,13 +495,34 @@
 
     showHUD: function (show) { this.dom.hud.classList.toggle("hidden", !show); },
 
+    hideRunIntro: function () {
+      if (this.dom && this.dom.runIntroOverlay) this.dom.runIntroOverlay.classList.add("hidden");
+    },
+
     updateHUD: function (game) {
       var p = game.player;
       var d = this.dom;
       d.hpFill.style.width = Math.max(0, (p.hp / p.maxHp) * 100) + "%";
       d.hpText.textContent = Math.ceil(p.hp) + " / " + p.maxHp;
-      d.timer.textContent = fmtTime(Math.max(0, game.stage.duration - game.time));
-      if (d.objective && game.mapObjectiveStatus) d.objective.textContent = game.mapObjectiveStatus();
+      var remaining = Math.max(0, game.stage.duration - game.time);
+      var finalCountdown = !game.runIntroActive && remaining > 0 && remaining <= 10;
+      d.timer.textContent = fmtTime(Math.ceil(remaining));
+      d.timer.classList.toggle("final-countdown", finalCountdown);
+      d.timer.setAttribute("aria-live", finalCountdown ? "assertive" : "off");
+      d.timer.setAttribute("aria-label", finalCountdown ? "最後 " + Math.ceil(remaining) + " 秒" : "剩餘時間 " + d.timer.textContent);
+      if (d.objective) {
+        if (finalCountdown) d.objective.textContent = "最後 " + Math.ceil(remaining) + " 秒，撐住！";
+        else if (game.runIntroActive) d.objective.textContent = "準備迎接污染潮";
+        else if (game.mapObjectiveStatus) d.objective.textContent = game.mapObjectiveStatus();
+        d.objective.classList.toggle("final-warning", finalCountdown);
+      }
+      if (d.runIntroOverlay) {
+        d.runIntroOverlay.classList.toggle("hidden", !game.runIntroActive);
+        if (game.runIntroActive) {
+          if (d.runIntroGoal) d.runIntroGoal.textContent = objectiveTimeLabel(game.stage.duration);
+          if (d.runIntroCountdown) d.runIntroCountdown.textContent = Math.max(1, Math.ceil(game.runIntroRemaining || 0));
+        }
+      }
       if (d.zone && game.contaminationStatus) {
         d.zone.textContent = game.contaminationStatus();
         d.zone.classList.toggle("danger", !!(game.contamination && game.contamination.outside));

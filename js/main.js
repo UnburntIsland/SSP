@@ -96,6 +96,7 @@
         if (e.repeat) return;
         var c = e.code;
         if (c !== "Escape" && c !== "KeyP") return;
+        if (self.ui.isKnowledgeVisible && self.ui.isKnowledgeVisible()) { e.preventDefault(); return; }
         // 升級選擇進行中：ESC/P 不作用，交給升級面板（避免破壞升級流程）
         if (self.ui.isLevelUpVisible()) return;
 
@@ -148,6 +149,8 @@
       }
       this.ui.showHUD(false);
       this.ui.hideLevelUp();
+      if (this.ui.hideKnowledgeCard) this.ui.hideKnowledgeCard(false);
+      if (this.ui.hideRunIntro) this.ui.hideRunIntro();
       this.ui.showPause(false);
       this.ui.showConfirm(false);
       if (name && SCREENS[name]) {
@@ -325,9 +328,12 @@
       this.setState(stats.result === "victory" ? "VICTORY" : "GAME_OVER");
     },
 
-    onKnowledgeUnlocked: function (entry) {
-      if (this.ui.showKnowledgeCard) this.ui.showKnowledgeCard(entry);
-      else this.ui.showToast("解鎖永續知識", entry.title + "（已收入圖鑑）");
+    onKnowledgeUnlocked: function (entry, onContinue) {
+      if (this.ui.showKnowledgeCard) this.ui.showKnowledgeCard(entry, onContinue);
+      else {
+        this.ui.showToast("解鎖永續知識", entry.title + "（已收入圖鑑）");
+        if (onContinue) onContinue();
+      }
     },
 
     showToast: function (title, text) {

@@ -1691,7 +1691,7 @@ html.is-mobile, .is-mobile body{
   right:calc(16px + var(--vis-inset-right, 0px));
   top:calc(12px + var(--vis-inset-top, 0px));
 }
-.is-mobile .hud-center{
+.is-mobile .hud-tc{
   top:calc(6px + var(--vis-inset-top, 0px));
 }
 .is-mobile .hud-skills{
@@ -2220,4 +2220,180 @@ html.is-mobile, .is-mobile body{
   .help-list{ max-height:430px; }
   .help-row{ min-height:56px; padding:7px 4px; }
   .help-icon{ width:38px; height:38px; }
+}
+
+/* Knowledge cards pause the run and use a focused reading dialog. */
+#overlay-knowledge{
+  z-index:48;
+  padding:18px;
+  box-sizing:border-box;
+  background:rgba(5, 20, 27, .9);
+}
+.knowledge-card-panel{
+  width:min(680px, 92%);
+  max-height:calc(100% - 36px);
+  padding:30px 34px 26px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  overflow:hidden;
+  background:rgba(12, 46, 50, .98);
+  border:3px solid #ffd84a;
+  border-radius:8px;
+  box-shadow:0 6px 0 #06141d, 0 0 0 4px rgba(255, 216, 74, .12);
+}
+.knowledge-card-eyebrow{
+  color:#8fe4bd;
+  font-size:12px;
+  letter-spacing:0;
+}
+.knowledge-card-title{
+  margin:0;
+  color:#fff0a6;
+  font-size:28px;
+  line-height:1.25;
+  text-align:center;
+  text-shadow:var(--text-outline);
+}
+.knowledge-card-text{
+  width:100%;
+  max-height:250px;
+  margin:0;
+  padding:4px 8px;
+  overflow:auto;
+  color:#e6f4ed;
+  font-size:16px;
+  line-height:1.8;
+  text-align:left;
+}
+.knowledge-card-note{
+  color:#a8cfc3;
+  font-size:12px;
+  line-height:1.4;
+}
+#knowledge-card-continue{
+  width:240px;
+  min-height:54px;
+  flex:0 0 auto;
+}
+
+@media (max-width:760px), (max-height:620px){
+  .knowledge-card-panel{
+    width:min(620px, 94%);
+    padding:20px 24px 18px;
+    gap:9px;
+  }
+  .knowledge-card-title{ font-size:23px; }
+  .knowledge-card-text{ max-height:170px; font-size:14px; line-height:1.65; }
+  #knowledge-card-continue{ min-height:48px; }
+}
+
+/* Timed survival opening and the final ten-second warning. */
+.hud-timer{
+  width:100%;
+  height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  font-variant-numeric:tabular-nums;
+}
+.hud-timer.final-countdown{
+  color:#ff5a64;
+  font-size:40px;
+  background:rgba(65, 8, 16, .86);
+  border:3px solid #ff5a64;
+  border-radius:6px;
+  box-shadow:0 4px 0 #26050a, 0 0 18px rgba(255, 70, 82, .45);
+  text-shadow:2px 2px 0 #26050a;
+  animation:final-countdown-alert .65s steps(2, end) infinite;
+}
+.hud-sub.final-warning{
+  color:#ff9ba2;
+  font-size:12px;
+  text-shadow:var(--text-outline);
+}
+@keyframes final-countdown-alert{
+  50%{ transform:scale(1.06); filter:brightness(1.18); }
+}
+
+#overlay-run-intro{
+  z-index:46;
+  padding:18px;
+  box-sizing:border-box;
+  background:rgba(5, 20, 27, .92);
+}
+.run-intro-panel{
+  width:min(620px, 90%);
+  min-height:330px;
+  padding:32px 38px 28px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:13px;
+  box-sizing:border-box;
+  background:rgba(12, 46, 50, .98);
+  border:3px solid #ffd84a;
+  border-radius:8px;
+  box-shadow:0 7px 0 #06141d, 0 0 0 4px rgba(255, 216, 74, .12);
+}
+.run-intro-eyebrow{
+  color:#8fe4bd;
+  font-size:13px;
+}
+.run-intro-title{
+  margin:0;
+  color:#fff0a6;
+  font-size:32px;
+  line-height:1.2;
+  text-shadow:var(--text-outline);
+}
+.run-intro-goal{
+  color:#fff;
+  font-size:42px;
+  line-height:1.2;
+  text-shadow:3px 3px 0 #0a1a23;
+}
+.run-intro-desc{
+  max-width:500px;
+  margin:0;
+  color:#d9eee6;
+  font-size:15px;
+  line-height:1.65;
+}
+.run-intro-start{
+  min-height:86px;
+  display:flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:10px;
+  color:#ffd84a;
+  text-shadow:var(--text-outline);
+}
+.run-intro-start strong{
+  min-width:62px;
+  font-size:72px;
+  line-height:1;
+  text-align:center;
+}
+.run-intro-start span{ font-size:18px; }
+
+@media (max-width:760px), (max-height:620px){
+  .run-intro-panel{
+    width:min(580px, 92%);
+    min-height:280px;
+    padding:22px 30px 20px;
+    gap:9px;
+  }
+  .run-intro-title{ font-size:27px; }
+  .run-intro-goal{ font-size:36px; }
+  .run-intro-desc{ font-size:13px; }
+  .run-intro-start{ min-height:68px; }
+  .run-intro-start strong{ font-size:58px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hud-timer.final-countdown{ animation:none; }
 }
