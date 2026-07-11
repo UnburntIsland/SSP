@@ -67,6 +67,7 @@
     selectors: {
       skinnedButtons: [
         "#screen-menu .menu-buttons .btn",
+        "#screen-menu .stage-start-button",
         "#screen-characters .screen-footer .btn",
         "#screen-help .screen-footer .btn",
         "#screen-settings .screen-footer .btn",
@@ -667,7 +668,9 @@
       d.timer.setAttribute("aria-live", finalCountdown ? "assertive" : "off");
       d.timer.setAttribute("aria-label", finalCountdown ? "最後 " + Math.ceil(remaining) + " 秒" : "剩餘時間 " + d.timer.textContent);
       if (d.objective) {
-        if (finalCountdown) d.objective.textContent = "最後 " + Math.ceil(remaining) + " 秒，撐住！";
+        if (remaining <= 0 && game.stage.bossId && !game.bossDefeated) {
+          d.objective.textContent = "時間到：擊敗 " + (game.stage.bossName || "BOSS") + "！";
+        } else if (finalCountdown) d.objective.textContent = "最後 " + Math.ceil(remaining) + " 秒，撐住！";
         else if (game.runIntroActive) d.objective.textContent = "準備迎接污染潮";
         else if (game.mapObjectiveStatus) d.objective.textContent = game.mapObjectiveStatus();
         d.objective.classList.toggle("final-warning", finalCountdown);
@@ -675,7 +678,7 @@
       if (d.runIntroOverlay) {
         d.runIntroOverlay.classList.toggle("hidden", !game.runIntroActive);
         if (game.runIntroActive) {
-          if (d.runIntroGoal) d.runIntroGoal.textContent = objectiveTimeLabel(game.stage.duration);
+          if (d.runIntroGoal) d.runIntroGoal.textContent = game.stage.objective || objectiveTimeLabel(game.stage.duration);
           if (d.runIntroCountdown) d.runIntroCountdown.textContent = Math.max(1, Math.ceil(game.runIntroRemaining || 0));
         }
       }
@@ -1312,6 +1315,16 @@
     /* ---------------- 結算 ---------------- */
     buildResult: function (stats) {
       var box = (stats.result === "victory") ? this.dom.victoryStats : this.dom.gameoverStats;
+      if (stats.result === "victory") {
+        var victoryTitle = $("victory-title");
+        var victoryFlavour = $("victory-flavour");
+        if (victoryTitle) victoryTitle.textContent = (stats.stageName || "關卡") + "已淨化！";
+        if (victoryFlavour) {
+          victoryFlavour.textContent = stats.unlockedStage
+            ? "通往「" + stats.unlockedStage.name + "」的行動路線已開放。"
+            : "你已完成目前所有淨化行動。";
+        }
+      }
       box.innerHTML = "";
       function row(label, value) {
         var r = el("div", "row");
@@ -1319,6 +1332,8 @@
         r.appendChild(el("span", "v", value));
         return r;
       }
+      if (stats.stageName) box.appendChild(row("行動地點", stats.stageName));
+      if (stats.bossName) box.appendChild(row("關卡 BOSS", stats.bossName + (stats.bossDefeated ? "（已淨化）" : "（未淨化）")));
       box.appendChild(row("存活時間", fmtTime(stats.survived)));
       box.appendChild(row("淨化污染物", stats.purified + " 個"));
       box.appendChild(row("清理地圖物件", (stats.mapCleaned || 0) + " 個"));
@@ -1329,6 +1344,7 @@
       box.appendChild(row("淨化獎勵", "♻ " + stats.purifyBonus));
       box.appendChild(row("存活時間獎勵", "♻ " + stats.timeBonus));
       if (stats.winBonus > 0) box.appendChild(row("通關獎勵", "♻ " + stats.winBonus));
+      if (stats.unlockedStage) box.appendChild(row("新關卡解鎖", stats.unlockedStage.name));
       if (stats.multiplier > 1) box.appendChild(row("回收分類加成", "×" + stats.multiplier.toFixed(2)));
       var total = el("div", "row total");
       total.appendChild(el("span", "k", "本局獲得"));

@@ -9,7 +9,9 @@
 
   var TestMode = {
     enabled: enabled,
-    seed: Number(params.get("seed")) || 424242
+    seed: Number(params.get("seed")) || 424242,
+    stageId: params.get("stage") || "tidal_flat",
+    unlockStages: params.get("qaUnlockStages") === "1"
   };
 
   global.TestMode = TestMode;
@@ -62,7 +64,7 @@
       }
     ];
     stage.events = [
-      { at: 20, enemy: "oil_blob", count: 1, announce: "測試模式：油污團塊提前登場！" }
+      { at: 20, enemy: stage.bossId || "ghost_net", count: 1, announce: "測試模式：關卡 BOSS 提前登場！" }
     ];
   }
 
@@ -112,6 +114,8 @@
         var p = g.player || null;
         return {
           screen: activeScreenName(),
+          stageId: g.stage ? g.stage.id : null,
+          bossDefeated: !!g.bossDefeated,
           running: !!g.running,
           paused: !!g.paused,
           knowledgePaused: !!g.knowledgePaused,
@@ -176,6 +180,19 @@
       },
       forceVictory: function () {
         if (global.Game && global.Game.running) global.Game.end("victory");
+      },
+      clearCurrentStage: function () {
+        if (!global.Game || !global.Game.running || !global.Game.stage) return false;
+        var bossDef = global.GameData.getEnemy(global.Game.stage.bossId);
+        if (!bossDef) return false;
+        var boss = new global.Enemy(bossDef, global.Game.player.x + 80, global.Game.player.y, 1);
+        boss.dead = true;
+        boss.hp = 0;
+        global.Game.onPurified(boss);
+        global.Game.enemies = [];
+        global.Game.time = global.Game.stage.duration;
+        global.Game.end("victory");
+        return true;
       },
        forceDefeat: function () {
          if (global.Game && global.Game.running) global.Game.end("defeat");
@@ -250,7 +267,7 @@
       !!params.get("qaKnowledge") || !!params.get("qaMap") || params.get("qaZoneOutside") === "1" ||
       params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak") || params.get("qaPassives") === "1" ||
       params.get("qaTurret") === "1" || params.get("qaBossAttack") === "1" || params.get("qaDamageFlash") === "1" ||
-      !!params.get("qaEnemyIntro") || params.get("qaBossIntro") === "1";
+      !!params.get("qaEnemyIntro") || params.get("qaBossIntro") === "1" || params.get("qaClearStage") === "1";
     if (wantsScenario) {
       var scenarioPoll = setInterval(function () {
         if (!global.Game || !global.Game.running || !global.Game.player) return;
@@ -434,6 +451,13 @@
           setTimeout(function () {
             if (global.Game.running && !global.Game.ended) global.Game.end("defeat");
           }, 850);
+        }
+        if (params.get("qaClearStage") === "1") {
+          global.Game.stage.waves = [];
+          global.Game.stage.events = [];
+          setTimeout(function () {
+            if (global.__TEST__ && global.__TEST__.clearCurrentStage) global.__TEST__.clearCurrentStage();
+          }, 450);
         }
       }, 100);
     }

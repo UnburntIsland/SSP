@@ -21,6 +21,64 @@
       introHint: "保持移動，優先清出安全空間。",
       knowledgeId: "k_plastic"
     },
+    bottle_mite: {
+      id: "bottle_mite",
+      name: "瓶蓋甲蟲",
+      spriteId: "enemy_bottle_mite",
+      hp: 18,
+      speed: 58,
+      radius: 11,
+      contact: 5,
+      xp: 1,
+      coinChance: 0.06,
+      runtimeAnimated: false,
+      introText: "由瓶蓋與微塑膠聚成的小型甲蟲，會沿潮池邊快速包圍。",
+      introHint: "保持走位，別讓牠們從兩側形成包夾。",
+      knowledgeId: "k_plastic"
+    },
+    foam_crab: {
+      id: "foam_crab",
+      name: "泡沫寄居蟹",
+      spriteId: "enemy_foam_crab",
+      hp: 42,
+      speed: 35,
+      radius: 15,
+      contact: 7,
+      xp: 2,
+      coinChance: 0.09,
+      runtimeAnimated: false,
+      introText: "藏在清潔劑泡沫中的寄居蟹，甲殼能承受較多淨化攻擊。",
+      introHint: "集中火力處理，避免牠堵住潮池通道。",
+      knowledgeId: "k_wetland"
+    },
+    ghost_net: {
+      id: "ghost_net",
+      name: "幽靈廢網",
+      spriteId: "enemy_ghost_net",
+      hp: 820,
+      speed: 25,
+      radius: 40,
+      contact: 16,
+      xp: 42,
+      coinChance: 1,
+      coinAmount: 12,
+      isBoss: true,
+      runtimeAnimated: false,
+      introText: "廢棄漁網、浮球與塑膠碎片纏成的潮間帶污染核心。",
+      introHint: "穿過繩結彈幕的空隙，持續攻擊中央網囊。",
+      ranged: {
+        kind: "radial",
+        count: 8,
+        range: 600,
+        cooldown: 3.8,
+        telegraph: 0.9,
+        projectileSpeed: 118,
+        projectileDamage: 8,
+        projectileRadius: 8,
+        color: "#55d8cf"
+      },
+      knowledgeId: "k_plastic"
+    },
     butt_bug: {
       id: "butt_bug",
       name: "菸蒂蟲",
@@ -62,9 +120,137 @@
       },
       knowledgeId: "k_battery"
     },
+    scrap_drone: {
+      id: "scrap_drone",
+      name: "磁選廢料機",
+      spriteId: "enemy_scrap_drone",
+      hp: 30,
+      speed: 50,
+      radius: 13,
+      contact: 6,
+      xp: 2,
+      coinChance: 0.08,
+      runtimeAnimated: false,
+      introText: "失控的磁選機會保持距離，朝回收動線發射金屬碎片。",
+      introHint: "看到瞄準線後橫向閃避，再靠近快速淨化。",
+      ranged: {
+        kind: "aimed",
+        range: 390,
+        preferredDistance: 205,
+        cooldown: 4.1,
+        telegraph: 0.75,
+        projectileSpeed: 165,
+        projectileDamage: 5,
+        projectileRadius: 6,
+        color: "#ffb84a"
+      },
+      knowledgeId: "k_reduce"
+    },
+    can_crusher: {
+      id: "can_crusher",
+      name: "鋁罐壓塊獸",
+      spriteId: "enemy_can_crusher",
+      hp: 96,
+      speed: 29,
+      radius: 18,
+      contact: 11,
+      xp: 5,
+      coinChance: 0.18,
+      isElite: true,
+      runtimeAnimated: false,
+      introText: "壓縮鋁罐堆成的精英污染物，移動緩慢但非常耐打。",
+      introHint: "先清掉周圍快怪，再保持距離集中輸出。",
+      knowledgeId: "k_reduce"
+    },
+    compactor_golem: {
+      id: "compactor_golem",
+      name: "壓縮機甲",
+      spriteId: "enemy_compactor_golem",
+      hp: 1350,
+      speed: 27,
+      radius: 43,
+      contact: 20,
+      xp: 65,
+      coinChance: 1,
+      coinAmount: 20,
+      isBoss: true,
+      runtimeAnimated: false,
+      introText: "回收工廠的主壓縮設備失控，會用液壓臂與金屬彈幕封鎖動線。",
+      introHint: "遠離雙臂正面，利用機甲轉向較慢的空檔輸出。",
+      ranged: {
+        kind: "radial",
+        count: 12,
+        range: 650,
+        cooldown: 3.2,
+        telegraph: 0.85,
+        projectileSpeed: 138,
+        projectileDamage: 10,
+        projectileRadius: 8,
+        color: "#ff9d3c"
+      },
+      knowledgeId: "k_reduce"
+    },
+    oil_slickling: {
+      id: "oil_slickling",
+      name: "油膜滴怪",
+      spriteId: "enemy_oil_slickling",
+      hp: 36,
+      speed: 47,
+      radius: 13,
+      contact: 8,
+      xp: 2,
+      coinChance: 0.08,
+      runtimeAnimated: false,
+      introText: "從黑水渠道分裂出的油膜滴怪，會沿著平台快速滲近。",
+      introHint: "別被多個方向同時包圍，優先清出退路。",
+      knowledgeId: "k_wetland"
+    },
+    smog_drone: {
+      id: "smog_drone",
+      name: "煙塵監測機",
+      spriteId: "enemy_smog_drone",
+      hp: 48,
+      speed: 43,
+      radius: 14,
+      contact: 7,
+      xp: 3,
+      coinChance: 0.11,
+      isElite: true,
+      runtimeAnimated: false,
+      introText: "故障的排放監測機反而釋放煙塵能量彈，並在遠處繞行。",
+      introHint: "觀察預警線，利用衝刺穿過單發彈道。",
+      ranged: {
+        kind: "aimed",
+        range: 450,
+        preferredDistance: 245,
+        cooldown: 3.1,
+        telegraph: 0.65,
+        projectileSpeed: 185,
+        projectileDamage: 7,
+        projectileRadius: 7,
+        color: "#ad82e8"
+      },
+      knowledgeId: "k_battery"
+    },
+    ash_wisp: {
+      id: "ash_wisp",
+      name: "灰燼渦靈",
+      spriteId: "enemy_ash_wisp",
+      hp: 82,
+      speed: 54,
+      radius: 17,
+      contact: 11,
+      xp: 5,
+      coinChance: 0.16,
+      isElite: true,
+      runtimeAnimated: false,
+      introText: "高溫排放留下的灰燼聚成旋渦，會高速穿過怪群逼近。",
+      introHint: "保留衝刺躲開突進，答題連勝能更快處理精英怪。",
+      knowledgeId: "k_battery"
+    },
     oil_blob: {
       id: "oil_blob",
-      name: "油污團塊",
+      name: "油污核心",
       spriteId: "enemy_oil",
       hp: 900,
       speed: 30,
@@ -74,7 +260,7 @@
       coinChance: 1.0,
       coinAmount: 12,
       isBoss: true,
-      introText: "大型油污污染核心登場，厚重身軀會持續釋放環形彈幕。",
+      introText: "黑水能源站的油污核心甦醒，厚重身軀會持續釋放環形彈幕。",
       introHint: "留意彈幕預警，保持距離並尋找缺口。",
       ranged: {
         kind: "radial",
@@ -119,8 +305,14 @@
     Object.keys(global.GameData.enemies).forEach(function (id) {
       var enemy = global.GameData.enemies[id];
       enemy.animationId = id;
-      enemy.spriteBasePath = "assets/images/enemies/" + (FOLDER[id] || id) + "/";
-      enemy.animationSet = buildAnimSet();
+      if (enemy.runtimeAnimated === false) {
+        // 新主題敵人先使用各自的正式靜態素材 / Canvas sprite 與輕微移動 bob，
+        // 不註冊不存在的 8 方向 PNG，避免產生無意義的 404。
+        enemy.animationSet = { idle: {}, move: {} };
+      } else {
+        enemy.spriteBasePath = "assets/images/enemies/" + (FOLDER[id] || id) + "/";
+        enemy.animationSet = buildAnimSet();
+      }
     });
   })();
 

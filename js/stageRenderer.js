@@ -15,7 +15,13 @@
     tiles: {
       sand:      ['beach_sand_01', 'beach_sand_02', 'beach_sand_03'],
       tidePool:  ['tide_pool_01'],
-      shoreline: ['shoreline_01']
+      shoreline: ['shoreline_01'],
+      factoryFloor: [],
+      conveyor: [],
+      recyclePad: [],
+      blackwaterPlatform: [],
+      oilChannel: [],
+      hazardDeck: []
     },
     props: {
       plasticBottle:   ['map_plastic_bottle_01'],
@@ -53,21 +59,33 @@
     build: function (stage, seed) {
       this.stage = stage;
       this.world = stage.world;
+      this.theme = stage.theme || 'tidal';
+      this.collectibleTypes = stage.collectibleTypes || null;
       var rnd = mulberry32((seed || 1337) ^ 0x9e3779b1);
       this.cols = Math.ceil(this.world.w / TILE);
       this.rows = Math.ceil(this.world.h / TILE);
 
-      // 依地帶決定每格 tile 種類，變化來自 seed（固定，不閃爍）
+      // 依關卡主題決定每格 tile，變化來自 seed（固定、不閃爍）。
       this.tileMap = [];
       for (var r = 0; r < this.rows; r++) {
         var y = r * TILE, rowArr = [];
         for (var c = 0; c < this.cols; c++) {
           var kind;
-          if (y < SEA_H) kind = 'shoreline';
-          else if (y < WET_H && rnd() < 0.14) kind = 'tidePool';
-          else kind = 'sand';
-          var list = STAGE_ASSETS.tiles[kind];
-          rowArr.push({ kind: kind, v: (rnd() * list.length) | 0 });
+          if (this.theme === 'recycle') {
+            if ((c + r * 2) % 9 === 0) kind = 'recyclePad';
+            else if (c % 6 === 0 || (r % 7 === 0 && c % 3 !== 0)) kind = 'conveyor';
+            else kind = 'factoryFloor';
+          } else if (this.theme === 'blackwater') {
+            if ((c * 3 + r) % 11 === 0 || (r % 6 === 0 && c % 4 !== 0)) kind = 'oilChannel';
+            else if ((c + r) % 8 === 0) kind = 'hazardDeck';
+            else kind = 'blackwaterPlatform';
+          } else {
+            if (y < SEA_H) kind = 'shoreline';
+            else if (y < WET_H && rnd() < 0.14) kind = 'tidePool';
+            else kind = 'sand';
+          }
+          var list = STAGE_ASSETS.tiles[kind] || [];
+          rowArr.push({ kind: kind, v: list.length ? (rnd() * list.length) | 0 : 0 });
         }
         this.tileMap.push(rowArr);
       }
@@ -86,7 +104,14 @@
       for (var d = 0; d < COLLECTIBLE_TYPES.length; d++) {
         if (COLLECTIBLE_TYPES[d].type === forcedType) { def = COLLECTIBLE_TYPES[d]; break; }
       }
-      if (!def) def = COLLECTIBLE_TYPES[(Math.random() * COLLECTIBLE_TYPES.length) | 0];
+      var available = COLLECTIBLE_TYPES;
+      if (this.collectibleTypes && this.collectibleTypes.length) {
+        available = COLLECTIBLE_TYPES.filter(function (candidate) {
+          return StageRenderer.collectibleTypes.indexOf(candidate.type) !== -1;
+        });
+      }
+      if (!available.length) available = COLLECTIBLE_TYPES;
+      if (!def) def = available[(Math.random() * available.length) | 0];
 
       var x = 0, y = 0, found = false;
       for (var attempt = 0; attempt < 16; attempt++) {
@@ -100,7 +125,8 @@
           y = player.y + Math.sin(angle) * distance;
         }
         x = Math.max(56, Math.min(this.world.w - 56, x));
-        y = Math.max(SEA_H + 28, Math.min(this.world.h - 56, y));
+        var minY = this.theme === 'tidal' ? SEA_H + 28 : 56;
+        y = Math.max(minY, Math.min(this.world.h - 56, y));
 
         found = true;
         var playerDx = player.x - x;
@@ -155,8 +181,10 @@
       for (var r = r0; r <= r1; r++) {
         for (var c = c0; c <= c1; c++) {
           var t = this.tileMap[r][c], x = c * TILE, y = r * TILE;
-          var key = 'tile_' + STAGE_ASSETS.tiles[t.kind][t.v];
-          var drawn = A && A.ready && A.ready(key) && A.drawInRect && A.drawInRect(ctx, key, x, y, TILE + 1, TILE + 1);
+          var tileAssets = STAGE_ASSETS.tiles[t.kind] || [];
+          var tileName = tileAssets[t.v];
+          var key = tileName ? 'tile_' + tileName : null;
+          var drawn = key && A && A.ready && A.ready(key) && A.drawInRect && A.drawInRect(ctx, key, x, y, TILE + 1, TILE + 1);
           if (!drawn) this.fallbackTile(ctx, t.kind, x, y);
         }
       }
@@ -191,7 +219,46 @@
 
     /* ---------------- fallback：程式繪製（僅缺圖時使用） ---------------- */
     fallbackTile: function (ctx, kind, x, y) {
-      if (kind === 'shoreline') {
+      if (kind === 'factoryFloor') {
+        ctx.fillStyle = '#3d5152'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.strokeStyle = 'rgba(183,215,204,0.14)'; ctx.lineWidth = 2;
+        ctx.strokeRect(x + 3, y + 3, TILE - 6, TILE - 6);
+        ctx.fillStyle = '#1d3033';
+        ctx.fillRect(x + 9, y + 9, 4, 4); ctx.fillRect(x + TILE - 13, y + 9, 4, 4);
+        ctx.fillRect(x + 9, y + TILE - 13, 4, 4); ctx.fillRect(x + TILE - 13, y + TILE - 13, 4, 4);
+      } else if (kind === 'conveyor') {
+        ctx.fillStyle = '#24383b'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = '#111f24'; ctx.fillRect(x + 8, y, 10, TILE); ctx.fillRect(x + TILE - 18, y, 10, TILE);
+        ctx.fillStyle = '#718489';
+        for (var cy = 8; cy < TILE; cy += 18) ctx.fillRect(x + 20, y + cy, TILE - 40, 5);
+        ctx.fillStyle = 'rgba(255,157,60,0.7)'; ctx.fillRect(x + 3, y + 3, 5, TILE - 6);
+      } else if (kind === 'recyclePad') {
+        ctx.fillStyle = '#285c52'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = 'rgba(93,225,177,0.22)'; ctx.fillRect(x + 10, y + 10, TILE - 20, TILE - 20);
+        ctx.strokeStyle = '#62c99b'; ctx.lineWidth = 3; ctx.strokeRect(x + 10, y + 10, TILE - 20, TILE - 20);
+        ctx.fillStyle = '#d58a37'; ctx.fillRect(x + 20, y + 20, 14, 14);
+        ctx.fillStyle = '#6eb5d8'; ctx.fillRect(x + 41, y + 20, 14, 14);
+        ctx.fillStyle = '#b7d46d'; ctx.fillRect(x + 62, y + 20, 14, 14);
+      } else if (kind === 'blackwaterPlatform') {
+        ctx.fillStyle = '#28343e'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = 'rgba(119,143,151,0.12)'; ctx.fillRect(x + 5, y + 5, TILE - 10, TILE - 10);
+        ctx.strokeStyle = '#17242d'; ctx.lineWidth = 3; ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
+        ctx.fillStyle = '#5d546f'; ctx.fillRect(x + 10, y + 10, 5, 5); ctx.fillRect(x + TILE - 15, y + TILE - 15, 5, 5);
+      } else if (kind === 'oilChannel') {
+        ctx.fillStyle = '#102832'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = 'rgba(37,11,48,0.58)'; ctx.fillRect(x + 5, y + 5, TILE - 10, TILE - 10);
+        ctx.strokeStyle = 'rgba(104,77,150,0.72)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x + 34, y + 42, 21, 0.15, Math.PI * 1.45); ctx.stroke();
+        ctx.strokeStyle = 'rgba(35,160,168,0.62)';
+        ctx.beginPath(); ctx.arc(x + 62, y + 58, 18, Math.PI, Math.PI * 2.4); ctx.stroke();
+      } else if (kind === 'hazardDeck') {
+        ctx.fillStyle = '#41434a'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.strokeStyle = '#1d262d'; ctx.lineWidth = 3; ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
+        ctx.strokeStyle = 'rgba(232,145,47,0.68)'; ctx.lineWidth = 8;
+        for (var hx = -TILE; hx < TILE * 2; hx += 28) {
+          ctx.beginPath(); ctx.moveTo(x + hx, y + TILE); ctx.lineTo(x + hx + TILE, y); ctx.stroke();
+        }
+      } else if (kind === 'shoreline') {
         ctx.fillStyle = '#2a9db5'; ctx.fillRect(x, y, TILE, TILE);
         ctx.fillStyle = 'rgba(255,255,255,0.16)';
         for (var wy = 14; wy < TILE; wy += 30) ctx.fillRect(x, y + wy, TILE, 3);

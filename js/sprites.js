@@ -150,6 +150,149 @@
         "...oo..oo..oo..."
       ]
     },
+    enemy_bottle_mite: {
+      palette: { C: "#2aa9a1", c: "#17726f", B: "#4fc3d7", R: "#ef6c4f", e: "#18343a", L: "#d9f4e9" },
+      rows: [
+        "....cc....",
+        "...cCCc...",
+        "..CCBBCC..",
+        ".CCeCCeCC.",
+        ".CCCRRCCC.",
+        "..cCCCCc..",
+        ".c..CC..c.",
+        "c...cc...c",
+        "....LL...."
+      ]
+    },
+    enemy_foam_crab: {
+      palette: { F: "#e5f7ee", f: "#a8ddd2", C: "#54b8b0", c: "#257a76", e: "#263c43", O: "#f08a55" },
+      rows: [
+        "....FFFF....",
+        "..FFFFFFFF..",
+        ".FFFfFFfFFF.",
+        ".FFeFFFFeFF.",
+        "..fCCCCCCf..",
+        ".cCCCCCCCCc.",
+        "cCCCOOOOCCCc",
+        "cC..CCCC..Cc",
+        ".c..cCCc..c.",
+        "....cccc...."
+      ]
+    },
+    enemy_ghost_net: {
+      palette: { N: "#258783", n: "#165a5b", R: "#8f7350", F: "#f39a55", B: "#55a7d8", e: "#f3f2df", d: "#1c3137" },
+      rows: [
+        ".....nnnnnn.....",
+        "...nnNNNNNNnn...",
+        "..nNNRNNNRNNNn..",
+        ".nNNFNNBNNNFNNn.",
+        ".NNNNNNNNNNNNNN.",
+        "nNNNNeNNNNeNNNNn",
+        "nNNNNNNNNNNNNNNn",
+        ".nNNRNNNNNNRNNn.",
+        "nnnNNnnNNnnNNnnn",
+        "nNNn..nNNn..nNNn",
+        "NNn...nNNn...nNN",
+        "nNn....nn....nNn",
+        ".d......dd......d."
+      ]
+    },
+    enemy_scrap_drone: {
+      palette: { M: "#849399", m: "#46565d", T: "#33b8aa", O: "#e89a3b", e: "#182b31", P: "#cbd5d4" },
+      rows: [
+        "....mmmm....",
+        "..mMMMMMMm..",
+        ".mMMTTTTMMm.",
+        ".MMTeTTeTMM.",
+        "mMMMMMMMMMMm",
+        "OOmMMMMMMmOO",
+        "..mMMmmMMm..",
+        "...mM..Mm...",
+        "..PP....PP..",
+        "...m....m..."
+      ]
+    },
+    enemy_can_crusher: {
+      palette: { A: "#cfd8da", a: "#78898f", T: "#2b9f96", O: "#e28736", e: "#26353b", D: "#45555c" },
+      rows: [
+        "...aaaaaaaa...",
+        "..aAAAAAAAAa..",
+        ".aAATTTTAAAAa.",
+        ".AAeAAAAeAAAA.",
+        "aAAAAAAAAAAAAa",
+        "aAAOOAAAAOOAAa",
+        ".aAAAAAAAAAAa.",
+        "..aAAa..aAAa..",
+        ".DDD......DDD.",
+        "DD..........DD",
+        ".D..........D."
+      ]
+    },
+    enemy_compactor_golem: {
+      palette: { M: "#8f9698", m: "#424d52", O: "#d77b27", G: "#65c64b", e: "#102429", R: "#bcc4c3", D: "#27343a" },
+      rows: [
+        ".....mmmmmm.....",
+        "...mmMMMMMMmm...",
+        "..mMMMGGGMMMMm..",
+        "..mMMGeGeGMMMm..",
+        ".mMMMMMMMMMMMMm.",
+        "mmOOOMMMMMMOOOmm",
+        "mOOMMMMMMMMMMOOm",
+        "mOMMMMGGGGMMMMOm",
+        "mOMMMMMMMMMMMMOOm",
+        ".mMMmmMMMMmmMMm.",
+        "..mDDm....mDDm..",
+        "..mDDm....mDDm..",
+        ".mRRRm....mRRRm.",
+        "mRRRRm....mRRRRm"
+      ]
+    },
+    enemy_oil_slickling: {
+      palette: { O: "#30303d", o: "#171821", P: "#765fbd", C: "#36aab2", e: "#ffd36a" },
+      rows: [
+        "....oooo....",
+        "..ooOOOOoo..",
+        ".oOOPPCCOOOo.",
+        ".OOOeOOeOOOO.",
+        "oOOOOOOOOOOo",
+        "oOOPPOOCCOOo",
+        ".oOOOOOOOOo.",
+        "..ooOOOOoo..",
+        ".oo..oo..oo.",
+        "o....oo....o"
+      ]
+    },
+    enemy_smog_drone: {
+      palette: { S: "#74777f", s: "#3c4149", V: "#9c78d1", e: "#e7d86d", R: "#aab4b5", D: "#242b31" },
+      rows: [
+        "....ssss....",
+        "..ssSSSSss..",
+        ".sSSVVVVSSs.",
+        ".SSVeSSeVSS.",
+        "sSSSSSSSSSSs",
+        "RRsSSSSSSsRR",
+        "..sSSssSSs..",
+        "...sS..Ss...",
+        "..DD....DD..",
+        ".D........D."
+      ]
+    },
+    enemy_ash_wisp: {
+      palette: { A: "#85808d", a: "#4d4857", P: "#9f78d2", e: "#f2bd63", D: "#25232d" },
+      rows: [
+        ".....aa.....",
+        "...aaAAaa...",
+        "..aAAPPAaa..",
+        ".aAAeAAeAAa.",
+        ".AAAAAAAAAA.",
+        "..aAAPAAAa..",
+        "...aAAAAa...",
+        "..aaAaaAaa..",
+        ".aa..aa..aa.",
+        "a....aa....a",
+        ".....DD....."
+      ]
+    },
 
     // -------- 掉落物 --------
     pickup_xp: {

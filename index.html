@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=enemy-intro-20260711b" />
+  <link rel="stylesheet" href="css/style.css?v=lobby-layout-20260711f" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -90,30 +90,58 @@
 
     <!-- ===== Start / Main Menu ===== -->
     <section id="screen-menu" class="screen">
-      <div class="menu-art" id="menu-art"></div>
-      <h1 class="game-title">森循島</h1>
-      <h2 class="game-subtitle">污染潮倖存者</h2>
-      <p class="tagline">走位、淨化、循環再生 —— 在污染潮中存活下來。</p>
-      <div class="current-character-panel" id="home-character-preview" aria-live="polite">
-        <div class="current-character-portrait" id="home-character-portrait"></div>
-        <div class="current-character-info">
-          <div class="current-character-eyebrow">目前角色</div>
-          <div class="current-character-name" id="home-character-name">森林巡守員</div>
-          <div class="current-character-role" id="home-character-role">定位：平衡型</div>
-          <div class="current-character-skill">
-            <span class="current-character-skill-icon" id="home-character-skill-icon"></span>
-            <span id="home-character-skill-name">初始：種子飛刃</span>
+      <div class="home-heading">
+        <div class="menu-art" id="menu-art"></div>
+        <h1 class="game-title">森循島</h1>
+        <h2 class="game-subtitle">污染潮倖存者</h2>
+        <p class="tagline">走位、淨化、循環再生 —— 在污染潮中存活下來。</p>
+      </div>
+
+      <div class="home-layout">
+        <div class="stage-selector" aria-label="選擇關卡">
+          <div class="stage-selector-heading">行動地點</div>
+          <div class="stage-carousel-shell">
+            <button class="stage-arrow stage-arrow-prev" type="button" data-action="stage-prev" aria-label="上一張地圖">‹</button>
+            <div id="stage-carousel-card" class="stage-carousel-card" tabindex="0" aria-live="polite">
+              <img id="stage-card-image" class="stage-card-image" src="assets/images/stages/tidal_flat_card.png?v=stages-20260711a" alt="海廢潮間帶地圖預覽" />
+              <div id="stage-card-number" class="stage-card-number">第 1 關</div>
+              <div id="stage-card-lock" class="stage-card-lock hidden"></div>
+              <div class="stage-card-caption"><strong id="stage-card-name">海廢潮間帶</strong></div>
+            </div>
+            <button class="stage-arrow stage-arrow-next" type="button" data-action="stage-next" aria-label="下一張地圖">›</button>
           </div>
+          <div id="stage-carousel-dots" class="stage-carousel-dots" aria-hidden="true"></div>
+          <button class="btn btn-primary stage-start-button" data-action="play">開始遊戲</button>
+          <div class="stage-card-meta">
+            <span id="stage-card-duration">5 分鐘</span>
+            <span id="stage-card-difficulty">標準</span>
+            <span id="stage-card-boss">BOSS：幽靈廢網</span>
+          </div>
+          <p id="stage-card-concept" class="stage-card-concept">清理被海廢占據的潮池，阻止幽靈廢網封鎖整片海岸。</p>
+        </div>
+
+        <div class="home-actions">
+          <div class="current-character-panel" id="home-character-preview" aria-live="polite">
+            <div class="current-character-portrait" id="home-character-portrait"></div>
+            <div class="current-character-info">
+              <div class="current-character-eyebrow">目前角色</div>
+              <div class="current-character-name" id="home-character-name">森林巡守員</div>
+              <div class="current-character-role" id="home-character-role">定位：平衡型</div>
+              <div class="current-character-skill">
+                <span class="current-character-skill-icon" id="home-character-skill-icon"></span>
+                <span id="home-character-skill-name">初始：種子飛刃</span>
+              </div>
+            </div>
+          </div>
+          <div class="menu-buttons">
+            <button class="btn" data-action="characters">角色選擇</button>
+            <button class="btn" data-action="shop">商店</button>
+            <button class="btn" data-action="codex">圖鑑 / 永續知識</button>
+            <button class="btn" data-action="settings-home">設定</button>
+          </div>
+          <div class="coin-display">目前持有：<span class="coin-amount" id="menu-coins">0</span> 枚循環幣 ♻</div>
         </div>
       </div>
-      <div class="menu-buttons">
-        <button class="btn btn-primary" data-action="play">開始遊戲</button>
-        <button class="btn" data-action="characters">角色選擇</button>
-        <button class="btn" data-action="shop">商店</button>
-        <button class="btn" data-action="codex">圖鑑 / 永續知識</button>
-        <button class="btn" data-action="settings-home">設定</button>
-      </div>
-      <div class="coin-display">目前持有：<span class="coin-amount" id="menu-coins">0</span> 枚循環幣 ♻</div>
       <button class="link-reset" data-action="reset">重置存檔</button>
       <button id="gameplay-help-btn" class="gameplay-help-btn" type="button" data-action="help" aria-label="遊戲說明" title="遊戲說明">?</button>
     </section>
@@ -246,8 +274,8 @@
 
     <!-- ===== Victory ===== -->
     <section id="screen-victory" class="screen result-screen hidden">
-      <h2 class="result-title win">潮間帶已淨化！</h2>
-      <p class="result-flavour">你撐過了污染潮，海岸重新恢復了呼吸。</p>
+      <h2 id="victory-title" class="result-title win">關卡已淨化！</h2>
+      <p id="victory-flavour" class="result-flavour">你撐過污染潮並完成了這次行動。</p>
       <div id="victory-stats" class="result-stats"></div>
       <div class="screen-footer">
         <button class="btn btn-primary" data-action="menu">回到主畫面</button>
@@ -274,30 +302,30 @@
   <!-- Data layer -->
   <script src="js/data/characters.js?v=circular-mechanic-20260711b"></script>
   <script src="js/data/skills.js?v=boss-attack-20260711a"></script>
-  <script src="js/data/enemies.js?v=enemy-intro-20260711a"></script>
+  <script src="js/data/enemies.js?v=stage-carousel-20260711a"></script>
   <script src="js/data/shop.js"></script>
-  <script src="js/data/stages.js?v=gameplay-20260711"></script>
+  <script src="js/data/stages.js?v=stage-carousel-20260711a"></script>
   <script src="js/data/knowledge.js?v=gameplay-20260711b"></script>
   <!-- Engine -->
   <script src="js/config.js?v=circular-mechanic-20260711b"></script>
   <script src="js/uiTheme.js"></script>
   <script src="js/mobile.js?v=gameplay-20260710"></script>
-  <script src="js/stageRenderer.js?v=map-objects-20260711c"></script>
-  <script src="js/storage.js"></script>
+  <script src="js/stageRenderer.js?v=stage-carousel-20260711a"></script>
+  <script src="js/storage.js?v=stage-carousel-20260711a"></script>
   <script src="js/audioManager.js"></script>
-  <script src="js/assets.js?v=battery-attack-20260711a"></script>
+  <script src="js/assets.js?v=stage-carousel-20260711a"></script>
   <script src="js/effects.js"></script>
-  <script src="js/sprites.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/sprites.js?v=stage-carousel-20260711a"></script>
   <script src="js/animation.js"></script>
   <script src="js/input.js?v=gameplay-20260711"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
   <script src="js/player.js?v=damage-feedback-20260711a"></script>
   <script src="js/enemy.js?v=enemy-intro-20260711a"></script>
   <script src="js/weapons.js?v=damage-feedback-20260711a"></script>
-  <script src="js/ui.js?v=enemy-intro-20260711a"></script>
-  <script src="js/game.js?v=enemy-intro-20260711a"></script>
+  <script src="js/ui.js?v=lobby-layout-20260711b"></script>
+  <script src="js/game.js?v=stage-carousel-20260711a"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=enemy-intro-20260711d"></script>
-  <script src="js/main.js?v=enemy-intro-20260711a"></script>
+  <script src="js/test_mode.js?v=stage-carousel-20260711a"></script>
+  <script src="js/main.js?v=lobby-layout-20260711b"></script>
 </body>
 </html>

@@ -68,6 +68,22 @@
       this.ctx.imageSmoothingEnabled = false;
     },
 
+    // 非戰鬥 screen 會自行顯示大廳背景圖；這裡同步清掉 canvas 的上一局畫面，
+    // 即使背景素材載入失敗，也不會在選單或結算畫面下方殘留戰場。
+    clearForLobby: function () {
+      if (!this.canvas || !this.ctx) return;
+      var ctx = this.ctx;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      if ("filter" in ctx) ctx.filter = "none";
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.fillStyle = "#071b24";
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.restore();
+    },
+
     /* ---------------- 開始一局 ---------------- */
     start: function (stageId, player) {
       this.stage = global.GameData.getStage(stageId);
@@ -93,6 +109,8 @@
       this.quizIncorrect = 0;
       this.quizStreak = 0;
       this.bestQuizStreak = 0;
+      this.bossDefeated = false;
+      this.bossSpawned = false;
       this.eliteRewardLevel = 0;
       this.player.eliteDamageMult = 1;
       this.quizIndex = 0;
@@ -149,6 +167,7 @@
       this.pendingLevelUps = 0; this.knowledgePaused = false; this.knowledgeQueue = [];
       this.enemyIntroPaused = false; this.enemyIntroQueue = []; this.seenEnemyIntros = {}; this.activeEnemyIntro = null;
       this.runIntroActive = false; this.runIntroRemaining = 0; this.time = 0;
+      this.bossDefeated = false; this.bossSpawned = false;
       if (this.app && this.app.ui && this.app.ui.hideEnemyIntro) this.app.ui.hideEnemyIntro(false);
     },
 
@@ -355,7 +374,10 @@
 
       // 勝負判定
       if (this.player.hp <= 0) { this.end("defeat"); return; }
-      if (this.time >= this.stage.duration) { this.end("victory"); return; }
+      if (this.time >= this.stage.duration && (!this.stage.bossId || this.bossDefeated)) {
+        this.end("victory");
+        return;
+      }
 
       // 升級暫停放在死亡判定後，避免同一幀同時開啟問答與結算畫面。
       if (this.pendingLevelUps > 0 && !this.paused) this.triggerLevelUp();
@@ -639,6 +661,10 @@
       if (e._counted) return;
       e._counted = true;
       this.purifiedCount += 1;
+      if (e.isBoss && this.stage && (!this.stage.bossId || e.id === this.stage.bossId)) {
+        this.bossDefeated = true;
+        this.floaters.push({ x: e.x, y: e.y - 34, age: 0, life: 1.4, text: "BOSS 已淨化！", color: "#fff19a" });
+      }
 
       // 淨化特效
       this.puffs.push({ x: e.x, y: e.y, age: 0, life: 0.35, r: e.radius, color: e.isBoss ? "#6a5acd" : "#7cc36a" });
@@ -831,7 +857,8 @@
           if (!this.enemies[i].dead && this.enemies[i].isElite) eliteCount += 1;
         }
         if (eliteCount >= (this.stage.maxElites || 5)) {
-          def = global.GameData.getEnemy(Math.random() < 0.5 ? "plastic_bag" : "butt_bug");
+          var fallbacks = this.stage.fallbackEnemies || ["plastic_bag", "butt_bug"];
+          def = global.GameData.getEnemy(fallbacks[(Math.random() * fallbacks.length) | 0]);
         }
       }
       var ang = Math.random() * Math.PI * 2;
@@ -842,9 +869,10 @@
       y = Math.max(20, Math.min(this.world.h - 20, y));
       // 隨時間略微提升血量，維持挑戰性
       var hpScale = 1 + (this.time / this.stage.duration) * 0.6;
-      if (def.isBoss) hpScale = 1;
+      if (def.isBoss) hpScale = this.stage.bossHpMultiplier || 1;
       var enemy = new global.Enemy(def, x, y, hpScale);
       this.enemies.push(enemy);
+      if (def.isBoss && (!this.stage.bossId || def.id === this.stage.bossId)) this.bossSpawned = true;
       this.queueEnemyIntro(def);
       return enemy;
     },
@@ -1045,13 +1073,17 @@
 
       var collected = this.runCoins;
       var purifyBonus = Math.floor(this.purifiedCount * 0.5);
-      var timeBonus = Math.floor(this.time / 10);
+      var timeBonus = Math.floor(Math.min(this.time, this.stage.duration) / 10);
       var winBonus = (result === "victory") ? 30 : 0;
       var subtotal = collected + purifyBonus + timeBonus + winBonus;
       var total = Math.floor(subtotal * this.player.coinMult);
 
       var stats = {
         result: result,
+        stageId: this.stage.id,
+        stageName: this.stage.name,
+        bossName: this.stage.bossName || "BOSS",
+        bossDefeated: !!this.bossDefeated,
         survived: this.time,
         purified: this.purifiedCount,
         mapCleaned: this.mapCleanedCount,

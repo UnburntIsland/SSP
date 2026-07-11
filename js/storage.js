@@ -23,6 +23,8 @@
         knowledge: [],   // 已解鎖的 knowledge id
         selectedCharacterId: "ranger",
         lastChar: "ranger",
+        selectedStageId: "tidal_flat",
+        clearedStages: [],
         // 音量設定（0~100；mute 為布林）—— 單一來源，audioManager 由此讀寫
         audio: { master: 80, music: 70, sfx: 80, mute: false }
       };
@@ -45,6 +47,10 @@
       if (!d.lastChar && d.selectedCharacterId) d.lastChar = d.selectedCharacterId;
       d.selectedCharacterId = normalizeCharacterId(d.selectedCharacterId);
       d.lastChar = normalizeCharacterId(d.lastChar);
+      if (!Array.isArray(d.clearedStages)) d.clearedStages = [];
+      if (!d.selectedStageId || !global.GameData || !global.GameData.getStage || !global.GameData.getStage(d.selectedStageId)) {
+        d.selectedStageId = "tidal_flat";
+      }
       // audio 子欄位也補齊
       if (!d.audio || typeof d.audio !== "object") d.audio = def.audio;
       for (var ak in def.audio) { if (!(ak in d.audio)) d.audio[ak] = def.audio[ak]; }
@@ -119,6 +125,38 @@
     },
     getLastChar: function () { return this.loadSelectedCharacter(); },
     setLastChar: function (id) { this.saveSelectedCharacter(id); },
+
+    /* -------- 關卡進度 -------- */
+    isStageCleared: function (id) {
+      return !!(this.data && this.data.clearedStages && this.data.clearedStages.indexOf(id) !== -1);
+    },
+    isStageUnlocked: function (id) {
+      var stage = global.GameData && global.GameData.getStage ? global.GameData.getStage(id) : null;
+      if (!stage) return false;
+      return !stage.unlockAfter || this.isStageCleared(stage.unlockAfter);
+    },
+    markStageCleared: function (id) {
+      if (!this.data || !global.GameData || !global.GameData.getStage(id)) return null;
+      if (!this.isStageCleared(id)) this.data.clearedStages.push(id);
+      var next = global.GameData.getNextStage ? global.GameData.getNextStage(id) : null;
+      this.save();
+      return next && this.isStageUnlocked(next.id) ? next : null;
+    },
+    loadSelectedStage: function () {
+      var id = (this.data && this.data.selectedStageId) || "tidal_flat";
+      if (this.isStageUnlocked(id)) return id;
+      var stages = (global.GameData && global.GameData.stages) || [];
+      for (var i = stages.length - 1; i >= 0; i--) {
+        if (this.isStageUnlocked(stages[i].id)) return stages[i].id;
+      }
+      return "tidal_flat";
+    },
+    saveSelectedStage: function (id) {
+      if (!this.isStageUnlocked(id)) return false;
+      this.data.selectedStageId = id;
+      this.save();
+      return true;
+    },
 
     /* -------- 音量設定（重整後保留；商店升級/存檔不受重新開始影響） -------- */
     getAudioSettings: function () {

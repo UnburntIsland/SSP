@@ -7,7 +7,7 @@
    ============================================================ */
 (function (global) {
 
-  var STAGE_ID = "tidal_flat";
+  var DEFAULT_STAGE_ID = "tidal_flat";
 
   var SCREENS = {
     menu: "screen-menu",
@@ -26,9 +26,15 @@
     selectedCharacterId: "ranger",
     currentSelectedCharacter: "ranger",
     candidateCharacterId: "ranger",
+    selectedStageId: DEFAULT_STAGE_ID,
+    currentStageId: DEFAULT_STAGE_ID,
+    stageSwipeStartX: null,
 
     boot: function () {
       global.Storage.load();
+      if (global.TestMode && global.TestMode.unlockStages && global.GameData && global.GameData.stages) {
+        global.GameData.stages.forEach(function (stage) { global.Storage.markStageCleared(stage.id); });
+      }
       if (global.AudioManager) global.AudioManager.init();   // 在 Storage.load 之後再同步一次設定
 
       this.selectedCharacterId = this.loadSelectedCharacter();
@@ -36,6 +42,8 @@
       this.candidateCharacterId = this.selectedCharacterId;
       this.selectedChar = this.selectedCharacterId; // 相容既有測試與舊程式碼
       this.currentChar = this.selectedCharacterId;
+      this.selectedStageId = this.loadSelectedStage();
+      this.currentStageId = this.selectedStageId;
 
       this.canvas = document.getElementById("game-canvas");
       this.ui = global.UI;
@@ -44,9 +52,11 @@
       if (global.Input && global.Input.attachMouse) global.Input.attachMouse(this.canvas);
 
       this.wireButtons();
+      this.wireStageSelector();
       this.bindKeys();
       this.ui.updateCoinLabels();
       this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
+      this.updateStageSelector();
       this.ui.refreshSettings();
       this.showScreen("menu");
       this.setState("HOME");
@@ -71,6 +81,25 @@
       if (this.ui) this.ui.updateHomeCharacterPreview(id);
     },
 
+    loadSelectedStage: function () {
+      var testStage = global.TestMode && global.TestMode.enabled && global.TestMode.stageId;
+      if (testStage && global.GameData.getStage(testStage)) return testStage;
+      return global.Storage.loadSelectedStage ? global.Storage.loadSelectedStage() : DEFAULT_STAGE_ID;
+    },
+
+    stageUnlocked: function (id) {
+      if (global.TestMode && global.TestMode.enabled && global.TestMode.stageId === id) return true;
+      return global.Storage.isStageUnlocked ? global.Storage.isStageUnlocked(id) : id === DEFAULT_STAGE_ID;
+    },
+
+    saveSelectedStage: function (id) {
+      if (!global.GameData.getStage(id) || !this.stageUnlocked(id)) return false;
+      this.selectedStageId = id;
+      if (global.Storage.saveSelectedStage) global.Storage.saveSelectedStage(id);
+      this.updateStageSelector();
+      return true;
+    },
+
     characterPreviewData: function (id) {
       id = id || this.selectedCharacterId || "ranger";
       var ch = global.GameData.getCharacter(id) || global.GameData.getCharacter("ranger") || global.GameData.characters[0];
@@ -87,6 +116,33 @@
         if (!t || !t.dataset || !t.dataset.action) return;
         if (global.AudioManager) global.AudioManager.playSfx("click");
         self.handleAction(t.dataset.action);
+      });
+    },
+
+    wireStageSelector: function () {
+      var self = this;
+      var card = document.getElementById("stage-carousel-card");
+      if (!card) return;
+      card.addEventListener("pointerdown", function (e) {
+        if (e.target && e.target.closest && e.target.closest("button")) return;
+        self.stageSwipeStartX = e.clientX;
+        if (card.setPointerCapture) card.setPointerCapture(e.pointerId);
+      });
+      card.addEventListener("pointerup", function (e) {
+        if (self.stageSwipeStartX == null) return;
+        var delta = e.clientX - self.stageSwipeStartX;
+        self.stageSwipeStartX = null;
+        if (card.releasePointerCapture && card.hasPointerCapture && card.hasPointerCapture(e.pointerId)) {
+          card.releasePointerCapture(e.pointerId);
+        }
+        if (Math.abs(delta) < 48) return;
+        self.cycleStage(delta < 0 ? 1 : -1);
+      });
+      card.addEventListener("pointercancel", function () { self.stageSwipeStartX = null; });
+      card.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        self.cycleStage(e.key === "ArrowRight" ? 1 : -1);
       });
     },
 
@@ -114,13 +170,15 @@
     handleAction: function (action) {
       switch (action) {
         // 首頁
-        case "play":          this.startRun(this.selectedCharacterId); break;
+        case "play":          this.startSelectedStage(); break;
+        case "stage-prev":    this.cycleStage(-1); break;
+        case "stage-next":    this.cycleStage(1); break;
         case "characters":    this.openCharacterSelect(); break;
         case "shop":          this.showScreen("shop"); this.ui.buildShop(); this.ui.updateCoinLabels(); this.setState("SHOP"); break;
         case "codex":         this.showScreen("codex"); this.ui.buildCodex(); this.setState("CODEX"); break;
         case "help":          this.showScreen("help"); this.setState("HELP"); break;
         case "settings-home": this.openSettings("home"); break;
-        case "start":         this.startRun(this.selectedCharacterId); break;
+        case "start":         this.startSelectedStage(); break;
         case "confirm-character": this.confirmCharacterSelection(); break;
         case "back":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
         case "menu":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
@@ -153,10 +211,99 @@
       if (this.ui.hideRunIntro) this.ui.hideRunIntro();
       this.ui.showPause(false);
       this.ui.showConfirm(false);
+
+      // 大廳、子選單與結算畫面皆由同一張大廳背景完整覆蓋。
+      // 從暫停開啟設定時保留當局 canvas，關閉設定後仍可回到正確的暫停畫面。
+      var shouldClearGameplay = !!name && !(name === "settings" && this.settingsReturn === "pause");
+      if (shouldClearGameplay && global.Game && global.Game.clearForLobby) global.Game.clearForLobby();
+
       if (name && SCREENS[name]) {
         document.getElementById(SCREENS[name]).classList.remove("hidden");
       }
       if (name === "menu" && this.ui) this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
+      if (name === "menu") this.updateStageSelector();
+    },
+
+    cycleStage: function (delta) {
+      var stages = global.GameData.stages || [];
+      if (!stages.length) return;
+      var index = stages.findIndex(function (stage) { return stage.id === this.selectedStageId; }, this);
+      if (index < 0) index = 0;
+      index = (index + delta + stages.length) % stages.length;
+      this.selectedStageId = stages[index].id;
+      if (this.stageUnlocked(this.selectedStageId) && global.Storage.saveSelectedStage) {
+        global.Storage.saveSelectedStage(this.selectedStageId);
+      }
+      this.updateStageSelector();
+    },
+
+    updateStageSelector: function () {
+      var stages = global.GameData.stages || [];
+      var stage = global.GameData.getStage(this.selectedStageId) || stages[0];
+      if (!stage) return;
+      this.selectedStageId = stage.id;
+      var unlocked = this.stageUnlocked(stage.id);
+      var image = document.getElementById("stage-card-image");
+      var number = document.getElementById("stage-card-number");
+      var name = document.getElementById("stage-card-name");
+      var concept = document.getElementById("stage-card-concept");
+      var duration = document.getElementById("stage-card-duration");
+      var difficulty = document.getElementById("stage-card-difficulty");
+      var boss = document.getElementById("stage-card-boss");
+      var lock = document.getElementById("stage-card-lock");
+      var card = document.getElementById("stage-carousel-card");
+      var play = document.querySelector('#screen-menu [data-action="play"]');
+      if (image) {
+        image.src = stage.previewImage;
+        image.alt = stage.name + "地圖與 " + stage.bossName + " 預覽";
+      }
+      if (number) number.textContent = "第 " + stage.order + " 關";
+      if (name) name.textContent = stage.name;
+      if (concept) concept.textContent = stage.concept;
+      if (duration) duration.textContent = Math.round(stage.duration / 60) + " 分鐘";
+      if (difficulty) difficulty.textContent = stage.difficulty;
+      if (boss) boss.textContent = "BOSS：" + stage.bossName;
+      if (lock) {
+        var requirement = stage.unlockAfter ? global.GameData.getStage(stage.unlockAfter) : null;
+        lock.classList.toggle("hidden", unlocked);
+        lock.textContent = unlocked ? "" : "擊敗「" + (requirement ? requirement.bossName : "前一關 BOSS") + "」後解鎖";
+      }
+      if (card) {
+        card.classList.toggle("locked", !unlocked);
+        card.setAttribute("aria-label", stage.name + "，" + (unlocked ? "已解鎖" : "尚未解鎖"));
+      }
+      if (play) {
+        play.disabled = !unlocked;
+        var playLabel = play.querySelector(".btn-label");
+        if (playLabel) playLabel.textContent = "開始遊戲";
+        else play.textContent = "開始遊戲";
+        play.setAttribute("aria-label", unlocked ? "開始遊戲：" + stage.name : stage.name + "尚未解鎖");
+      }
+      var dots = document.getElementById("stage-carousel-dots");
+      if (dots) {
+        dots.innerHTML = "";
+        stages.forEach(function (item) {
+          var dot = document.createElement("span");
+          dot.className = "stage-dot";
+          dot.classList.toggle("active", item.id === stage.id);
+          dot.classList.toggle("cleared", global.Storage.isStageCleared && global.Storage.isStageCleared(item.id));
+          dot.classList.toggle("locked", !this.stageUnlocked(item.id));
+          dot.setAttribute("aria-hidden", "true");
+          dots.appendChild(dot);
+        }, this);
+      }
+    },
+
+    startSelectedStage: function () {
+      var stage = global.GameData.getStage(this.selectedStageId);
+      if (!stage || !this.stageUnlocked(stage.id)) {
+        var required = stage && stage.unlockAfter ? global.GameData.getStage(stage.unlockAfter) : null;
+        this.ui.showToast("關卡尚未解鎖", required ? "先擊敗「" + required.bossName + "」。" : "請先完成前一關。");
+        return false;
+      }
+      this.saveSelectedStage(stage.id);
+      this.startRun(this.selectedCharacterId, stage.id);
+      return true;
     },
 
     /* ---------------- 角色 / 商店 ---------------- */
@@ -205,8 +352,11 @@
       this.candidateCharacterId = "ranger";
       this.selectedChar = "ranger";
       this.currentChar = "ranger";
+      this.selectedStageId = DEFAULT_STAGE_ID;
+      this.currentStageId = DEFAULT_STAGE_ID;
       this.ui.updateCoinLabels();
       this.ui.updateHomeCharacterPreview("ranger");
+      this.updateStageSelector();
       this.ui.refreshSettings();
       this.showScreen("menu");
       this.setState("HOME");
@@ -286,13 +436,15 @@
       this.ui.showConfirm(false);
       this.ui.showPause(false);
       global.Game.abort();
-      this.startRun(this.currentChar || this.selectedCharacterId);   // 不重置商店升級 / localStorage
+      this.startRun(this.currentChar || this.selectedCharacterId, this.currentStageId);   // 不重置商店升級 / localStorage
     },
 
     /* ---------------- 一局生命週期 ---------------- */
-    startRun: function (charId) {
+    startRun: function (charId, stageId) {
       var character = global.GameData.getCharacter(charId) || global.GameData.characters[0];
       this.currentChar = character.id;
+      var stage = global.GameData.getStage(stageId || this.selectedStageId) || global.GameData.getStage(DEFAULT_STAGE_ID);
+      this.currentStageId = stage.id;
       var meta = global.Storage.getMetaBonuses();
       var player = new global.Player(character, meta);
 
@@ -301,7 +453,7 @@
       this.ui._hudSig = "";
       this.ui._passiveHudSig = null;
       global.Game.resize();
-      global.Game.start(STAGE_ID, player);
+      global.Game.start(stage.id, player);
       if (global.AudioManager) global.AudioManager.playMusic("stage");
       this.setState("PLAYING");
     },
@@ -309,7 +461,7 @@
     retryRun: function () {
       var characterId = this.currentChar || this.selectedCharacterId || "ranger";
       global.Game.abort();
-      this.startRun(characterId);
+      this.startRun(characterId, this.currentStageId);
     },
 
     onLevelUp: function (options, cb) {
@@ -323,9 +475,18 @@
     onRunEnd: function (stats) {
       this.ui.showHUD(false);
       if (global.AudioManager) global.AudioManager.stopMusic();
+      if (stats.result === "victory" && global.Storage.markStageCleared) {
+        var unlocked = global.Storage.markStageCleared(stats.stageId || this.currentStageId);
+        if (unlocked) {
+          stats.unlockedStage = unlocked;
+          this.selectedStageId = unlocked.id;
+          if (global.Storage.saveSelectedStage) global.Storage.saveSelectedStage(unlocked.id);
+        }
+      }
       this.ui.buildResult(stats);
       this.showScreen(stats.result === "victory" ? "victory" : "gameover");
       this.ui.updateCoinLabels();
+      this.updateStageSelector();
       this.setState(stats.result === "victory" ? "VICTORY" : "GAME_OVER");
     },
 

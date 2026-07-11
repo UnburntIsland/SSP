@@ -51,6 +51,10 @@
       "assets/images/enemies/oil_blob/attacks/oil_barrage_projectile.png?v=oil_barrage_1" ] },
     boss_oil_barrage_telegraph: { label: "油污團塊十向預警", paths: [
       "assets/images/enemies/oil_blob/attacks/oil_barrage_telegraph.png?v=oil_barrage_1" ] },
+    enemy_ghost_net: { label: "幽靈廢網 (Boss)", paths: [
+      "assets/images/enemies/ghost_net/enemy_ghost_net.png?v=stages-20260711a" ] },
+    enemy_compactor_golem: { label: "壓縮機甲 (Boss)", paths: [
+      "assets/images/enemies/compactor_golem/enemy_compactor_golem.png?v=stages-20260711a" ] },
 
     // -------- 掉落物 --------
     pickup_xp:     { label: "經驗晶體", paths: [
