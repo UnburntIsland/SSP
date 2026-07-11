@@ -241,7 +241,7 @@
       params.get("qaZone") === "1" || params.get("qaDefeat") === "1" ||
       !!params.get("qaKnowledge") || !!params.get("qaMap") || params.get("qaZoneOutside") === "1" ||
       params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak") || params.get("qaPassives") === "1" ||
-      params.get("qaTurret") === "1";
+      params.get("qaTurret") === "1" || params.get("qaBossAttack") === "1" || params.get("qaDamageFlash") === "1";
     if (wantsScenario) {
       var scenarioPoll = setInterval(function () {
         if (!global.Game || !global.Game.running || !global.Game.player) return;
@@ -276,6 +276,50 @@
           enemy.spawnAge = enemy.spawnDuration;
           enemy.attackTimer = 0.12;
           global.Game.enemies.push(enemy);
+        }
+        if (params.get("qaBossAttack") === "1") {
+          global.Game.stage.waves = [];
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
+          var bossDef = global.GameData.getEnemy("oil_blob");
+          var bossPlayer = global.Game.player;
+          var boss = new global.Enemy(bossDef, bossPlayer.x + 185, bossPlayer.y - 25, 1);
+          boss.spawnAge = boss.spawnDuration;
+          boss.speed = 0;
+          boss.contact = 0;
+          boss.maxHp = 99999;
+          boss.hp = boss.maxHp;
+          boss.ranged = Object.assign({}, bossDef.ranged, {
+            cooldown: 1.8,
+            telegraph: 1.2,
+            projectileDamage: 0.01,
+            projectileSpeed: 105
+          });
+          boss.attackTimer = 0.15;
+          global.Game.enemies.push(boss);
+        }
+        if (params.get("qaDamageFlash") === "1") {
+          global.Game.stage.waves = [];
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
+          var flashPlayer = global.Game.player;
+          var flashDef = global.GameData.getEnemy("battery_slime");
+          var flashEnemy = new global.Enemy(flashDef, flashPlayer.x + 105, flashPlayer.y, 1);
+          flashEnemy.spawnAge = flashEnemy.spawnDuration;
+          flashEnemy.speed = 0;
+          flashEnemy.contact = 0;
+          flashEnemy.ranged = null;
+          flashEnemy.maxHp = 9999;
+          flashEnemy.hp = flashEnemy.maxHp;
+          flashEnemy.takeDamage(1);
+          flashEnemy.hitFlash = 1.5;
+          flashEnemy.damageInvulnTimer = 1.5;
+          flashPlayer.takeDamage(2);
+          flashPlayer.hitFlash = 1.5;
+          flashPlayer.invulnTimer = Math.max(flashPlayer.invulnTimer, 1.5);
+          global.Game.enemies.push(flashEnemy);
         }
         if (params.get("qaLevelUp") === "1") {
           setTimeout(function () {

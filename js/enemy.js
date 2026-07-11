@@ -4,6 +4,10 @@
    ============================================================ */
 (function (global) {
 
+  function bossAttackAsset(key) {
+    return global.Assets && global.Assets.get ? global.Assets.get(key) : null;
+  }
+
   function Enemy(def, x, y, hpScale) {
     this.def = def;
     this.id = def.id;
@@ -26,6 +30,9 @@
     this.dead = false;
     this.purified = false;
     this.hitFlash = 0;
+    this.continuousHitFlashTimer = 0;
+    this.damageInvulnTimer = 0;
+    this.damageInvulnDuration = 0.1;
     this.contactTimer = 0;
     this.faceLeft = false;
     this.moveDir = "S";
@@ -73,6 +80,8 @@
     if (this.animator) this.animator.update(dt, vx, vy);
 
     if (this.hitFlash > 0) this.hitFlash -= dt;
+    if (this.continuousHitFlashTimer > 0) this.continuousHitFlashTimer = Math.max(0, this.continuousHitFlashTimer - dt);
+    if (this.damageInvulnTimer > 0) this.damageInvulnTimer = Math.max(0, this.damageInvulnTimer - dt);
     if (this.contactTimer > 0) this.contactTimer -= dt;
     this.updateRangedAttack(dt, player, dist, dx, dy);
   };
@@ -115,10 +124,20 @@
     return this.spawnAge < this.spawnDuration;
   };
 
-  Enemy.prototype.takeDamage = function (n) {
+  Enemy.prototype.takeDamage = function (n, options) {
+    options = options || {};
     if (this.dead) return false;
+    if (!options.continuous && this.damageInvulnTimer > 0) return false;
     this.hp -= n;
-    this.hitFlash = 0.12;
+    if (options.continuous) {
+      if (this.continuousHitFlashTimer <= 0) {
+        this.hitFlash = Math.max(this.hitFlash, 0.12);
+        this.continuousHitFlashTimer = 0.22;
+      }
+    } else {
+      this.hitFlash = Math.max(this.hitFlash, 0.16);
+      this.damageInvulnTimer = this.damageInvulnDuration;
+    }
     if (this.hp <= 0) {
       this.hp = 0;
       this.dead = true;
@@ -187,12 +206,19 @@
 
   Enemy.prototype.drawHitFlash = function (ctx) {
     if (this.hitFlash <= 0) return;
+    var t = Math.max(0, Math.min(1, this.hitFlash / 0.16));
     ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = t * 0.78;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = this.isBoss ? 3 : 2;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(this.x, this.y, this.radius + 3 + (1 - t) * 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha *= 0.55;
+    ctx.strokeStyle = this.isBoss ? "#d697ff" : "#fff0a6";
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius + 7 + (1 - t) * 8, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   };
 
@@ -237,6 +263,19 @@
     ctx.strokeStyle = this.ranged.color || "#ffcf5a";
     ctx.fillStyle = this.ranged.color || "#ffcf5a";
     ctx.lineWidth = this.isBoss ? 3 : 2;
+    if (this.ranged.visualId === "oil_barrage") {
+      var telegraph = bossAttackAsset("boss_oil_barrage_telegraph");
+      if (telegraph) {
+        var telegraphSize = (this.radius * 2 + 104) * (0.88 + t * 0.12);
+        ctx.globalAlpha = 0.42 + t * 0.38;
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this._bobT * 0.32);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(telegraph.src, -telegraphSize / 2, -telegraphSize / 2, telegraphSize, telegraphSize);
+        ctx.restore();
+        return;
+      }
+    }
     if (this.ranged.kind === "radial") {
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.radius + 12 + t * 10, 0, Math.PI * 2);
@@ -269,6 +308,8 @@
     var spawnT = this.isSpawning() ? Math.max(0, Math.min(1, this.spawnAge / this.spawnDuration)) : 1;
     var spawnScale = this.isSpawning() ? 1.48 - spawnT * 0.48 : 1;
     var alpha = this.isSpawning() ? 0.45 + spawnT * 0.55 : 1;
+    var damageBlink = this.damageInvulnTimer > 0 && Math.floor(this.damageInvulnTimer * 50) % 2 === 0;
+    if (damageBlink) alpha *= 0.32;
     this.drawSpawnCue(ctx, size);
     this.drawAttackCue(ctx);
     this.drawShadow(ctx);
@@ -290,6 +331,7 @@
     this.age = 0;
     this.dead = false;
     this.sourceId = opt.sourceId || "enemy";
+    this.visualId = opt.visualId || null;
   }
 
   EnemyProjectile.prototype.update = function (dt, world) {
@@ -305,6 +347,21 @@
   EnemyProjectile.prototype.draw = function (ctx) {
     var speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
     var nx = this.vx / speed, ny = this.vy / speed;
+    if (this.visualId === "oil_barrage") {
+      var projectile = bossAttackAsset("boss_oil_barrage_projectile");
+      if (projectile) {
+        var projectileSize = this.radius * 6.2;
+        var wobble = 1 + Math.sin(this.age * 15) * 0.05;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(Math.atan2(this.vy, this.vx));
+        ctx.scale(wobble, 1 / wobble);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(projectile.src, -projectileSize / 2, -projectileSize / 2, projectileSize, projectileSize);
+        ctx.restore();
+        return;
+      }
+    }
     ctx.save();
     ctx.globalAlpha = 0.24;
     ctx.strokeStyle = this.color;

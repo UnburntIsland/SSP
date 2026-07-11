@@ -69,6 +69,7 @@
       isBoss: true,
       ranged: {
         kind: "radial",
+        visualId: "oil_barrage",
         count: 10,
         range: 620,
         cooldown: 3.4,

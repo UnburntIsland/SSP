@@ -261,7 +261,7 @@
       var dx = e.x - this.x, dy = e.y - this.y;
       if (dx * dx + dy * dy <= (this.radius + e.radius) * (this.radius + e.radius)) {
         var zoneDamage = this.dps * dt * (e.isElite ? this.eliteMult : 1);
-        if (e.takeDamage(zoneDamage)) ctx.onPurified(e);
+        if (e.takeDamage(zoneDamage, { continuous: true })) ctx.onPurified(e);
       }
     }
 
@@ -470,7 +470,7 @@
             var rr2 = ((s.hitRadius || 12) + ee.radius);
             if (bdx * bdx + bdy * bdy <= rr2 * rr2) {
               var orbitDamage = s.dps * dt * (ee.isElite ? (this.player.eliteDamageMult || 1) : 1);
-              if (ee.takeDamage(orbitDamage)) {
+              if (ee.takeDamage(orbitDamage, { continuous: true })) {
                 ctx.onPurified(ee);
               } else if (s.knockback) {
                 var pushDist = Math.sqrt(bdx * bdx + bdy * bdy) || 1;

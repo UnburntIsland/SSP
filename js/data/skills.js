@@ -99,11 +99,11 @@
       eduText: "模組化設計能延長設備壽命；零件可維修、替換與回收，就能減少電子廢棄物。",
       maxLevel: 5,
       levels: [
-        { cooldown: 5, duration: 15, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "解鎖：哨兵存活 15 秒" },
-        { cooldown: 5, duration: 20, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 15 → 20 秒" },
-        { cooldown: 5, duration: 25, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 20 → 25 秒" },
-        { cooldown: 5, duration: 30, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 25 → 30 秒" },
-        { cooldown: 5, duration: 35, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 30 → 35 秒（滿級）" }
+        { cooldown: 5, duration: 15, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "解鎖：哨兵存活 15 秒，單發傷害 5" },
+        { cooldown: 5, duration: 20, damage: 6, fireCooldown: 0.9, range: 220, speed: 380, up: "存活時間 15 → 20 秒，傷害 5 → 6" },
+        { cooldown: 5, duration: 25, damage: 7, fireCooldown: 0.9, range: 220, speed: 380, up: "存活時間 20 → 25 秒，傷害 6 → 7" },
+        { cooldown: 5, duration: 30, damage: 8, fireCooldown: 0.9, range: 220, speed: 380, up: "存活時間 25 → 30 秒，傷害 7 → 8" },
+        { cooldown: 5, duration: 35, damage: 9, fireCooldown: 0.9, range: 220, speed: 380, up: "存活時間 30 → 35 秒，傷害 8 → 9（滿級）" }
       ]
     }
   ];

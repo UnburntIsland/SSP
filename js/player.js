@@ -191,9 +191,10 @@
     ctx.fill();
     ctx.restore();
 
-    // 受擊後閃爍（無敵中每隔一段時間半透明）
-    var blink = (this.invulnTimer > 0 && Math.floor(this.invulnTimer * 16) % 2 === 0);
-    var alpha = blink ? 0.45 : 1;
+    // 受擊後本體快速閃爍；既有較長護盾期間維持較慢的半透明節奏。
+    var iframeBlink = (this.invulnTimer > 0 && Math.floor(this.invulnTimer * 16) % 2 === 0);
+    var hitBlink = (this.hitFlash > 0 && Math.floor(this.hitFlash * 50) % 2 === 0);
+    var alpha = hitBlink ? 0.28 : (iframeBlink ? 0.45 : 1);
     var __ps = (global.Config ? global.Config.RENDER_SIZES.player / global.Config.CAMERA_ZOOM : 36);
     var __dir = this.animator ? this.animator.dir : "S";
     var __moving = this.animator ? this.animator.action === "walk" : false;
@@ -235,6 +236,23 @@
         y: this.y,
         offsetY: __ps * 0.82
       });
+    }
+
+    if (this.hitFlash > 0) {
+      var __hitT = Math.max(0, Math.min(1, this.hitFlash / 0.18));
+      ctx.save();
+      ctx.globalAlpha = __hitT * 0.82;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 4 + (1 - __hitT) * 6, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha *= 0.55;
+      ctx.strokeStyle = "#8fe4ff";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 9 + (1 - __hitT) * 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
 
     // 護盾光環

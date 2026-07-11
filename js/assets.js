@@ -43,6 +43,10 @@
     enemy_oil:     { label: "油污團塊 (Boss)", paths: [
       "assets/images/enemies/enemy_oil_blob.png",
       "assets/images/enemies/concepts/enemy_oil_slick_mass_boss_concept_v2.png" ] },
+    boss_oil_barrage_projectile: { label: "油污團塊彈幕", paths: [
+      "assets/images/enemies/oil_blob/attacks/oil_barrage_projectile.png?v=oil_barrage_1" ] },
+    boss_oil_barrage_telegraph: { label: "油污團塊十向預警", paths: [
+      "assets/images/enemies/oil_blob/attacks/oil_barrage_telegraph.png?v=oil_barrage_1" ] },
 
     // -------- 掉落物 --------
     pickup_xp:     { label: "經驗晶體", paths: [

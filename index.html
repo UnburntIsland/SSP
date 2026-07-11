@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=intro-anywhere-20260711a" />
+  <link rel="stylesheet" href="css/style.css?v=skill-detail-20260711a" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -43,6 +43,18 @@
       </div>
       <div id="hud-skills" class="hud-skills"></div>
       <div id="hud-passives" class="hud-passives" aria-label="本局被動能力"></div>
+      <div id="hud-skill-detail" class="hud-skill-detail hidden" role="dialog" aria-modal="false" aria-labelledby="hud-skill-detail-title" aria-hidden="true">
+        <div id="hud-skill-detail-icon" class="hud-skill-detail-icon" aria-hidden="true"></div>
+        <div class="hud-skill-detail-copy">
+          <div class="hud-skill-detail-meta">
+            <span id="hud-skill-detail-type"></span>
+            <span id="hud-skill-detail-level"></span>
+          </div>
+          <h3 id="hud-skill-detail-title"></h3>
+          <p id="hud-skill-detail-desc"></p>
+        </div>
+        <div id="hud-skill-detail-stats" class="hud-skill-detail-stats"></div>
+      </div>
       <button id="dash-btn" class="dash-btn" type="button" aria-label="衝刺" title="衝刺（Space / Shift）">
         <span class="dash-icon" aria-hidden="true">»</span>
         <span id="dash-cooldown" class="dash-cooldown"></span>
@@ -246,8 +258,8 @@
   <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
   <!-- Data layer -->
   <script src="js/data/characters.js?v=circular-mechanic-20260711b"></script>
-  <script src="js/data/skills.js?v=circular-mechanic-20260711b"></script>
-  <script src="js/data/enemies.js?v=gameplay-20260711"></script>
+  <script src="js/data/skills.js?v=boss-attack-20260711a"></script>
+  <script src="js/data/enemies.js?v=boss-attack-20260711a"></script>
   <script src="js/data/shop.js"></script>
   <script src="js/data/stages.js?v=gameplay-20260711"></script>
   <script src="js/data/knowledge.js?v=gameplay-20260711b"></script>
@@ -258,19 +270,19 @@
   <script src="js/stageRenderer.js?v=map-objects-20260711c"></script>
   <script src="js/storage.js"></script>
   <script src="js/audioManager.js"></script>
-  <script src="js/assets.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/assets.js?v=boss-attack-20260711a"></script>
   <script src="js/effects.js"></script>
   <script src="js/sprites.js?v=circular-mechanic-20260711b"></script>
   <script src="js/animation.js"></script>
   <script src="js/input.js?v=gameplay-20260711"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
-  <script src="js/player.js?v=passive-hud-20260711b"></script>
-  <script src="js/enemy.js?v=gameplay-20260711"></script>
-  <script src="js/weapons.js?v=circular-mechanic-20260711b"></script>
-  <script src="js/ui.js?v=intro-anywhere-20260711a"></script>
-  <script src="js/game.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/player.js?v=damage-feedback-20260711a"></script>
+  <script src="js/enemy.js?v=damage-feedback-20260711a"></script>
+  <script src="js/weapons.js?v=damage-feedback-20260711a"></script>
+  <script src="js/ui.js?v=skill-detail-20260711a"></script>
+  <script src="js/game.js?v=boss-attack-20260711a"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/test_mode.js?v=damage-feedback-20260711a"></script>
   <script src="js/main.js?v=passive-hud-20260711b"></script>
 </body>
 </html>

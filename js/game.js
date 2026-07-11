@@ -566,7 +566,8 @@
             damage: r.projectileDamage || 6,
             radius: radius,
             color: r.color,
-            sourceId: enemy.id
+            sourceId: enemy.id,
+            visualId: r.visualId || null
           }
         ));
       }

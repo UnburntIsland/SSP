@@ -18,6 +18,34 @@
     if (sec % 60 === 0) return "存活 " + (sec / 60) + " 分鐘";
     return "存活 " + fmtTime(sec);
   }
+
+  var SKILL_STAT_KEYS = {
+    projectile: ["damage", "count", "cooldown", "speed", "pierce", "eliteMult"],
+    aura: ["dps", "radius", "duration", "cooldown", "pull"],
+    pulse: ["damage", "radius", "cooldown"],
+    orbit: ["dps", "count", "radius", "hitRadius", "knockback", "rotSpeed"],
+    zone: ["dps", "radius", "duration", "cooldown"],
+    deployable: ["damage", "duration", "cooldown", "fireCooldown", "range"]
+  };
+
+  var SKILL_STAT_LABELS = {
+    damage: "傷害", dps: "每秒傷害", count: "數量", cooldown: "冷卻",
+    speed: "速度", pierce: "貫穿", eliteMult: "精英倍率", radius: "範圍",
+    duration: "持續時間", pull: "吸力", hitRadius: "命中範圍",
+    knockback: "擊退", rotSpeed: "轉速", fireCooldown: "射擊間隔", range: "射程"
+  };
+
+  function compactNumber(value) {
+    var rounded = Math.round(value * 100) / 100;
+    return Math.abs(rounded - Math.round(rounded)) < 0.001 ? String(Math.round(rounded)) : String(rounded);
+  }
+
+  function formatSkillStat(key, value, player) {
+    if (key === "cooldown") value *= player && player.cooldownMult != null ? player.cooldownMult : 1;
+    if (key === "cooldown" || key === "duration" || key === "fireCooldown") return compactNumber(value) + " 秒";
+    if (key === "eliteMult" || key === "pull") return "×" + compactNumber(value);
+    return compactNumber(value);
+  }
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -225,6 +253,10 @@
         coins: $("hud-coins"), purified: $("hud-purified"),
         quizStreak: $("hud-quiz-streak"),
         skills: $("hud-skills"), passives: $("hud-passives"), charname: $("hud-charname"),
+        skillDetail: $("hud-skill-detail"), skillDetailIcon: $("hud-skill-detail-icon"),
+        skillDetailType: $("hud-skill-detail-type"), skillDetailLevel: $("hud-skill-detail-level"),
+        skillDetailTitle: $("hud-skill-detail-title"), skillDetailDesc: $("hud-skill-detail-desc"),
+        skillDetailStats: $("hud-skill-detail-stats"),
         dashButton: $("dash-btn"), dashCooldown: $("dash-cooldown"),
         levelupOverlay: $("overlay-levelup"), levelupOptions: $("levelup-options"),
         levelupTitle: $("levelup-title"), levelupFeedback: $("levelup-feedback"),
@@ -268,6 +300,14 @@
         });
       }
       var uiSelf = this;
+      if (this.dom.skillDetail) {
+        this.dom.skillDetail.addEventListener("click", function (e) { e.stopPropagation(); });
+        global.addEventListener("click", function (e) {
+          if (!uiSelf.dom || !uiSelf.dom.skillDetail || uiSelf.dom.skillDetail.classList.contains("hidden")) return;
+          if (e.target && e.target.closest && e.target.closest(".skill-chip, .passive-chip, .hud-skill-detail")) return;
+          uiSelf.hideHudSkillDetail();
+        });
+      }
       if (this.dom.knowledgeContinue) {
         this.dom.knowledgeContinue.addEventListener("click", function (e) {
           e.preventDefault();
@@ -502,7 +542,52 @@
       });
     },
 
-    showHUD: function (show) { this.dom.hud.classList.toggle("hidden", !show); },
+    showHUD: function (show) {
+      this.dom.hud.classList.toggle("hidden", !show);
+      if (!show) this.hideHudSkillDetail();
+    },
+
+    hideHudSkillDetail: function () {
+      if (!this.dom || !this.dom.skillDetail) return;
+      this.dom.skillDetail.classList.add("hidden");
+      this.dom.skillDetail.setAttribute("aria-hidden", "true");
+      if (this._hudDetailOrigin) this._hudDetailOrigin.classList.remove("selected");
+      this._hudDetailOrigin = null;
+    },
+
+    showHudSkillDetail: function (origin, detail) {
+      var d = this.dom;
+      if (!d || !d.skillDetail || !origin || !detail) return;
+      if (this._hudDetailOrigin === origin && !d.skillDetail.classList.contains("hidden")) {
+        this.hideHudSkillDetail();
+        return;
+      }
+
+      if (this._hudDetailOrigin) this._hudDetailOrigin.classList.remove("selected");
+      this._hudDetailOrigin = origin;
+      origin.classList.add("selected");
+
+      d.skillDetail.classList.toggle("passive-side", detail.side === "passive");
+      d.skillDetailType.textContent = detail.type;
+      d.skillDetailLevel.textContent = detail.level;
+      d.skillDetailTitle.textContent = detail.name;
+      d.skillDetailDesc.textContent = detail.desc;
+      d.skillDetailIcon.innerHTML = "";
+      var icon = global.Sprites.makeIconCanvas(detail.icon, 46);
+      icon.className = "hud-skill-detail-icon-canvas";
+      d.skillDetailIcon.appendChild(icon);
+
+      d.skillDetailStats.innerHTML = "";
+      (detail.stats || []).forEach(function (stat) {
+        var row = el("div", "hud-skill-detail-stat");
+        row.appendChild(el("span", "hud-skill-detail-stat-label", stat.label));
+        row.appendChild(el("strong", "hud-skill-detail-stat-value", stat.value));
+        d.skillDetailStats.appendChild(row);
+      });
+      d.skillDetailStats.classList.toggle("hidden", !detail.stats || !detail.stats.length);
+      d.skillDetail.classList.remove("hidden");
+      d.skillDetail.setAttribute("aria-hidden", "false");
+    },
 
     hideRunIntro: function () {
       if (this.dom && this.dom.runIntroOverlay) this.dom.runIntroOverlay.classList.add("hidden");
@@ -559,14 +644,32 @@
       if (d.charname && p.character) d.charname.textContent = p.character.name;
       var sig = p.weapons.map(function (w) { return w.skill.id + w.level; }).join(",");
       if (sig !== this._hudSig) {
+        this.hideHudSkillDetail();
         this._hudSig = sig;
         d.skills.innerHTML = "";
+        var detailUi = this;
         p.weapons.forEach(function (w) {
-          var chip = el("div", "skill-chip");
+          var chip = el("button", "skill-chip");
+          chip.type = "button";
           chip.title = w.skill.name + " Lv." + w.level;
+          chip.setAttribute("aria-label", chip.title + "，查看技能資訊");
           var icon = global.Sprites.makeIconCanvas(w.skill.iconId, 40);
           chip.appendChild(icon);
           chip.appendChild(el("span", "lv", "Lv" + w.level));
+          chip.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var current = w.stats();
+            var keys = SKILL_STAT_KEYS[w.skill.type] || Object.keys(current);
+            var stats = keys.filter(function (key) { return current[key] != null && SKILL_STAT_LABELS[key]; }).map(function (key) {
+              return { label: SKILL_STAT_LABELS[key], value: formatSkillStat(key, current[key], p) };
+            });
+            detailUi.showHudSkillDetail(chip, {
+              side: "skill", type: "攻擊技能", name: w.skill.name,
+              level: "Lv." + w.level + " / " + w.skill.maxLevel,
+              desc: w.skill.desc, icon: w.skill.iconId, stats: stats
+            });
+          });
           d.skills.appendChild(chip);
         });
       }
@@ -579,12 +682,15 @@
           return passive ? id + ":" + passive.level : "";
         }).join(",");
         if (passiveSig !== this._passiveHudSig) {
+          this.hideHudSkillDetail();
           this._passiveHudSig = passiveSig;
           d.passives.innerHTML = "";
+          var passiveDetailUi = this;
           passiveOrder.forEach(function (id) {
             var passive = passiveMap[id];
             if (!passive || passive.level < 1) return;
-            var chip = el("div", "passive-chip" + (passive.oneShot ? " maxed" : ""));
+            var chip = el("button", "passive-chip" + (passive.oneShot ? " maxed" : ""));
+            chip.type = "button";
             var levelLabel = passive.oneShot ? "MAX" : "Lv" + passive.level;
             chip.title = passive.name + " " + levelLabel + "｜" + passive.effect;
             chip.setAttribute("aria-label", chip.title);
@@ -592,6 +698,19 @@
             icon.className = "passive-icon";
             chip.appendChild(icon);
             chip.appendChild(el("span", "lv", levelLabel));
+            chip.addEventListener("click", function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              passiveDetailUi.showHudSkillDetail(chip, {
+                side: "passive", type: "被動能力", name: passive.name,
+                level: passive.oneShot ? "MAX" : "Lv." + passive.level,
+                desc: passive.effect, icon: passive.icon,
+                stats: [{
+                  label: passive.oneShot ? "狀態" : "累積次數",
+                  value: passive.oneShot ? "已滿級" : passive.level + " 次"
+                }]
+              });
+            });
             d.passives.appendChild(chip);
           });
         }

@@ -638,8 +638,18 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
 .hud-coins{ color:var(--c-accent,#ffd84a); }
 .hud-hint{ font-size:var(--f-small,13px); color:#a9c7d2; text-shadow:var(--text-outline-soft); margin-top:2px; }
 
-.hud-skills{ position:absolute; left:16px; bottom:16px; top:auto; display:flex; gap:8px; }
-.skill-chip{ width:44px; height:44px; }
+.hud-skills{ position:absolute; left:16px; bottom:16px; top:auto; z-index:25; display:flex; gap:8px; }
+.skill-chip{
+  width:44px;
+  height:44px;
+  padding:0;
+  appearance:none;
+  color:inherit;
+  font:inherit;
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
 .hud-passives{
   position:absolute;
   right:94px;
@@ -664,6 +674,21 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
   border:2px solid #64dfc8;
   border-radius:6px;
   box-shadow:0 3px 0 rgba(4, 18, 24, .78);
+  appearance:none;
+  color:inherit;
+  font:inherit;
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+.skill-chip:hover, .passive-chip:hover,
+.skill-chip.selected, .passive-chip.selected{
+  border-color:#ffd84a;
+  filter:brightness(1.12);
+}
+.skill-chip:focus-visible, .passive-chip:focus-visible{
+  outline:3px solid #fff0a6;
+  outline-offset:3px;
 }
 .passive-chip.maxed{ border-color:#ffd84a; }
 .passive-icon{
@@ -688,6 +713,87 @@ html, body{ font-family: var(--f-family, var(--pixel-font)); }
   text-shadow:var(--text-outline-soft);
 }
 .passive-chip.maxed .lv{ color:#ffd84a; }
+
+.hud-skill-detail{
+  position:absolute;
+  left:16px;
+  bottom:76px;
+  z-index:45;
+  width:330px;
+  min-height:132px;
+  padding:14px;
+  display:grid;
+  grid-template-columns:48px minmax(0, 1fr);
+  gap:10px 12px;
+  color:#edf8f1;
+  background:rgba(7, 31, 38, .97);
+  border:2px solid #64dfc8;
+  border-radius:6px;
+  box-shadow:0 5px 0 rgba(3, 15, 21, .82), 0 0 16px rgba(77, 208, 196, .16);
+  pointer-events:auto;
+}
+.hud-skill-detail.passive-side{
+  left:auto;
+  right:94px;
+  border-color:#ffd84a;
+}
+.hud-skill-detail-icon{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  background:#0a252d;
+  border:2px solid rgba(143, 228, 189, .55);
+  border-radius:4px;
+}
+.hud-skill-detail-icon-canvas{
+  display:block;
+  width:44px;
+  height:44px;
+  image-rendering:pixelated;
+}
+.hud-skill-detail-copy{ min-width:0; }
+.hud-skill-detail-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:3px;
+  color:#8fe4bd;
+  font-size:10px;
+  line-height:1.3;
+}
+.passive-side .hud-skill-detail-meta{ color:#ffd84a; }
+.hud-skill-detail h3{
+  margin:0;
+  color:#fff0a6;
+  font-size:18px;
+  line-height:1.3;
+  text-shadow:var(--text-outline-soft);
+}
+.hud-skill-detail p{
+  margin:4px 0 0;
+  color:#d5ebe2;
+  font-size:12px;
+  line-height:1.5;
+}
+.hud-skill-detail-stats{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:5px 14px;
+  padding-top:9px;
+  border-top:1px solid rgba(143, 228, 189, .28);
+}
+.hud-skill-detail-stat{
+  min-width:0;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  font-size:11px;
+  line-height:1.4;
+}
+.hud-skill-detail-stat-label{ color:#9fc8bd; }
+.hud-skill-detail-stat-value{ color:#fff; white-space:nowrap; }
 
 /* ---------------- 暫停面板：文字融合進面板 ---------------- */
 .pause-title{ font-size:var(--f-title,30px); color:var(--c-accent,#ffd84a); text-shadow:var(--text-outline); }
@@ -1751,6 +1857,18 @@ html.is-mobile, .is-mobile body{
   bottom:calc(16px + var(--vis-inset-bottom, 0px));
   max-width:360px;
 }
+.is-mobile .hud-skill-detail{
+  left:calc(16px + var(--vis-inset-left, 0px));
+  bottom:calc(74px + var(--vis-inset-bottom, 0px));
+  width:360px;
+  padding:16px;
+}
+.is-mobile .hud-skill-detail.passive-side{
+  left:auto;
+  right:calc(100px + var(--vis-inset-right, 0px));
+}
+.is-mobile .hud-skill-detail p{ font-size:13px; }
+.is-mobile .hud-skill-detail-stat{ font-size:12px; }
 #mobile-coin-chip{
   position:absolute;
   left:18px;
