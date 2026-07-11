@@ -43,7 +43,6 @@
         "#screen-help .screen-footer .btn",
         "#screen-settings .screen-footer .btn",
         "#overlay-pause .btn",
-        "#overlay-run-intro .btn",
         "#overlay-knowledge .btn",
         "#overlay-confirm .btn",
         ".result-screen .screen-footer .btn"
@@ -221,7 +220,7 @@
         hpFill: $("hp-fill"), hpText: $("hp-text"),
         timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
         runIntroOverlay: $("overlay-run-intro"), runIntroGoal: $("run-intro-goal"),
-        runIntroCountdown: $("run-intro-countdown"), runIntroSkip: $("run-intro-skip"),
+        runIntroCountdown: $("run-intro-countdown"), runIntroSkipHint: $("run-intro-skip-hint"),
         level: $("hud-level"), xpFill: $("xp-fill"),
         coins: $("hud-coins"), purified: $("hud-purified"),
         quizStreak: $("hud-quiz-streak"),
@@ -260,10 +259,12 @@
           if (global.Input && global.Input.requestDash) global.Input.requestDash();
         });
       }
-      if (this.dom.runIntroSkip) {
-        this.dom.runIntroSkip.addEventListener("click", function (e) {
+      if (this.dom.runIntroOverlay) {
+        this.dom.runIntroOverlay.addEventListener("click", function (e) {
+          if (!global.Game || !global.Game.runIntroActive || !global.Game.skipRunIntro) return;
           e.preventDefault();
-          if (global.Game && global.Game.skipRunIntro) global.Game.skipRunIntro();
+          e.stopPropagation();
+          global.Game.skipRunIntro();
         });
       }
       var uiSelf = this;

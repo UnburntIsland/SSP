@@ -2375,7 +2375,11 @@ html.is-mobile, .is-mobile body{
   z-index:46;
   padding:18px;
   box-sizing:border-box;
+  flex-direction:column;
+  gap:16px;
   background:rgba(5, 20, 27, .92);
+  cursor:pointer;
+  user-select:none;
 }
 .run-intro-panel{
   width:min(620px, 90%);
@@ -2432,11 +2436,18 @@ html.is-mobile, .is-mobile body{
   text-align:center;
 }
 .run-intro-start span{ font-size:18px; }
-#run-intro-skip{
-  width:240px;
-  min-height:54px;
-  flex:0 0 auto;
-  margin-top:-4px;
+.run-intro-skip-hint{
+  color:#eafff7;
+  font-size:15px;
+  line-height:1.5;
+  text-align:center;
+  text-shadow:2px 2px 0 #06141d, 0 0 10px rgba(143, 228, 189, .5);
+  pointer-events:none;
+  animation:run-intro-skip-pulse 1.05s ease-in-out infinite;
+}
+@keyframes run-intro-skip-pulse{
+  0%, 100%{ opacity:.42; transform:translateY(0); }
+  50%{ opacity:1; transform:translateY(-2px); }
 }
 
 @media (max-width:760px), (max-height:620px){
@@ -2451,9 +2462,10 @@ html.is-mobile, .is-mobile body{
   .run-intro-desc{ font-size:13px; }
   .run-intro-start{ min-height:68px; }
   .run-intro-start strong{ font-size:58px; }
-  #run-intro-skip{ min-height:64px; }
+  .run-intro-skip-hint{ font-size:13px; }
 }
 
 @media (prefers-reduced-motion:reduce){
   .hud-timer.final-countdown{ animation:none; }
+  .run-intro-skip-hint{ animation:none; opacity:1; }
 }
