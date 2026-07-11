@@ -51,3 +51,11 @@ assets/images/enemies/<enemyId>/
 - Cache version：`enemy_8dir_20260711a`。
 - Resolver 仍要求同方向四幀完整才視為 `approvedMove=true`。
 - 圖片缺失或載入失敗時仍回到既有 Canvas fallback，不影響 AI、碰撞、傷害或戰鬥數值。
+
+## 最終驗證
+
+- Runtime PNG：520/520，可解碼且具透明背景。
+- Browser resolver：13 種怪物 x 8 方向，共 104/104 為 `exact`。
+- `hasSprite=true` 與 `approvedMove=true`：104/104。
+- Browser console：沒有 error、warning、404 或圖片 decode failure。
+- 正式模式：沒有 debug overlay，沒有破圖。

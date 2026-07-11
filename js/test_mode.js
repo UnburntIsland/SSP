@@ -267,7 +267,8 @@
       !!params.get("qaKnowledge") || !!params.get("qaMap") || params.get("qaZoneOutside") === "1" ||
       params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak") || params.get("qaPassives") === "1" ||
       params.get("qaTurret") === "1" || params.get("qaBossAttack") === "1" || params.get("qaDamageFlash") === "1" ||
-      !!params.get("qaEnemyIntro") || params.get("qaBossIntro") === "1" || params.get("qaClearStage") === "1";
+      !!params.get("qaEnemyIntro") || !!params.get("qaEnemy8Dir") ||
+      params.get("qaBossIntro") === "1" || params.get("qaClearStage") === "1";
     if (wantsScenario) {
       var scenarioPoll = setInterval(function () {
         if (!global.Game || !global.Game.running || !global.Game.player) return;
@@ -319,6 +320,33 @@
             introEnemy.contact = 0;
             introEnemy.maxHp = 99999;
             introEnemy.hp = introEnemy.maxHp;
+          }
+        }
+        if (params.get("qaEnemy8Dir")) {
+          global.Game.stage.waves = [];
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
+          var eightDirEnemyId = params.get("qaEnemy8Dir");
+          var eightDirDef = global.GameData.getEnemy(eightDirEnemyId);
+          var eightDirPlayer = global.Game.player;
+          if (eightDirDef && eightDirPlayer) {
+            ["N", "NE", "E", "SE", "S", "SW", "W", "NW"].forEach(function (direction) {
+              var vector = global.Animation.directionVector(direction);
+              var enemy = new global.Enemy(
+                eightDirDef,
+                eightDirPlayer.x - vector.x * 155,
+                eightDirPlayer.y - vector.y * 155,
+                1
+              );
+              enemy.spawnAge = enemy.spawnDuration;
+              enemy.speed = 4;
+              enemy.contact = 0;
+              enemy.ranged = null;
+              enemy.maxHp = 99999;
+              enemy.hp = enemy.maxHp;
+              global.Game.enemies.push(enemy);
+            });
           }
         }
         if (params.get("qaBossAttack") === "1") {

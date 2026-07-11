@@ -37,9 +37,23 @@
 - 新圖 visual mass：normalize 後面積比約 1.01-1.09。
 - 正式模式使用圖片；圖片失敗時仍保留既有 Canvas fallback。
 
+## Browser Runtime 驗證
+
+- 測試網址：`index.html?test=1&debugAnimation=1&qaSkipIntro=1&qaUnlockStages=1&qaEnemy8Dir=<enemyId>`。
+- 13 種怪物各建立 8 個方向實例，共 104 個方向案例。
+- 104/104 的 `direction`、`requestedKey` 與 `resolvedKey` 相符。
+- 104/104 均為 `fallbackType=exact`、`hasSprite=true`、`approvedMove=true`、`flipX=false`。
+- 每組 move animation 均可循環 frame `0-3`，沒有 partial direction 被啟用。
+- 正式模式沒有 debug overlay，DOM broken image 為 0。
+- Browser console 共檢查 56 筆 log；error、warning、404、decode failure 均為 0。
+- 遊戲沒有讀取 `_incoming_move_regen`、`_masters` 或 archive 路徑。
+
 ## 視覺證據
 
 - `screenshots/all-enemies-8dir-runtime-overview.png`
+- `screenshots/all-enemies-8dir-runtime-debug.png`
+- `screenshots/enemy-bottle_mite-8dir-runtime-debug.png`
+- `screenshots/enemy-compactor_golem-8dir-runtime-normal.png`
 - `screenshots/enemy-<enemyId>-8dir-generated-contact-sheet.png`
 - `screenshots/enemy-<enemyId>-8dir-runtime-contact-sheet.png`（原四種怪物）
 
