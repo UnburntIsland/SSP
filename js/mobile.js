@@ -178,77 +178,123 @@
     btn.addEventListener("touchend", doPause, { passive: false });
   }
 
-  /* ---------------- 手機大廳：角色摺疊選單 + 金幣角標 ---------------- */
+  /* ---------------- 手機 / 平板大廳：點擊目前角色展開選單 ---------------- */
   function setupMobileLobby() {
     var menu = document.getElementById("screen-menu");
     var preview = document.getElementById("home-character-preview");
     if (!menu || !preview) return;
 
+    var picker = document.createElement("div");
+    picker.className = "mobile-character-picker";
+    preview.parentNode.insertBefore(picker, preview);
+    picker.appendChild(preview);
+
     var chevron = document.createElement("div");
     chevron.className = "mobile-char-chevron";
-    chevron.textContent = "從右側選擇角色";
+    chevron.textContent = "切換 ▾";
+    chevron.setAttribute("aria-hidden", "true");
     preview.appendChild(chevron);
 
-    var stats = document.createElement("div");
-    stats.id = "mobile-char-stats";
-    var infoBox = preview.querySelector(".current-character-info") || preview;
-    infoBox.appendChild(stats);
-    function statRow(label, value) {
-      return "<div class='mobile-stat-row'><span class='mobile-stat-label'>" + label +
-             "</span><span class='mobile-stat-value'>" + (value || "—") + "</span></div>";
-    }
-    function syncStats() {
-      var GD = global.GameData;
-      if (!GD || !GD.getCharacter) return;
-      var id = (global.App && global.App.selectedCharacterId) || "ranger";
-      var ch = GD.getCharacter(id);
-      if (!ch) return;
-      var skill = GD.getSkill ? GD.getSkill(ch.startingSkill) : null;
-      stats.innerHTML = statRow("定位", ch.role) + statRow("被動", ch.passiveText) +
-                        statRow("初始", skill ? skill.name : ch.startingSkill);
-    }
-    setTimeout(syncStats, 500);
+    var list = document.createElement("div");
+    list.id = "mobile-char-list";
+    list.className = "hidden";
+    list.setAttribute("role", "listbox");
+    list.setAttribute("aria-label", "切換角色");
+    picker.appendChild(list);
 
-    // 右側常駐角色欄：每個角色一張小卡（頭像 + 名字），點擊即切換左側大卡
-    var rail = document.createElement("div");
-    rail.id = "mobile-char-rail";
-    menu.appendChild(rail);
-    function refreshRail() {
+    preview.setAttribute("role", "button");
+    preview.setAttribute("tabindex", "0");
+    preview.setAttribute("aria-haspopup", "listbox");
+    preview.setAttribute("aria-controls", "mobile-char-list");
+    preview.setAttribute("aria-expanded", "false");
+
+    function setListOpen(open) {
+      open = !!open;
+      list.classList.toggle("hidden", !open);
+      preview.classList.toggle("expanded", open);
+      preview.setAttribute("aria-expanded", String(open));
+      chevron.textContent = open ? "收起 ▴" : "切換 ▾";
+    }
+
+    function refreshList() {
       var cur = global.App ? global.App.selectedCharacterId : null;
-      Array.prototype.forEach.call(rail.children, function (it) {
-        it.classList.toggle("active", it.dataset.charId === cur);
+      var current = global.GameData && global.GameData.getCharacter
+        ? global.GameData.getCharacter(cur)
+        : null;
+      preview.setAttribute("aria-label", "目前角色：" + (current ? current.name : "森林巡守員") + "，點擊切換角色");
+      Array.prototype.forEach.call(list.children, function (item) {
+        var active = item.dataset.charId === cur;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", String(active));
       });
     }
-    function buildRail() {
+
+    function buildList() {
       var chars = (global.GameData && global.GameData.characters) || [];
+      list.innerHTML = "";
       chars.forEach(function (ch) {
-        var item = document.createElement("div");
-        item.className = "mobile-rail-item";
+        var item = document.createElement("button");
+        item.type = "button";
+        item.className = "mobile-char-item";
         item.dataset.charId = ch.id;
+        item.setAttribute("role", "option");
         if (global.Sprites && global.Sprites.makeCanvas) {
           var icon = global.Sprites.makeCanvas(ch.spriteId, 3);
-          icon.className = "mobile-rail-icon";
+          icon.className = "mobile-char-item-icon";
           item.appendChild(icon);
         }
-        var nm = document.createElement("div");
-        nm.className = "mobile-rail-name";
-        nm.textContent = ch.name;
-        item.appendChild(nm);
+
+        var text = document.createElement("span");
+        text.className = "mobile-char-item-text";
+        var name = document.createElement("span");
+        name.className = "mobile-char-item-name";
+        name.textContent = ch.name;
+        var role = document.createElement("span");
+        role.className = "mobile-char-item-role";
+        role.textContent = ch.role;
+        text.appendChild(name);
+        text.appendChild(role);
+        item.appendChild(text);
+
+        var mark = document.createElement("span");
+        mark.className = "mobile-char-item-mark";
+        mark.textContent = "✓";
+        mark.setAttribute("aria-hidden", "true");
+        item.appendChild(mark);
+
         item.addEventListener("click", function (e) {
           e.stopPropagation();
           var app = global.App;
           if (app && app.saveSelectedCharacter) app.saveSelectedCharacter(ch.id);
-          if (app && app.ui && app.ui.updateHomeCharacterPreview) app.ui.updateHomeCharacterPreview(ch.id);
-          syncStats();
-          refreshRail();
+          refreshList();
+          setListOpen(false);
+          preview.focus();
           if (global.AudioManager) global.AudioManager.playSfx("click");
         });
-        rail.appendChild(item);
+        list.appendChild(item);
       });
-      refreshRail();
+      refreshList();
     }
-    // GameData / Sprites / App 皆已載入後建欄（首屏延遲建構）
-    setTimeout(function () { buildRail(); }, 400);
+
+    preview.addEventListener("click", function (e) {
+      e.stopPropagation();
+      setListOpen(list.classList.contains("hidden"));
+    });
+    preview.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        setListOpen(false);
+        return;
+      }
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      setListOpen(list.classList.contains("hidden"));
+    });
+    document.addEventListener("click", function (e) {
+      if (!picker.contains(e.target)) setListOpen(false);
+    });
+
+    // App.boot 讀完存檔後再建立清單，確保 active 角色正確。
+    setTimeout(buildList, 400);
 
     var chip = document.createElement("div");
     chip.id = "mobile-coin-chip";
