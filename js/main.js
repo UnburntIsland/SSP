@@ -337,6 +337,11 @@
       }
     },
 
+    onEnemyIntroduced: function (intro, onContinue) {
+      if (this.ui.showEnemyIntro) this.ui.showEnemyIntro(intro, onContinue);
+      else if (onContinue) onContinue();
+    },
+
     showToast: function (title, text) {
       this.ui.showToast(title, text);
     }

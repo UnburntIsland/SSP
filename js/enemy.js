@@ -4,7 +4,7 @@
    ============================================================ */
 (function (global) {
 
-  function bossAttackAsset(key) {
+  function enemyAttackAsset(key) {
     return global.Assets && global.Assets.get ? global.Assets.get(key) : null;
   }
 
@@ -38,7 +38,7 @@
     this.moveDir = "S";
     this._bobT = 0;
     this.spawnAge = 0;
-    this.spawnDuration = this.isBoss ? 0.9 : 0.55;
+    this.spawnDuration = this.isBoss ? 1.45 : 0.55;
     this.ranged = def.ranged || null;
     this.attackPhase = "cooldown";
     this.attackTimer = this.ranged ? 0.9 + Math.random() * (this.ranged.cooldown || 2.5) : 0;
@@ -240,8 +240,33 @@
     if (!this.isSpawning()) return;
     var t = Math.max(0, Math.min(1, this.spawnAge / this.spawnDuration));
     ctx.save();
+    if (this.isBoss) {
+      ctx.translate(this.x, this.y);
+      ctx.rotate((1 - t) * 0.7);
+      ctx.strokeStyle = "#ff6d83";
+      ctx.lineWidth = Math.max(2, size * 0.035);
+      for (var ring = 0; ring < 3; ring++) {
+        ctx.globalAlpha = (1 - t) * (0.62 - ring * 0.12);
+        ctx.beginPath();
+        ctx.arc(0, 0, size * (0.68 + ring * 0.22 + (1 - t) * 0.35), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "#fff0a6";
+      for (var ray = 0; ray < 8; ray++) {
+        var angle = ray * Math.PI / 4;
+        var inner = size * (0.52 + t * 0.12);
+        var outer = size * (0.92 + (1 - t) * 0.5);
+        ctx.globalAlpha = (1 - t) * 0.72;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+        ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
     ctx.globalAlpha = (1 - t) * 0.85;
-    ctx.strokeStyle = this.isBoss ? "#d697ff" : "#d6f06a";
+    ctx.strokeStyle = "#d6f06a";
     ctx.lineWidth = Math.max(1.5, size * 0.045);
     ctx.beginPath();
     ctx.arc(this.x, this.y, size * (0.65 + (1 - t) * 0.42), 0, Math.PI * 2);
@@ -263,8 +288,27 @@
     ctx.strokeStyle = this.ranged.color || "#ffcf5a";
     ctx.fillStyle = this.ranged.color || "#ffcf5a";
     ctx.lineWidth = this.isBoss ? 3 : 2;
+    if (this.ranged.visualId === "battery_bolt") {
+      var batteryCharge = enemyAttackAsset("enemy_battery_charge_telegraph");
+      if (batteryCharge) {
+        var batteryChargeSize = (this.radius * 2 + 50) * (0.88 + t * 0.12);
+        ctx.save();
+        ctx.globalAlpha = 0.4 + t * 0.45;
+        ctx.translate(this.x, this.y);
+        ctx.rotate(-this._bobT * 0.55);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(
+          batteryCharge.src,
+          -batteryChargeSize / 2,
+          -batteryChargeSize / 2,
+          batteryChargeSize,
+          batteryChargeSize
+        );
+        ctx.restore();
+      }
+    }
     if (this.ranged.visualId === "oil_barrage") {
-      var telegraph = bossAttackAsset("boss_oil_barrage_telegraph");
+      var telegraph = enemyAttackAsset("boss_oil_barrage_telegraph");
       if (telegraph) {
         var telegraphSize = (this.radius * 2 + 104) * (0.88 + t * 0.12);
         ctx.globalAlpha = 0.42 + t * 0.38;
@@ -306,8 +350,12 @@
   Enemy.prototype.draw = function (ctx) {
     var size = this.renderSize();
     var spawnT = this.isSpawning() ? Math.max(0, Math.min(1, this.spawnAge / this.spawnDuration)) : 1;
-    var spawnScale = this.isSpawning() ? 1.48 - spawnT * 0.48 : 1;
-    var alpha = this.isSpawning() ? 0.45 + spawnT * 0.55 : 1;
+    var spawnScale = this.isSpawning()
+      ? (this.isBoss ? 1.9 - spawnT * 0.9 : 1.48 - spawnT * 0.48)
+      : 1;
+    var alpha = this.isSpawning()
+      ? (this.isBoss ? 0.22 + spawnT * 0.78 : 0.45 + spawnT * 0.55)
+      : 1;
     var damageBlink = this.damageInvulnTimer > 0 && Math.floor(this.damageInvulnTimer * 50) % 2 === 0;
     if (damageBlink) alpha *= 0.32;
     this.drawSpawnCue(ctx, size);
@@ -347,8 +395,29 @@
   EnemyProjectile.prototype.draw = function (ctx) {
     var speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
     var nx = this.vx / speed, ny = this.vy / speed;
+    if (this.visualId === "battery_bolt") {
+      var batteryBolt = enemyAttackAsset("enemy_battery_bolt_projectile");
+      if (batteryBolt) {
+        var batteryBoltSize = this.radius * 5.4;
+        var batteryPulse = 1 + Math.sin(this.age * 18) * 0.04;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(Math.atan2(this.vy, this.vx));
+        ctx.scale(batteryPulse, 1 / batteryPulse);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(
+          batteryBolt.src,
+          -batteryBoltSize / 2,
+          -batteryBoltSize / 2,
+          batteryBoltSize,
+          batteryBoltSize
+        );
+        ctx.restore();
+        return;
+      }
+    }
     if (this.visualId === "oil_barrage") {
-      var projectile = bossAttackAsset("boss_oil_barrage_projectile");
+      var projectile = enemyAttackAsset("boss_oil_barrage_projectile");
       if (projectile) {
         var projectileSize = this.radius * 6.2;
         var wobble = 1 + Math.sin(this.age * 15) * 0.05;

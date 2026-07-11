@@ -2568,6 +2568,166 @@ html.is-mobile, .is-mobile body{
   50%{ opacity:1; transform:translateY(-2px); }
 }
 
+/* First encounter cards pause the world until the player acknowledges them. */
+#overlay-enemy-intro{
+  z-index:48;
+  padding:18px;
+  box-sizing:border-box;
+  flex-direction:column;
+  gap:16px;
+  background:rgba(4, 18, 24, .88);
+  cursor:pointer;
+  user-select:none;
+}
+.enemy-intro-card{
+  position:relative;
+  width:min(720px, 92%);
+  min-height:330px;
+  display:grid;
+  grid-template-columns:250px minmax(0, 1fr);
+  overflow:hidden;
+  box-sizing:border-box;
+  color:#eafff7;
+  background:#0d2f32;
+  border:3px solid #8fe4bd;
+  border-radius:8px;
+  box-shadow:0 8px 0 #06141d, 0 0 0 4px rgba(143, 228, 189, .12);
+}
+.enemy-intro-overlay:not(.hidden) .enemy-intro-card{
+  animation:enemy-intro-slide-in .58s cubic-bezier(.18,.88,.24,1.08) both;
+}
+.enemy-intro-portrait{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  box-sizing:border-box;
+  background:#143f3c;
+  border-right:2px solid rgba(143, 228, 189, .28);
+}
+.enemy-intro-portrait canvas{
+  width:auto;
+  height:190px;
+  max-width:210px;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 8px 0 rgba(0,0,0,.28));
+}
+.enemy-intro-copy{
+  min-width:0;
+  padding:38px 36px 32px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-start;
+  box-sizing:border-box;
+  text-align:left;
+}
+.enemy-intro-eyebrow{
+  position:absolute;
+  top:24px;
+  left:278px;
+  color:#8fe4bd;
+  font-size:13px;
+  line-height:1.4;
+  pointer-events:none;
+}
+.enemy-intro-threat{
+  margin-bottom:8px;
+  padding-bottom:5px;
+  color:#ffd84a;
+  border-bottom:2px solid currentColor;
+  font-size:13px;
+  line-height:1.2;
+}
+.enemy-intro-title{
+  margin:0 0 16px;
+  color:#fff0a6;
+  font-size:38px;
+  line-height:1.15;
+  text-shadow:var(--text-outline);
+}
+.enemy-intro-text,
+.enemy-intro-hint{
+  max-width:100%;
+  margin:0;
+  font-size:15px;
+  line-height:1.7;
+}
+.enemy-intro-text{ color:#d9eee6; }
+.enemy-intro-hint{
+  margin-top:15px;
+  padding-left:12px;
+  color:#aeeed1;
+  border-left:3px solid #8fe4bd;
+}
+.enemy-intro-continue{
+  color:#fff;
+  font-size:15px;
+  line-height:1.5;
+  text-align:center;
+  text-shadow:2px 2px 0 #06141d;
+  pointer-events:none;
+  animation:enemy-intro-continue-pulse .95s ease-in-out infinite;
+}
+
+.enemy-intro-overlay.elite .enemy-intro-card{
+  border-color:#d6e34a;
+  box-shadow:0 8px 0 #06141d, 0 0 0 4px rgba(214, 227, 74, .16);
+}
+.enemy-intro-overlay.elite .enemy-intro-portrait{ background:#344529; }
+.enemy-intro-overlay.elite .enemy-intro-eyebrow,
+.enemy-intro-overlay.elite .enemy-intro-hint{ color:#e9f58a; }
+.enemy-intro-overlay.elite .enemy-intro-hint{ border-left-color:#d6e34a; }
+
+.enemy-intro-overlay.boss{
+  background:rgba(26, 5, 14, .92);
+  box-shadow:inset 0 0 0 8px rgba(255, 78, 96, .5);
+  animation:boss-screen-alert .7s steps(2, end) both;
+}
+.enemy-intro-overlay.boss .enemy-intro-card{
+  width:min(800px, 94%);
+  min-height:390px;
+  grid-template-columns:300px minmax(0, 1fr);
+  background:#2b121d;
+  border-color:#ff596b;
+  box-shadow:0 9px 0 #11060b, 0 0 0 5px rgba(255, 89, 107, .2), 0 0 34px rgba(255, 89, 107, .34);
+  animation:boss-intro-impact .72s cubic-bezier(.16,.88,.24,1.12) both;
+}
+.enemy-intro-overlay.boss .enemy-intro-portrait{
+  background:#421925;
+  border-right-color:rgba(255, 145, 155, .35);
+}
+.enemy-intro-overlay.boss .enemy-intro-portrait canvas{ height:230px; max-width:260px; }
+.enemy-intro-overlay.boss .enemy-intro-eyebrow{
+  top:25px;
+  left:328px;
+  color:#ff8793;
+  font-size:15px;
+}
+.enemy-intro-overlay.boss .enemy-intro-threat{ color:#ff8793; }
+.enemy-intro-overlay.boss .enemy-intro-title{ color:#fff; font-size:46px; }
+.enemy-intro-overlay.boss .enemy-intro-hint{ color:#ffc2c8; border-left-color:#ff596b; }
+
+@keyframes enemy-intro-slide-in{
+  0%{ opacity:0; transform:translateX(42%); }
+  72%{ opacity:1; transform:translateX(-12px); }
+  100%{ opacity:1; transform:translateX(0); }
+}
+@keyframes enemy-intro-continue-pulse{
+  0%,100%{ opacity:.42; transform:translateY(0); }
+  50%{ opacity:1; transform:translateY(-2px); }
+}
+@keyframes boss-intro-impact{
+  0%{ opacity:0; transform:scale(1.28); filter:brightness(1.8); }
+  62%{ opacity:1; transform:scale(.96); filter:brightness(1.15); }
+  100%{ opacity:1; transform:scale(1); filter:brightness(1); }
+}
+@keyframes boss-screen-alert{
+  0%,48%{ box-shadow:inset 0 0 0 8px rgba(255, 78, 96, .72); }
+  49%,100%{ box-shadow:inset 0 0 0 8px rgba(255, 78, 96, .28); }
+}
+
 @media (max-width:760px), (max-height:620px){
   .run-intro-panel{
     width:min(580px, 92%);
@@ -2581,9 +2741,32 @@ html.is-mobile, .is-mobile body{
   .run-intro-start{ min-height:68px; }
   .run-intro-start strong{ font-size:58px; }
   .run-intro-skip-hint{ font-size:13px; }
+  .enemy-intro-card,
+  .enemy-intro-overlay.boss .enemy-intro-card{
+    width:min(560px, 96%);
+    min-height:0;
+    grid-template-columns:140px minmax(0, 1fr);
+  }
+  #overlay-enemy-intro{ padding:6px; gap:7px; }
+  .enemy-intro-portrait{ padding:9px; }
+  .enemy-intro-portrait canvas,
+  .enemy-intro-overlay.boss .enemy-intro-portrait canvas{ height:108px; max-width:118px; }
+  .enemy-intro-copy{ padding:22px 14px 10px; }
+  .enemy-intro-eyebrow,
+  .enemy-intro-overlay.boss .enemy-intro-eyebrow{ top:7px; left:158px; font-size:9px; }
+  .enemy-intro-threat{ margin-bottom:4px; padding-bottom:2px; font-size:10px; }
+  .enemy-intro-title,
+  .enemy-intro-overlay.boss .enemy-intro-title{ margin-bottom:5px; font-size:23px; }
+  .enemy-intro-text,
+  .enemy-intro-hint{ font-size:10px; line-height:1.35; }
+  .enemy-intro-hint{ margin-top:5px; padding-left:7px; border-left-width:2px; }
+  .enemy-intro-continue{ font-size:10px; line-height:1.2; }
 }
 
 @media (prefers-reduced-motion:reduce){
   .hud-timer.final-countdown{ animation:none; }
   .run-intro-skip-hint{ animation:none; opacity:1; }
+  .enemy-intro-overlay,
+  .enemy-intro-overlay .enemy-intro-card,
+  .enemy-intro-continue{ animation:none !important; opacity:1; }
 }

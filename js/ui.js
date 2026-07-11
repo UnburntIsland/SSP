@@ -249,6 +249,10 @@
         timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
         runIntroOverlay: $("overlay-run-intro"), runIntroGoal: $("run-intro-goal"),
         runIntroCountdown: $("run-intro-countdown"), runIntroSkipHint: $("run-intro-skip-hint"),
+        enemyIntroOverlay: $("overlay-enemy-intro"), enemyIntroCard: $("enemy-intro-card"),
+        enemyIntroEyebrow: $("enemy-intro-eyebrow"), enemyIntroPortrait: $("enemy-intro-portrait"),
+        enemyIntroThreat: $("enemy-intro-threat"), enemyIntroTitle: $("enemy-intro-title"),
+        enemyIntroText: $("enemy-intro-text"), enemyIntroHint: $("enemy-intro-hint"),
         level: $("hud-level"), xpFill: $("xp-fill"),
         coins: $("hud-coins"), purified: $("hud-purified"),
         quizStreak: $("hud-quiz-streak"),
@@ -300,6 +304,19 @@
         });
       }
       var uiSelf = this;
+      if (this.dom.enemyIntroOverlay) {
+        this.dom.enemyIntroOverlay.addEventListener("click", function (e) {
+          if (uiSelf.dom.enemyIntroOverlay.classList.contains("hidden")) return;
+          e.preventDefault();
+          e.stopPropagation();
+          uiSelf.hideEnemyIntro(true);
+        });
+        this.dom.enemyIntroOverlay.addEventListener("keydown", function (e) {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          uiSelf.hideEnemyIntro(true);
+        });
+      }
       if (this.dom.skillDetail) {
         this.dom.skillDetail.addEventListener("click", function (e) { e.stopPropagation(); });
         global.addEventListener("click", function (e) {
@@ -403,6 +420,51 @@
 
     isKnowledgeVisible: function () {
       return !!(this.dom && this.dom.knowledgeOverlay && !this.dom.knowledgeOverlay.classList.contains("hidden"));
+    },
+
+    showEnemyIntro: function (intro, onContinue) {
+      var d = this.dom;
+      var overlay = d && d.enemyIntroOverlay;
+      if (!overlay) {
+        if (onContinue) onContinue();
+        return;
+      }
+      this._enemyIntroContinue = onContinue || null;
+      overlay.classList.remove("elite", "boss");
+      if (intro.isBoss) overlay.classList.add("boss");
+      else if (intro.isElite) overlay.classList.add("elite");
+
+      if (d.enemyIntroEyebrow) d.enemyIntroEyebrow.textContent = intro.isBoss ? "BOSS 污染警報" : "新污染物出現";
+      if (d.enemyIntroThreat) d.enemyIntroThreat.textContent = intro.isBoss ? "大型污染源" : (intro.isElite ? "精英污染物" : "一般污染物");
+      if (d.enemyIntroTitle) d.enemyIntroTitle.textContent = intro.name;
+      if (d.enemyIntroText) d.enemyIntroText.textContent = intro.text || "新的污染物進入潮間帶。";
+      if (d.enemyIntroHint) d.enemyIntroHint.textContent = intro.hint || "觀察行動模式，再選擇淨化方式。";
+      if (d.enemyIntroPortrait) {
+        d.enemyIntroPortrait.innerHTML = "";
+        var portrait = global.Sprites.makeCanvas(intro.spriteId, intro.isBoss ? 12 : 10);
+        portrait.className = "enemy-intro-portrait-canvas";
+        d.enemyIntroPortrait.appendChild(portrait);
+      }
+
+      overlay.classList.remove("hidden");
+      overlay.setAttribute("aria-hidden", "false");
+      if (overlay.focus) overlay.focus({ preventScroll: true });
+    },
+
+    hideEnemyIntro: function (notify) {
+      var overlay = this.dom && this.dom.enemyIntroOverlay;
+      if (overlay) {
+        overlay.classList.add("hidden");
+        overlay.setAttribute("aria-hidden", "true");
+        void overlay.offsetWidth;
+      }
+      var cb = this._enemyIntroContinue;
+      this._enemyIntroContinue = null;
+      if (notify !== false && cb) cb();
+    },
+
+    isEnemyIntroVisible: function () {
+      return !!(this.dom && this.dom.enemyIntroOverlay && !this.dom.enemyIntroOverlay.classList.contains("hidden"));
     },
 
     buildCharacters: function (selectedId) {

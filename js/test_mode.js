@@ -237,11 +237,20 @@
       }
     };
 
+    if (params.get("qaSkipIntro") === "1") {
+      var introSkipPoll = setInterval(function () {
+        if (!global.Game || !global.Game.running || !global.Game.runIntroActive) return;
+        clearInterval(introSkipPoll);
+        global.Game.skipRunIntro();
+      }, 25);
+    }
+
     var wantsScenario = params.get("qaLevelUp") === "1" || params.get("qaRanged") === "1" ||
       params.get("qaZone") === "1" || params.get("qaDefeat") === "1" ||
       !!params.get("qaKnowledge") || !!params.get("qaMap") || params.get("qaZoneOutside") === "1" ||
       params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak") || params.get("qaPassives") === "1" ||
-      params.get("qaTurret") === "1" || params.get("qaBossAttack") === "1" || params.get("qaDamageFlash") === "1";
+      params.get("qaTurret") === "1" || params.get("qaBossAttack") === "1" || params.get("qaDamageFlash") === "1" ||
+      !!params.get("qaEnemyIntro") || params.get("qaBossIntro") === "1";
     if (wantsScenario) {
       var scenarioPoll = setInterval(function () {
         if (!global.Game || !global.Game.running || !global.Game.player) return;
@@ -276,6 +285,24 @@
           enemy.spawnAge = enemy.spawnDuration;
           enemy.attackTimer = 0.12;
           global.Game.enemies.push(enemy);
+        }
+        if (params.get("qaEnemyIntro") || params.get("qaBossIntro") === "1") {
+          global.Game.stage.waves = [];
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
+          var introEnemyId = params.get("qaBossIntro") === "1"
+            ? "oil_blob"
+            : (params.get("qaEnemyIntro") || "battery_slime");
+          var introEnemy = global.Game.spawnOne(introEnemyId, introEnemyId === "oil_blob");
+          if (introEnemy && introEnemyId === "oil_blob") {
+            introEnemy.x = global.Game.player.x + 190;
+            introEnemy.y = global.Game.player.y - 20;
+            introEnemy.speed = 0;
+            introEnemy.contact = 0;
+            introEnemy.maxHp = 99999;
+            introEnemy.hp = introEnemy.maxHp;
+          }
         }
         if (params.get("qaBossAttack") === "1") {
           global.Game.stage.waves = [];

@@ -17,6 +17,8 @@
       contact: 6,
       xp: 1,
       coinChance: 0.05,
+      introText: "被海風吹起的塑膠廢棄物，會持續飄近並纏住行動路線。",
+      introHint: "保持移動，優先清出安全空間。",
       knowledgeId: "k_plastic"
     },
     butt_bug: {
@@ -29,6 +31,8 @@
       contact: 5,
       xp: 1,
       coinChance: 0.05,
+      introText: "移動快速的菸蒂污染物，會從怪群縫隙突然貼近。",
+      introHint: "別停在原地，範圍攻擊能有效阻擋。",
       knowledgeId: "k_cigarette"
     },
     battery_slime: {
@@ -42,8 +46,11 @@
       xp: 3,
       coinChance: 0.12,
       isElite: true,
+      introText: "帶有重金屬污染的精英史萊姆，會蓄力發射電池能量彈。",
+      introHint: "看見蓄力環後，橫向移動避開射線。",
       ranged: {
         kind: "aimed",
+        visualId: "battery_bolt",
         range: 430,
         preferredDistance: 220,
         cooldown: 3.2,
@@ -67,6 +74,8 @@
       coinChance: 1.0,
       coinAmount: 12,
       isBoss: true,
+      introText: "大型油污污染核心登場，厚重身軀會持續釋放環形彈幕。",
+      introHint: "留意彈幕預警，保持距離並尋找缺口。",
       ranged: {
         kind: "radial",
         visualId: "oil_barrage",

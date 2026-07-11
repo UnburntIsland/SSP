@@ -40,6 +40,10 @@
     enemy_battery: { label: "廢電池史萊姆", paths: [
       "assets/images/enemies/enemy_battery_slime.png",
       "assets/images/enemies/concepts/enemy_waste_battery_slime_concept_v2.png" ] },
+    enemy_battery_bolt_projectile: { label: "廢電池史萊姆能量彈", paths: [
+      "assets/images/enemies/battery_slime/attacks/battery_bolt_projectile.png?v=battery_bolt_1" ] },
+    enemy_battery_charge_telegraph: { label: "廢電池史萊姆蓄力環", paths: [
+      "assets/images/enemies/battery_slime/attacks/battery_charge_telegraph.png?v=battery_bolt_1" ] },
     enemy_oil:     { label: "油污團塊 (Boss)", paths: [
       "assets/images/enemies/enemy_oil_blob.png",
       "assets/images/enemies/concepts/enemy_oil_slick_mass_boss_concept_v2.png" ] },

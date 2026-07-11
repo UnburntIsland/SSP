@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=skill-detail-20260711a" />
+  <link rel="stylesheet" href="css/style.css?v=enemy-intro-20260711b" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -71,6 +71,21 @@
         <div class="run-intro-start" aria-live="polite"><strong id="run-intro-countdown">5</strong><span>秒後開始</span></div>
       </div>
       <div id="run-intro-skip-hint" class="run-intro-skip-hint" aria-hidden="true">點擊畫面任意位置跳過</div>
+    </div>
+
+    <!-- ===== First enemy / boss encounter ===== -->
+    <div id="overlay-enemy-intro" class="overlay hidden enemy-intro-overlay" role="dialog" aria-modal="true" aria-labelledby="enemy-intro-title" tabindex="-1">
+      <div id="enemy-intro-card" class="enemy-intro-card">
+        <div id="enemy-intro-eyebrow" class="enemy-intro-eyebrow">新污染物出現</div>
+        <div id="enemy-intro-portrait" class="enemy-intro-portrait" aria-hidden="true"></div>
+        <div class="enemy-intro-copy">
+          <div id="enemy-intro-threat" class="enemy-intro-threat">一般污染物</div>
+          <h2 id="enemy-intro-title" class="enemy-intro-title">污染物</h2>
+          <p id="enemy-intro-text" class="enemy-intro-text"></p>
+          <p id="enemy-intro-hint" class="enemy-intro-hint"></p>
+        </div>
+      </div>
+      <div class="enemy-intro-continue" aria-hidden="true">點擊畫面任意位置繼續</div>
     </div>
 
     <!-- ===== Start / Main Menu ===== -->
@@ -259,7 +274,7 @@
   <!-- Data layer -->
   <script src="js/data/characters.js?v=circular-mechanic-20260711b"></script>
   <script src="js/data/skills.js?v=boss-attack-20260711a"></script>
-  <script src="js/data/enemies.js?v=boss-attack-20260711a"></script>
+  <script src="js/data/enemies.js?v=enemy-intro-20260711a"></script>
   <script src="js/data/shop.js"></script>
   <script src="js/data/stages.js?v=gameplay-20260711"></script>
   <script src="js/data/knowledge.js?v=gameplay-20260711b"></script>
@@ -270,19 +285,19 @@
   <script src="js/stageRenderer.js?v=map-objects-20260711c"></script>
   <script src="js/storage.js"></script>
   <script src="js/audioManager.js"></script>
-  <script src="js/assets.js?v=boss-attack-20260711a"></script>
+  <script src="js/assets.js?v=battery-attack-20260711a"></script>
   <script src="js/effects.js"></script>
   <script src="js/sprites.js?v=circular-mechanic-20260711b"></script>
   <script src="js/animation.js"></script>
   <script src="js/input.js?v=gameplay-20260711"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
   <script src="js/player.js?v=damage-feedback-20260711a"></script>
-  <script src="js/enemy.js?v=damage-feedback-20260711a"></script>
+  <script src="js/enemy.js?v=enemy-intro-20260711a"></script>
   <script src="js/weapons.js?v=damage-feedback-20260711a"></script>
-  <script src="js/ui.js?v=skill-detail-20260711a"></script>
-  <script src="js/game.js?v=boss-attack-20260711a"></script>
+  <script src="js/ui.js?v=enemy-intro-20260711a"></script>
+  <script src="js/game.js?v=enemy-intro-20260711a"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=damage-feedback-20260711a"></script>
-  <script src="js/main.js?v=passive-hud-20260711b"></script>
+  <script src="js/test_mode.js?v=enemy-intro-20260711d"></script>
+  <script src="js/main.js?v=enemy-intro-20260711a"></script>
 </body>
 </html>

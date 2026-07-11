@@ -27,9 +27,9 @@
     { id: "mend", name: "淨水補給", icon: "passive_mend", effect: "立即回復 35 生命",
       edu: "潔淨的水，是所有生命賴以維繫的根本。",
       apply: function (p) { p.heal(35); } },
-    { id: "eco_sneakers", name: "輕量步鞋", icon: "passive_eco_sneakers", effect: "移動速度 +6%（一次滿級）",
+    { id: "eco_sneakers", name: "輕量步鞋", icon: "passive_eco_sneakers", effect: "移動速度 +15%（一次滿級）",
       edu: "舒適的步行裝備，能讓低碳移動更容易成為日常。", oneShot: true,
-      apply: function (p) { p.speed *= 1.06; } },
+      apply: function (p) { p.speed *= 1.15; } },
     { id: "sorting_pouch", name: "分類小袋", icon: "passive_sorting_pouch", effect: "拾取範圍 +12%（一次滿級）",
       edu: "先分類再收集，能讓資源整理更有效率。", oneShot: true,
       apply: function (p) { p.pickupRange *= 1.12; } },
@@ -100,6 +100,10 @@
       this.pendingLevelUps = 0;
       this.knowledgePaused = false;
       this.knowledgeQueue = [];
+      this.enemyIntroPaused = false;
+      this.enemyIntroQueue = [];
+      this.seenEnemyIntros = {};
+      this.activeEnemyIntro = null;
       this.runIntroDuration = 5;
       this.runIntroRemaining = this.runIntroDuration;
       this.runIntroActive = true;
@@ -143,7 +147,9 @@
       this.enemies = []; this.projectiles = []; this.enemyProjectiles = []; this.deployables = []; this.zones = []; this.pulses = [];
       this.pickups = []; this.effects = []; this.puffs = []; this.floaters = [];
       this.pendingLevelUps = 0; this.knowledgePaused = false; this.knowledgeQueue = [];
+      this.enemyIntroPaused = false; this.enemyIntroQueue = []; this.seenEnemyIntros = {}; this.activeEnemyIntro = null;
       this.runIntroActive = false; this.runIntroRemaining = 0; this.time = 0;
+      if (this.app && this.app.ui && this.app.ui.hideEnemyIntro) this.app.ui.hideEnemyIntro(false);
     },
 
     /* ---------------- 背景（離屏繪製一次） ---------------- */
@@ -271,6 +277,10 @@
 
       this.spawnEnemies(dt);
       this.handleEvents();
+      if (this.enemyIntroPaused) {
+        this.updateCamera();
+        return;
+      }
 
       var ctx = this.makeCtx();
 
@@ -742,6 +752,48 @@
     },
 
     /* ---------------- 生成 ---------------- */
+    queueEnemyIntro: function (def) {
+      if (!def || this.ended || this.seenEnemyIntros[def.id]) return false;
+      this.seenEnemyIntros[def.id] = true;
+      this.enemyIntroQueue.push({
+        id: def.id,
+        name: def.name,
+        spriteId: def.spriteId,
+        isElite: !!def.isElite,
+        isBoss: !!def.isBoss,
+        text: def.introText || "新的污染物進入潮間帶。",
+        hint: def.introHint || "觀察行動模式，再選擇淨化方式。"
+      });
+      if (!this.enemyIntroPaused) this.showNextEnemyIntro();
+      return true;
+    },
+
+    showNextEnemyIntro: function () {
+      if (!this.enemyIntroQueue.length || this.ended) return false;
+      this.enemyIntroPaused = true;
+      this.paused = true;
+      this.activeEnemyIntro = this.enemyIntroQueue.shift();
+      var self = this;
+      if (this.app && this.app.onEnemyIntroduced) {
+        this.app.onEnemyIntroduced(this.activeEnemyIntro, function () { self.resumeEnemyIntro(); });
+      } else {
+        this.resumeEnemyIntro();
+      }
+      return true;
+    },
+
+    resumeEnemyIntro: function () {
+      if (!this.enemyIntroPaused) return false;
+      this.enemyIntroPaused = false;
+      this.activeEnemyIntro = null;
+      if (this.enemyIntroQueue.length) return this.showNextEnemyIntro();
+      this.paused = !!this.knowledgePaused;
+      if (global.Input && global.Input.clearPresses) global.Input.clearPresses();
+      this.lastTs = 0;
+      if (!this.paused && this.pendingLevelUps > 0) this.triggerLevelUp();
+      return true;
+    },
+
     spawnEnemies: function (dt) {
       if (this.enemies.length >= this.stage.maxEnemies) return;
       var wave = null;
@@ -757,6 +809,7 @@
         for (var b = 0; b < wave.batch; b++) {
           if (this.enemies.length >= this.stage.maxEnemies) break;
           this.spawnOne(this.pickType(wave.types));
+          if (this.enemyIntroPaused) return;
         }
       }
     },
@@ -790,7 +843,10 @@
       // 隨時間略微提升血量，維持挑戰性
       var hpScale = 1 + (this.time / this.stage.duration) * 0.6;
       if (def.isBoss) hpScale = 1;
-      this.enemies.push(new global.Enemy(def, x, y, hpScale));
+      var enemy = new global.Enemy(def, x, y, hpScale);
+      this.enemies.push(enemy);
+      this.queueEnemyIntro(def);
+      return enemy;
     },
 
     handleEvents: function () {
@@ -976,8 +1032,12 @@
       this.running = false;
       this.paused = false;
       this.menuPaused = false;
+      this.enemyIntroPaused = false;
+      this.enemyIntroQueue = [];
+      this.activeEnemyIntro = null;
       this.runIntroActive = false;
       this.runIntroRemaining = 0;
+      if (this.app && this.app.ui && this.app.ui.hideEnemyIntro) this.app.ui.hideEnemyIntro(false);
       // end() 可能在既有 animation frame 中途發生；主迴圈不會再進入開頭分支，
       // 因此要在這裡明確釋放旗標，讓「再試一次」能重新 requestAnimationFrame。
       this._looping = false;
