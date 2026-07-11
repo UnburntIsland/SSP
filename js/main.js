@@ -299,6 +299,7 @@
       this.showScreen(null);     // 隱藏所有選單與覆蓋層
       this.ui.showHUD(true);
       this.ui._hudSig = "";
+      this.ui._passiveHudSig = null;
       global.Game.resize();
       global.Game.start(STAGE_ID, player);
       if (global.AudioManager) global.AudioManager.playMusic("stage");

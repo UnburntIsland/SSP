@@ -12,28 +12,28 @@
 
   // 升級畫面用的通用能力選項（非技能）
   var STAT_UPGRADES = [
-    { id: "vitality", name: "強健體魄", icon: "shop_soil", effect: "最大生命值 +20，並回復 20",
+    { id: "vitality", name: "強健體魄", icon: "passive_vitality", effect: "最大生命值 +20，並回復 20",
       edu: "健康的身體，是長期投入永續行動的本錢。",
       apply: function (p) { p.maxHp += 20; p.heal(20); } },
-    { id: "swift", name: "輕巧步伐", icon: "shop_energy", effect: "移動速度 +8%",
+    { id: "swift", name: "輕巧步伐", icon: "passive_swift", effect: "移動速度 +8%",
       edu: "步行與單車是幾乎零碳排的移動方式。",
       apply: function (p) { p.speed *= 1.08; } },
-    { id: "sense", name: "敏銳感知", icon: "shop_eco", effect: "拾取範圍 +20%",
+    { id: "sense", name: "敏銳感知", icon: "passive_sense", effect: "拾取範圍 +20%",
       edu: "多留心周遭，就能發現更多可回收的資源。",
       apply: function (p) { p.pickupRange *= 1.2; } },
-    { id: "efficiency", name: "高效節能", icon: "shop_energy", effect: "所有技能冷卻 -6%",
+    { id: "efficiency", name: "高效節能", icon: "passive_efficiency", effect: "所有技能冷卻 -6%",
       edu: "提升效率，用更少的能源做更多的事。",
       apply: function (p) { p.cooldownMult *= 0.94; } },
-    { id: "mend", name: "淨水補給", icon: "shop_rain", effect: "立即回復 35 生命",
+    { id: "mend", name: "淨水補給", icon: "passive_mend", effect: "立即回復 35 生命",
       edu: "潔淨的水，是所有生命賴以維繫的根本。",
       apply: function (p) { p.heal(35); } },
-    { id: "eco_sneakers", name: "輕量步鞋", icon: "shop_energy", effect: "移動速度 +6%（一次滿級）",
+    { id: "eco_sneakers", name: "輕量步鞋", icon: "passive_eco_sneakers", effect: "移動速度 +6%（一次滿級）",
       edu: "舒適的步行裝備，能讓低碳移動更容易成為日常。", oneShot: true,
       apply: function (p) { p.speed *= 1.06; } },
-    { id: "sorting_pouch", name: "分類小袋", icon: "shop_eco", effect: "拾取範圍 +12%（一次滿級）",
+    { id: "sorting_pouch", name: "分類小袋", icon: "passive_sorting_pouch", effect: "拾取範圍 +12%（一次滿級）",
       edu: "先分類再收集，能讓資源整理更有效率。", oneShot: true,
       apply: function (p) { p.pickupRange *= 1.12; } },
-    { id: "refill_snack", name: "補給點心", icon: "shop_soil", effect: "最大生命 +8，並回復 8（一次滿級）",
+    { id: "refill_snack", name: "補給點心", icon: "passive_refill_snack", effect: "最大生命 +8，並回復 8（一次滿級）",
       edu: "適量補充體力，才能穩定完成長時間的環境行動。", oneShot: true,
       apply: function (p) { p.maxHp += 8; p.heal(8); } }
   ];
@@ -77,6 +77,7 @@
       this.enemies = [];
       this.projectiles = [];
       this.enemyProjectiles = [];
+      this.deployables = [];
       this.zones = [];
       this.pulses = [];
       this.pickups = [];
@@ -104,6 +105,9 @@
       this.runIntroActive = true;
       this.firedEvents = {};
       this.spawnAcc = 0;
+      this.mapObjectSpawnAcc = 0;
+      this.mapObjectSpawnInterval = 5;
+      this.nearestMapObjective = null;
       this.zoneDamageTimer = 0;
       this.contamination = this.makeContaminationState();
 
@@ -136,7 +140,7 @@
     // 立即中止本局並清空世界（回首頁用），確保不殘留敵人/子彈/掉落物/計時器/暫停狀態
     abort: function () {
       this.running = false; this.ended = true; this.menuPaused = false; this.paused = false;
-      this.enemies = []; this.projectiles = []; this.enemyProjectiles = []; this.zones = []; this.pulses = [];
+      this.enemies = []; this.projectiles = []; this.enemyProjectiles = []; this.deployables = []; this.zones = []; this.pulses = [];
       this.pickups = []; this.effects = []; this.puffs = []; this.floaters = [];
       this.pendingLevelUps = 0; this.knowledgePaused = false; this.knowledgeQueue = [];
       this.runIntroActive = false; this.runIntroRemaining = 0; this.time = 0;
@@ -244,10 +248,21 @@
     updateRunIntro: function (dt) {
       this.runIntroRemaining = Math.max(0, this.runIntroRemaining - dt);
       if (this.runIntroRemaining > 0) return;
+      this.finishRunIntro();
+    },
+
+    finishRunIntro: function () {
+      if (!this.runIntroActive) return false;
       this.runIntroActive = false;
+      this.runIntroRemaining = 0;
       this.paused = false;
       this.lastTs = 0;
       if (global.Input && global.Input.clearPresses) global.Input.clearPresses();
+      return true;
+    },
+
+    skipRunIntro: function () {
+      return this.finishRunIntro();
     },
 
     /* ---------------- 更新 ---------------- */
@@ -259,12 +274,16 @@
 
       var ctx = this.makeCtx();
 
+      this.updateMapObjectSpawner(dt);
       this.updateMapInteractions(dt);
       this.player.update(dt, this.world);
 
       // 武器自動攻擊
       var ws = this.player.weapons;
       for (var i = 0; i < ws.length; i++) ws[i].update(dt, ctx);
+
+      // 可部署裝置在世界中獨立存活、瞄準與射擊。
+      for (var d = 0; d < this.deployables.length; d++) this.deployables[d].update(dt, ctx);
 
       // 投射物
       for (var p = 0; p < this.projectiles.length; p++) {
@@ -338,10 +357,12 @@
         player: this.player,
         enemies: this.enemies,
         projectiles: this.projectiles,
+        deployables: this.deployables,
         zones: this.zones,
         pulses: this.pulses,
         pickups: this.pickups,
         effects: this.effects,
+        world: this.world,
         findNearestEnemy: function (x, y) { return self.findNearestEnemy(x, y); },
         onPurified: function (en) { self.onPurified(en); }
       };
@@ -456,6 +477,38 @@
       return "最終安全區";
     },
 
+    updateMapObjectSpawner: function (dt) {
+      var renderer = global.StageRenderer;
+      if (!renderer || !renderer.built || !renderer.spawnRandomObject) return;
+      this.mapObjectSpawnAcc += dt;
+      while (this.mapObjectSpawnAcc >= this.mapObjectSpawnInterval) {
+        this.mapObjectSpawnAcc -= this.mapObjectSpawnInterval;
+        renderer.spawnRandomObject(this.player);
+      }
+    },
+
+    collectMapObject: function (prop) {
+      prop.collected = true;
+      this.mapCleanedCount += 1;
+
+      if (prop.xp > 0) this.pickups.push(new global.Pickup("xp", prop.x, prop.y, prop.xp));
+      var coinCount = prop.coins || 0;
+      if (prop.coinChance && Math.random() < prop.coinChance) coinCount += 1;
+      for (var c = 0; c < coinCount; c++) {
+        this.pickups.push(new global.Pickup("coin", prop.x + (c * 8), prop.y, 1));
+      }
+
+      this.puffs.push({ x: prop.x, y: prop.y, age: 0, life: 0.5, r: 13, color: prop.color || "#7cc36a" });
+      this.floaters.push({
+        x: prop.x,
+        y: prop.y,
+        age: 0,
+        life: 0.85,
+        text: prop.label || "回收資源",
+        color: prop.color || "#8ff0a0"
+      });
+    },
+
     updateMapInteractions: function () {
       this.player.environmentSpeedMult = 1;
       var renderer = global.StageRenderer;
@@ -465,48 +518,32 @@
       var nearest = null;
       for (var i = 0; i < props.length; i++) {
         var p = props[i];
-        if (p.cleaned) continue;
+        if (!p.collectible || p.collected) continue;
         var dx = this.player.x - p.x;
         var dy = this.player.y - p.y;
         var d2 = dx * dx + dy * dy;
 
-        if (p.type === "oil" && d2 < 48 * 48) {
-          this.player.environmentSpeedMult = Math.min(this.player.environmentSpeedMult, 0.72);
-        }
-
-        if (p.type === "trash" && d2 < 34 * 34) {
-          p.cleaned = true;
-          this.mapCleanedCount += 1;
-          this.pickups.push(new global.Pickup("xp", p.x, p.y, 2));
-          if (Math.random() < 0.32) this.pickups.push(new global.Pickup("coin", p.x + 8, p.y, 1));
-          this.puffs.push({ x: p.x, y: p.y, age: 0, life: 0.45, r: 12, color: "#7cc36a" });
-          this.floaters.push({ x: p.x, y: p.y, age: 0, life: 0.8, text: "清理海廢 +2 XP", color: "#8ff0a0" });
-        } else if (p.type === "recycleBin" && !p.used) {
-          if (d2 < 48 * 48) {
-            p.used = true;
-            this.mapCleanedCount += 1;
-            this.runCoins += 3;
-            this.pickups.push(new global.Pickup("xp", p.x - 10, p.y, 2));
-            this.pickups.push(new global.Pickup("xp", p.x + 10, p.y, 2));
-            this.puffs.push({ x: p.x, y: p.y, age: 0, life: 0.65, r: 18, color: "#4dd0c4" });
-            this.floaters.push({ x: p.x, y: p.y, age: 0, life: 0.9, text: "回收站啟動 ♻+3", color: "#ffd84a" });
-            if (this.app) this.app.showToast("探索獎勵", "回收站已啟動，獲得循環幣與經驗。 ");
-          } else if (!nearest || d2 < nearest.distance2) nearest = { prop: p, distance2: d2 };
-        }
+        var collectRadius = p.collectRadius || 34;
+        if (d2 < collectRadius * collectRadius) this.collectMapObject(p);
+        else if (!nearest || d2 < nearest.distance2) nearest = { prop: p, distance2: d2 };
       }
+      if (renderer.removeCollected) renderer.removeCollected();
       this.nearestMapObjective = nearest;
     },
 
     mapObjectiveStatus: function () {
       var target = this.nearestMapObjective;
-      if (!target || !target.prop) return "附近回收站皆已啟動";
+      if (!target || !target.prop) {
+        var wait = Math.max(0, Math.ceil(this.mapObjectSpawnInterval - this.mapObjectSpawnAcc));
+        return "散落資源 " + wait + "s 後出現";
+      }
       var dx = target.prop.x - this.player.x;
       var dy = target.prop.y - this.player.y;
       var angle = Math.atan2(dy, dx);
       var arrows = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"];
       var index = Math.round(angle / (Math.PI / 4));
       if (index < 0) index += 8;
-      return "回收站 " + Math.round(Math.sqrt(target.distance2)) + "m " + arrows[index % 8];
+      return "散落資源 " + Math.round(Math.sqrt(target.distance2)) + "m " + arrows[index % 8];
     },
 
     fireEnemyAttack: function (enemy, attack) {
@@ -575,7 +612,7 @@
           pr.hitSet.push(e);
           var projectileDamage = pr.damage * (e.isElite ? (pr.eliteMult || 1) : 1);
           var killed = e.takeDamage(projectileDamage);
-          this.spawnEffect("seed_blade", "hit", pr.x, pr.y, {
+          this.spawnEffect(pr.hitEffectId || "seed_blade", pr.hitEffectGroup || "hit", pr.x, pr.y, {
             life: 0.22,
             size: (global.Config ? 42 / global.Config.CAMERA_ZOOM : 24),
             rotation: Math.atan2(pr.vy, pr.vx)
@@ -694,6 +731,7 @@
       this.enemies = this.enemies.filter(function (e) { return !e.dead; });
       this.projectiles = this.projectiles.filter(function (p) { return !p.dead; });
       this.enemyProjectiles = this.enemyProjectiles.filter(function (p) { return !p.dead; });
+      this.deployables = this.deployables.filter(function (d) { return !d.dead; });
       this.zones = this.zones.filter(function (z) { return !z.dead; });
       this.pulses = this.pulses.filter(function (u) { return !u.dead; });
       this.pickups = this.pickups.filter(function (p) { return !p.dead; });
@@ -879,18 +917,45 @@
       return shuffle(chosen);
     },
 
+    applyPassiveUpgrade: function (id) {
+      var p = this.player;
+      if (!p) return false;
+      p.oneShotUpgrades = p.oneShotUpgrades || {};
+      p.passiveUpgrades = p.passiveUpgrades || {};
+      p.passiveUpgradeOrder = p.passiveUpgradeOrder || [];
+
+      var upgrade = null;
+      for (var i = 0; i < STAT_UPGRADES.length; i++) {
+        if (STAT_UPGRADES[i].id === id) {
+          upgrade = STAT_UPGRADES[i];
+          break;
+        }
+      }
+      if (!upgrade || (upgrade.oneShot && p.oneShotUpgrades[id])) return false;
+
+      upgrade.apply(p);
+      if (upgrade.oneShot) p.oneShotUpgrades[id] = true;
+      if (!p.passiveUpgrades[id]) {
+        p.passiveUpgrades[id] = {
+          id: id,
+          name: upgrade.name,
+          icon: upgrade.icon,
+          effect: upgrade.effect,
+          oneShot: !!upgrade.oneShot,
+          level: 0
+        };
+        p.passiveUpgradeOrder.push(id);
+      }
+      p.passiveUpgrades[id].level += 1;
+      return true;
+    },
+
     resolveLevelUp: function (choice) {
       var p = this.player;
-      p.oneShotUpgrades = p.oneShotUpgrades || {};
       if (choice.kind === "skill_up" || choice.kind === "skill_new") {
         p.addSkill(choice.id);
       } else if (choice.kind === "stat") {
-        var su = null;
-        for (var i = 0; i < STAT_UPGRADES.length; i++) if (STAT_UPGRADES[i].id === choice.id) su = STAT_UPGRADES[i];
-        if (su && (!su.oneShot || !p.oneShotUpgrades[su.id])) {
-          su.apply(p);
-          if (su.oneShot) p.oneShotUpgrades[su.id] = true;
-        }
+        this.applyPassiveUpgrade(choice.id);
       }
       this.pendingLevelUps -= 1;
       if (this.pendingLevelUps > 0) {
@@ -1028,6 +1093,11 @@
         var p = this.puffs[pf]; var t = p.age / p.life;
         ctx.save(); ctx.globalAlpha = (1 - t) * 0.7; ctx.strokeStyle = p.color; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r + t * 22, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      }
+
+      // 可部署裝置（地面層、敵人下方）
+      for (var dp = 0; dp < this.deployables.length; dp++) {
+        if (vis(this.deployables[dp], 50)) this.deployables[dp].draw(ctx);
       }
 
       // 敵人

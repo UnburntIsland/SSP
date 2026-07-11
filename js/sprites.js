@@ -67,6 +67,24 @@
         "...BB..BB..."
       ]
     },
+    char_mechanic: {
+      palette: { T: "#18a99f", t: "#0b6f70", Y: "#ffd33f", y: "#d89b12", S: "#f1c79a", e: "#20323a", G: "#45545a", g: "#27343a", O: "#ef7b2d", B: "#17252b" },
+      rows: [
+        "....gggg....",
+        "...gGGGGg...",
+        "..ttTTTTtt..",
+        "....SSSS....",
+        "...SSeeSS...",
+        "...SSSSSS...",
+        "..tTYYYYTt..",
+        "..TTYYYYTT..",
+        "..GGGTTGGG..",
+        "..gGG..GGg..",
+        "...OO..OO...",
+        "...BB..BB...",
+        "...BB..BB..."
+      ]
+    },
 
     // -------- 敵人 --------
     enemy_bag: {
@@ -278,6 +296,17 @@
     drawIcon: function (ctx, id, x, y, size) {
       // 優先使用圖片素材
       if (global.Assets && global.Assets.drawInRect(ctx, id, x, y, size, size)) return;
+      var passiveFallbacks = {
+        passive_vitality: "shop_soil",
+        passive_swift: "shop_energy",
+        passive_sense: "shop_eco",
+        passive_efficiency: "shop_energy",
+        passive_mend: "shop_rain",
+        passive_eco_sneakers: "shop_energy",
+        passive_sorting_pouch: "shop_eco",
+        passive_refill_snack: "shop_soil"
+      };
+      id = passiveFallbacks[id] || id;
       ctx.save();
       ctx.translate(x, y);
       var c = size / 2;
@@ -329,6 +358,15 @@
           ctx.fillStyle = "#9ccc65";
           var dots = [[-0.12, -0.10], [0.14, -0.04], [-0.02, 0.14], [0.10, 0.12], [-0.16, 0.06]];
           for (var d = 0; d < dots.length; d++) { ctx.beginPath(); ctx.arc(c + dots[d][0] * size, c + dots[d][1] * size, size * 0.05, 0, Math.PI * 2); ctx.fill(); }
+          break;
+        }
+        case "skill_sentry": {
+          disc("#0c3438", size * 0.46);
+          ctx.fillStyle = "#3f4d52"; ctx.fillRect(size * 0.18, size * 0.58, size * 0.64, size * 0.20);
+          ctx.fillStyle = "#10aaa0"; ctx.beginPath(); ctx.arc(c, c, size * 0.23, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#ffd33f"; ctx.fillRect(size * 0.22, size * 0.62, size * 0.12, size * 0.10);
+          ctx.fillRect(size * 0.66, size * 0.62, size * 0.12, size * 0.10);
+          ctx.fillStyle = "#d9f9f5"; ctx.fillRect(c - size * 0.04, size * 0.10, size * 0.08, size * 0.30);
           break;
         }
         case "shop_soil": {

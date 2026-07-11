@@ -43,6 +43,7 @@
         "#screen-help .screen-footer .btn",
         "#screen-settings .screen-footer .btn",
         "#overlay-pause .btn",
+        "#overlay-run-intro .btn",
         "#overlay-knowledge .btn",
         "#overlay-confirm .btn",
         ".result-screen .screen-footer .btn"
@@ -220,11 +221,11 @@
         hpFill: $("hp-fill"), hpText: $("hp-text"),
         timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
         runIntroOverlay: $("overlay-run-intro"), runIntroGoal: $("run-intro-goal"),
-        runIntroCountdown: $("run-intro-countdown"),
+        runIntroCountdown: $("run-intro-countdown"), runIntroSkip: $("run-intro-skip"),
         level: $("hud-level"), xpFill: $("xp-fill"),
         coins: $("hud-coins"), purified: $("hud-purified"),
         quizStreak: $("hud-quiz-streak"),
-        skills: $("hud-skills"), charname: $("hud-charname"),
+        skills: $("hud-skills"), passives: $("hud-passives"), charname: $("hud-charname"),
         dashButton: $("dash-btn"), dashCooldown: $("dash-cooldown"),
         levelupOverlay: $("overlay-levelup"), levelupOptions: $("levelup-options"),
         levelupTitle: $("levelup-title"), levelupFeedback: $("levelup-feedback"),
@@ -250,12 +251,19 @@
         btnMute: $("btn-mute")
       };
       this._hudSig = "";
+      this._passiveHudSig = null;
       this.initSettings();
       if (this.dom.dashButton) {
         this.dom.dashButton.addEventListener("pointerdown", function (e) {
           e.preventDefault();
           e.stopPropagation();
           if (global.Input && global.Input.requestDash) global.Input.requestDash();
+        });
+      }
+      if (this.dom.runIntroSkip) {
+        this.dom.runIntroSkip.addEventListener("click", function (e) {
+          e.preventDefault();
+          if (global.Game && global.Game.skipRunIntro) global.Game.skipRunIntro();
         });
       }
       var uiSelf = this;
@@ -560,6 +568,32 @@
           chip.appendChild(el("span", "lv", "Lv" + w.level));
           d.skills.appendChild(chip);
         });
+      }
+
+      if (d.passives) {
+        var passiveMap = p.passiveUpgrades || {};
+        var passiveOrder = p.passiveUpgradeOrder || Object.keys(passiveMap);
+        var passiveSig = passiveOrder.map(function (id) {
+          var passive = passiveMap[id];
+          return passive ? id + ":" + passive.level : "";
+        }).join(",");
+        if (passiveSig !== this._passiveHudSig) {
+          this._passiveHudSig = passiveSig;
+          d.passives.innerHTML = "";
+          passiveOrder.forEach(function (id) {
+            var passive = passiveMap[id];
+            if (!passive || passive.level < 1) return;
+            var chip = el("div", "passive-chip" + (passive.oneShot ? " maxed" : ""));
+            var levelLabel = passive.oneShot ? "MAX" : "Lv" + passive.level;
+            chip.title = passive.name + " " + levelLabel + "｜" + passive.effect;
+            chip.setAttribute("aria-label", chip.title);
+            var icon = global.Sprites.makeIconCanvas(passive.icon, 38);
+            icon.className = "passive-icon";
+            chip.appendChild(icon);
+            chip.appendChild(el("span", "lv", levelLabel));
+            d.passives.appendChild(chip);
+          });
+        }
       }
     },
 

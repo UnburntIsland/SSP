@@ -27,6 +27,8 @@
       "assets/images/characters/player_solar_engineer.png",
       "assets/images/characters/concepts/char_solar_engineer_playable_concept_v2.png",
       "assets/images/characters/char_solar.png" ] },
+    char_mechanic: { label: "循環機械師", paths: [
+      "assets/images/characters/circular_mechanic/idle_S_0.png?v=mechanic_1" ] },
 
     // -------- 敵人 --------
     enemy_bag:     { label: "塑膠袋怪", paths: [
@@ -72,6 +74,18 @@
     skill_compost: { label: "堆肥孢子", paths: [
       "assets/images/skills/skill_compost_spores.png",
       "assets/images/skills/concepts/skill_compost_spores_icon_256.png" ] },
+    skill_sentry: { label: "回收哨兵", paths: [
+      "assets/images/deployables/recycle_sentry/turret_S_0.png?v=sentry_1" ] },
+
+    // -------- 回收哨兵 8 方向（GPT-image） --------
+    deployable_recycle_sentry_N:  { label: "回收哨兵 N",  paths: ["assets/images/deployables/recycle_sentry/turret_N_0.png?v=sentry_1"] },
+    deployable_recycle_sentry_NE: { label: "回收哨兵 NE", paths: ["assets/images/deployables/recycle_sentry/turret_NE_0.png?v=sentry_1"] },
+    deployable_recycle_sentry_E:  { label: "回收哨兵 E",  paths: ["assets/images/deployables/recycle_sentry/turret_E_0.png?v=sentry_1"] },
+    deployable_recycle_sentry_SE: { label: "回收哨兵 SE", paths: ["assets/images/deployables/recycle_sentry/turret_SE_0.png?v=sentry_1"] },
+    deployable_recycle_sentry_S:  { label: "回收哨兵 S",  paths: ["assets/images/deployables/recycle_sentry/turret_S_0.png?v=sentry_1"] },
+    deployable_recycle_sentry_SW: { label: "回收哨兵 SW", paths: ["assets/images/deployables/recycle_sentry/turret_SW_0.png?v=sentry_1"] },
+    deployable_recycle_sentry_W:  { label: "回收哨兵 W",  paths: ["assets/images/deployables/recycle_sentry/turret_W_0.png?v=sentry_1"] },
+    deployable_recycle_sentry_NW: { label: "回收哨兵 NW", paths: ["assets/images/deployables/recycle_sentry/turret_NW_0.png?v=sentry_1"] },
 
     // -------- 商店升級圖示（優先讀 assets/images/shop；缺圖 → 舊圖或向量 fallback）--------
     shop_soil:    { label: "健康土壤", paths: [
@@ -94,6 +108,16 @@
       "assets/images/shop/upgrade_rainwater_harvest.png",
       "assets/images/ui/upgrade_rainwater_harvest_single_v1.png",
       "assets/images/ui/upgrade_rainwater.png" ] },
+
+    // -------- 局內被動能力圖示（GPT-image；缺圖 → Sprites Canvas fallback）--------
+    passive_vitality:       { label: "強健體魄", paths: ["assets/images/ui/passives/passive_vitality.png"] },
+    passive_swift:          { label: "輕巧步伐", paths: ["assets/images/ui/passives/passive_swift.png"] },
+    passive_sense:          { label: "敏銳感知", paths: ["assets/images/ui/passives/passive_sense.png"] },
+    passive_efficiency:     { label: "高效節能", paths: ["assets/images/ui/passives/passive_efficiency.png"] },
+    passive_mend:           { label: "淨水補給", paths: ["assets/images/ui/passives/passive_mend.png"] },
+    passive_eco_sneakers:   { label: "輕量步鞋", paths: ["assets/images/ui/passives/passive_eco_sneakers.png"] },
+    passive_sorting_pouch:  { label: "分類小袋", paths: ["assets/images/ui/passives/passive_sorting_pouch.png"] },
+    passive_refill_snack:   { label: "補給點心", paths: ["assets/images/ui/passives/passive_refill_snack.png"] },
 
     // -------- 暫停 / 設定 / 確認 UI 素材（有圖用圖，缺圖 → CSS fallback）--------
     ui_panel_pause:    { label: "暫停面板底圖",     paths: ["assets/images/ui/panel_pause.png"] },
@@ -122,12 +146,11 @@
     tile_tide_pool_01:  { label: "潮池",   paths: ["assets/images/tiles/tide_pool_01.png"] },
     tile_shoreline_01:  { label: "海岸線", paths: ["assets/images/tiles/shoreline_01.png"] },
 
-    // -------- 場景 props（缺圖 → 程式簡易繪製 fallback）--------
-    prop_driftwood_01:     { label: "漂流木",   paths: ["assets/images/props/driftwood_01.png"] },
-    prop_rock_01:          { label: "礁石",     paths: ["assets/images/props/rock_01.png"] },
-    prop_recycle_bin_01:   { label: "回收桶",   paths: ["assets/images/props/recycle_bin_01.png"] },
-    prop_plastic_trash_01: { label: "塑膠垃圾", paths: ["assets/images/props/plastic_trash_01.png"] },
-    prop_oil_stain_01:     { label: "油污",     paths: ["assets/images/props/oil_stain_01.png"] }
+    // -------- 隨機地圖拾取物（GPT-image；缺圖時 StageRenderer 使用 Canvas fallback） --------
+    prop_map_plastic_bottle_01:    { label: "散落塑膠瓶", paths: ["assets/images/map_objects/map_plastic_bottle_01.png"] },
+    prop_map_aluminum_can_01:      { label: "散落鋁罐",   paths: ["assets/images/map_objects/map_aluminum_can_01.png"] },
+    prop_map_glass_bottle_01:      { label: "散落玻璃瓶", paths: ["assets/images/map_objects/map_glass_bottle_01.png"] },
+    prop_map_discarded_battery_01: { label: "散落廢電池", paths: ["assets/images/map_objects/map_discarded_battery_01.png"] }
   };
 
   var store = {};

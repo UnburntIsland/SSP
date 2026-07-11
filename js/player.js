@@ -62,6 +62,8 @@
 
     this.weapons = [];   // Weapon 實例
     this.oneShotUpgrades = {};
+    this.passiveUpgrades = {};
+    this.passiveUpgradeOrder = [];
 
     // 8 方向動畫播放器（缺圖時 draw 會 fallback 到靜態圖 / placeholder）
     this.animator = global.CharacterAnimator ? new global.CharacterAnimator(character) : null;

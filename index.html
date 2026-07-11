@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=gameplay-20260711d" />
+  <link rel="stylesheet" href="css/style.css?v=circular-mechanic-20260711b" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -32,7 +32,7 @@
       </div>
       <div class="hud-corner hud-tc">
         <div id="hud-timer" class="hud-timer">05:00</div>
-        <div id="hud-objective" class="hud-sub">尋找回收站與散落資源</div>
+        <div id="hud-objective" class="hud-sub">散落資源每 5 秒出現</div>
         <div id="hud-zone" class="hud-zone"></div>
       </div>
       <div class="hud-corner hud-tr">
@@ -42,6 +42,7 @@
         <div class="hud-hint">暫停 P / ESC</div>
       </div>
       <div id="hud-skills" class="hud-skills"></div>
+      <div id="hud-passives" class="hud-passives" aria-label="本局被動能力"></div>
       <button id="dash-btn" class="dash-btn" type="button" aria-label="衝刺" title="衝刺（Space / Shift）">
         <span class="dash-icon" aria-hidden="true">»</span>
         <span id="dash-cooldown" class="dash-cooldown"></span>
@@ -56,6 +57,7 @@
         <div id="run-intro-goal" class="run-intro-goal">存活 5 分鐘</div>
         <p class="run-intro-desc">保持生命並活到中央計時歸零，即可完成本局。</p>
         <div class="run-intro-start" aria-live="polite"><strong id="run-intro-countdown">5</strong><span>秒後開始</span></div>
+        <button id="run-intro-skip" class="btn run-intro-skip" type="button">點擊跳過</button>
       </div>
     </div>
 
@@ -123,11 +125,11 @@
     <!-- ===== Gameplay Help ===== -->
     <section id="screen-help" class="screen hidden">
       <h2 class="screen-title">遊戲說明</h2>
-      <p class="screen-desc">靠近互動物件就會自動觸發；留意污染圈預告與敵人攻擊線。</p>
+      <p class="screen-desc">靠近散落資源就會自動拾取；留意污染圈預告與敵人攻擊線。</p>
       <div class="help-list">
-        <div class="help-row"><span class="help-icon" aria-hidden="true">♻</span><div><strong>回收站</strong><span>靠近後啟動一次，獲得循環幣與經驗。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">+</span><div><strong>散落海廢</strong><span>走近即可清理並獲得經驗，有機會掉落循環幣。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">!</span><div><strong>地面油污</strong><span>站在油污上會減速，請儘快離開。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">5</span><div><strong>隨機資源</strong><span>遊戲開始後每 5 秒在附近隨機出現 1 個，不會在開局一次塞滿地圖。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">♻</span><div><strong>分類回收</strong><span>塑膠瓶、鋁罐、玻璃瓶與廢電池會提供不同的經驗與循環幣。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">+</span><div><strong>自動拾取</strong><span>走近物件即可拾取；物件會立刻從地圖消失並顯示清理獎勵。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">◎</span><div><strong>污染圈</strong><span>紅色虛線是下一個安全邊界；倒數結束後才開始縮小。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">?</span><div><strong>永續知識卡</strong><span>拾取後解鎖圖鑑；升級答題連勝 5 / 10 題可強化對綠色精英的傷害。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">»</span><div><strong>衝刺</strong><span>按 Space / Shift，或點右下角按鈕；衝刺期間短暫免傷。</span></div></div>
@@ -243,32 +245,32 @@
 
   <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
   <!-- Data layer -->
-  <script src="js/data/characters.js?v=gameplay-20260711c"></script>
-  <script src="js/data/skills.js?v=gameplay-20260711"></script>
+  <script src="js/data/characters.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/data/skills.js?v=circular-mechanic-20260711b"></script>
   <script src="js/data/enemies.js?v=gameplay-20260711"></script>
   <script src="js/data/shop.js"></script>
   <script src="js/data/stages.js?v=gameplay-20260711"></script>
   <script src="js/data/knowledge.js?v=gameplay-20260711b"></script>
   <!-- Engine -->
-  <script src="js/config.js?v=gameplay-20260710"></script>
+  <script src="js/config.js?v=circular-mechanic-20260711b"></script>
   <script src="js/uiTheme.js"></script>
   <script src="js/mobile.js?v=gameplay-20260710"></script>
-  <script src="js/stageRenderer.js?v=gameplay-20260710"></script>
+  <script src="js/stageRenderer.js?v=map-objects-20260711c"></script>
   <script src="js/storage.js"></script>
   <script src="js/audioManager.js"></script>
-  <script src="js/assets.js"></script>
+  <script src="js/assets.js?v=circular-mechanic-20260711b"></script>
   <script src="js/effects.js"></script>
-  <script src="js/sprites.js"></script>
+  <script src="js/sprites.js?v=circular-mechanic-20260711b"></script>
   <script src="js/animation.js"></script>
   <script src="js/input.js?v=gameplay-20260711"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
-  <script src="js/player.js?v=gameplay-20260711b"></script>
+  <script src="js/player.js?v=passive-hud-20260711b"></script>
   <script src="js/enemy.js?v=gameplay-20260711"></script>
-  <script src="js/weapons.js?v=gameplay-20260711"></script>
-  <script src="js/ui.js?v=gameplay-20260711d"></script>
-  <script src="js/game.js?v=gameplay-20260711c"></script>
+  <script src="js/weapons.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/ui.js?v=passive-hud-20260711b"></script>
+  <script src="js/game.js?v=circular-mechanic-20260711b"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=gameplay-20260711d"></script>
-  <script src="js/main.js?v=gameplay-20260711c"></script>
+  <script src="js/test_mode.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/main.js?v=passive-hud-20260711b"></script>
 </body>
 </html>

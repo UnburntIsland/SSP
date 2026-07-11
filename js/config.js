@@ -33,6 +33,7 @@
       enemyMedium: 74,
       enemyBoss: 144,
       projectile: 18,
+      deployable: 64,
       pickup: 30,
       interactable: 52,
       propSmall: 48,

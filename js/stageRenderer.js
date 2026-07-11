@@ -18,13 +18,19 @@
       shoreline: ['shoreline_01']
     },
     props: {
-      driftwood:  ['driftwood_01'],
-      rock:       ['rock_01'],
-      recycleBin: ['recycle_bin_01'],
-      trash:      ['plastic_trash_01'],
-      oil:        ['oil_stain_01']
+      plasticBottle:   ['map_plastic_bottle_01'],
+      aluminumCan:     ['map_aluminum_can_01'],
+      glassBottle:     ['map_glass_bottle_01'],
+      discardedBattery:['map_discarded_battery_01']
     }
   };
+
+  var COLLECTIBLE_TYPES = [
+    { type: 'plasticBottle',    size: 'interactable', xp: 2, coins: 0, coinChance: 0.20, label: '回收塑膠瓶 +2 XP', color: '#7de8f3' },
+    { type: 'aluminumCan',      size: 'interactable', xp: 1, coins: 1, coinChance: 0,    label: '回收鋁罐 +1 XP',   color: '#ffd45c' },
+    { type: 'glassBottle',      size: 'interactable', xp: 2, coins: 0, coinChance: 0.35, label: '回收玻璃瓶 +2 XP', color: '#8be0bd' },
+    { type: 'discardedBattery', size: 'interactable', xp: 3, coins: 1, coinChance: 0,    label: '回收廢電池 +3 XP', color: '#d8ef78' }
+  ];
 
   function mulberry32(a) {
     return function () {
@@ -39,7 +45,9 @@
 
   var StageRenderer = {
     STAGE_ASSETS: STAGE_ASSETS,
+    COLLECTIBLE_TYPES: COLLECTIBLE_TYPES,
     TILE: TILE,
+    MAX_ACTIVE_OBJECTS: 64,
     built: false,
 
     build: function (stage, seed) {
@@ -64,28 +72,72 @@
         this.tileMap.push(rowArr);
       }
 
-      // 場景裝飾物（座標依 seed 固定）
+      // 可拾取地圖物件由遊戲計時器逐一生成，不在開局一次塞滿場景。
       this.props = [];
-      var defs = [
-        { type: 'rock',       size: 'propSmall',  n: 22, minY: SEA_H },
-        { type: 'trash',      size: 'propSmall',  n: 26, minY: SEA_H },
-        { type: 'oil',        size: 'propMedium', n: 6,  minY: WET_H },
-        { type: 'driftwood',  size: 'propMedium', n: 14, minY: WET_H },
-        { type: 'recycleBin', size: 'propMedium', n: 8,  minY: WET_H + 20 }
-      ];
-      for (var d = 0; d < defs.length; d++) {
-        var pd = defs[d], variants = STAGE_ASSETS.props[pd.type];
-        for (var k = 0; k < pd.n; k++) {
-          this.props.push({
-            type: pd.type, size: pd.size,
-            x: 60 + rnd() * (this.world.w - 120),
-            y: pd.minY + rnd() * (this.world.h - pd.minY - 40),
-            v: (rnd() * variants.length) | 0
-          });
-        }
-      }
-      this.props.sort(function (a, b) { return a.y - b.y; });   // 後方先畫，簡單深度感
+      this.spawnSerial = 0;
       this.built = true;
+    },
+
+    spawnRandomObject: function (player, forcedType, forcedPosition) {
+      if (!this.built || !this.world || !player) return null;
+      if (this.props.length >= this.MAX_ACTIVE_OBJECTS) return null;
+
+      var def = null;
+      for (var d = 0; d < COLLECTIBLE_TYPES.length; d++) {
+        if (COLLECTIBLE_TYPES[d].type === forcedType) { def = COLLECTIBLE_TYPES[d]; break; }
+      }
+      if (!def) def = COLLECTIBLE_TYPES[(Math.random() * COLLECTIBLE_TYPES.length) | 0];
+
+      var x = 0, y = 0, found = false;
+      for (var attempt = 0; attempt < 16; attempt++) {
+        if (forcedPosition) {
+          x = forcedPosition.x;
+          y = forcedPosition.y;
+        } else {
+          var angle = Math.random() * Math.PI * 2;
+          var distance = 150 + Math.random() * 80;
+          x = player.x + Math.cos(angle) * distance;
+          y = player.y + Math.sin(angle) * distance;
+        }
+        x = Math.max(56, Math.min(this.world.w - 56, x));
+        y = Math.max(SEA_H + 28, Math.min(this.world.h - 56, y));
+
+        found = true;
+        var playerDx = player.x - x;
+        var playerDy = player.y - y;
+        if (!forcedPosition && playerDx * playerDx + playerDy * playerDy < 140 * 140) found = false;
+        for (var i = 0; i < this.props.length; i++) {
+          var dx = this.props[i].x - x;
+          var dy = this.props[i].y - y;
+          if (dx * dx + dy * dy < 76 * 76) { found = false; break; }
+        }
+        if (found || forcedPosition) break;
+      }
+      if (!found && !forcedPosition) return null;
+
+      var prop = {
+        id: 'map-object-' + (++this.spawnSerial),
+        type: def.type,
+        size: def.size,
+        x: x,
+        y: y,
+        v: 0,
+        collectible: true,
+        collectRadius: 34,
+        xp: def.xp,
+        coins: def.coins,
+        coinChance: def.coinChance,
+        label: def.label,
+        color: def.color,
+        spawnedAt: (global.Game && global.Game.time) || 0
+      };
+      this.props.push(prop);
+      this.props.sort(function (a, b) { return a.y - b.y; });
+      return prop;
+    },
+
+    removeCollected: function () {
+      this.props = this.props.filter(function (p) { return !p.collected; });
     },
 
     // 在世界層（已套用 camera zoom + translate）呼叫；只畫可視範圍
@@ -112,27 +164,28 @@
       // ---- props（世界座標；螢幕尺寸固定 = RENDER_SIZES ÷ zoom，與角色一致） ----
       for (var i = 0; i < this.props.length; i++) {
         var p = this.props[i];
-        if (p.cleaned) continue;
+        if (p.collected) continue;
         if (p.x < camX - 120 || p.x > camX + viewW + 120 || p.y < camY - 120 || p.y > camY + viewH + 120) continue;
         var sz = (sizes[p.size] || 64) / zoom;
-        var interactive = (p.type === 'recycleBin' && !p.used) || p.type === 'trash';
-        if (interactive) {
-          var pulse = 0.5 + Math.sin(((global.Game && global.Game.time) || 0) * 4 + i) * 0.18;
-          ctx.save();
-          ctx.globalAlpha = pulse;
-          ctx.strokeStyle = p.type === 'recycleBin' ? '#5fe1ce' : '#d8ef78';
-          ctx.lineWidth = 2 / zoom;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, sz * 0.48, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.restore();
-        }
+        var gameTime = (global.Game && global.Game.time) || 0;
+        var appearT = Math.max(0, Math.min(1, (gameTime - p.spawnedAt) / 0.32));
+        var appearEase = 1 - Math.pow(1 - appearT, 3);
+        var drawSize = sz * (0.72 + appearEase * 0.28);
+        var pulse = 0.48 + Math.sin(gameTime * 4 + i) * 0.16;
+        ctx.save();
+        ctx.globalAlpha = pulse * appearT;
+        ctx.strokeStyle = p.color || '#d8ef78';
+        ctx.lineWidth = 2 / zoom;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, sz * (0.46 + Math.sin(gameTime * 3 + i) * 0.035), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
         // 影子
-        ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.ellipse(p.x, p.y + sz * 0.30, sz * 0.34, sz * 0.14, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.globalAlpha = 0.22 * appearT; ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.ellipse(p.x, p.y + sz * 0.30, drawSize * 0.34, drawSize * 0.14, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
         var pk = 'prop_' + STAGE_ASSETS.props[p.type][p.v];
-        var ok = A && A.ready && A.ready(pk) && A.drawCentered && A.drawCentered(ctx, pk, p.x, p.y, sz, sz);
-        if (!ok) this.fallbackProp(ctx, p.type, p.x, p.y, sz);
+        var ok = A && A.ready && A.ready(pk) && A.drawCentered && A.drawCentered(ctx, pk, p.x, p.y, drawSize, drawSize, appearT);
+        if (!ok) this.fallbackProp(ctx, p.type, p.x, p.y, drawSize, appearT);
       }
     },
 
@@ -156,29 +209,22 @@
       }
     },
 
-    fallbackProp: function (ctx, type, x, y, sz) {
+    fallbackProp: function (ctx, type, x, y, sz, alpha) {
       ctx.save();
-      if (type === 'recycleBin') {
-        ctx.fillStyle = '#2c2c2c'; ctx.fillRect(x - sz * 0.30, y - sz * 0.40, sz * 0.60, sz * 0.66);
-        ctx.fillStyle = '#43a047'; ctx.fillRect(x - sz * 0.26, y - sz * 0.36, sz * 0.52, sz * 0.58);
-        ctx.fillStyle = '#2e7d32'; ctx.fillRect(x - sz * 0.32, y - sz * 0.46, sz * 0.64, sz * 0.14);
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fillRect(x - sz * 0.06, y - sz * 0.16, sz * 0.12, sz * 0.04);
-        ctx.fillRect(x - sz * 0.02, y - sz * 0.20, sz * 0.04, sz * 0.12);
-      } else if (type === 'driftwood') {
-        ctx.fillStyle = '#7b5a3a'; ctx.fillRect(x - sz * 0.46, y - sz * 0.12, sz * 0.92, sz * 0.24);
-        ctx.fillStyle = '#5d4327'; ctx.fillRect(x - sz * 0.46, y - sz * 0.12, sz * 0.92, sz * 0.07);
-      } else if (type === 'rock') {
-        ctx.fillStyle = '#9e9e9e'; ctx.beginPath(); ctx.arc(x, y, sz * 0.30, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#c4c4c4'; ctx.beginPath(); ctx.arc(x - sz * 0.08, y - sz * 0.08, sz * 0.12, 0, Math.PI * 2); ctx.fill();
-      } else if (type === 'trash') {
-        ctx.fillStyle = '#eef3f6'; ctx.fillRect(x - sz * 0.18, y - sz * 0.20, sz * 0.36, sz * 0.40);
-        ctx.fillStyle = '#b0bec5'; ctx.fillRect(x - sz * 0.18, y - sz * 0.20, sz * 0.36, sz * 0.08);
-      } else if (type === 'oil') {
-        ctx.globalAlpha = 0.7; ctx.fillStyle = '#26263a';
-        ctx.beginPath(); ctx.ellipse(x, y, sz * 0.42, sz * 0.24, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 0.5; ctx.fillStyle = '#6a5acd';
-        ctx.beginPath(); ctx.ellipse(x - sz * 0.08, y - sz * 0.04, sz * 0.16, sz * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = alpha == null ? 1 : alpha;
+      ctx.translate(x, y);
+      ctx.rotate(-0.48);
+      if (type === 'plasticBottle' || type === 'glassBottle') {
+        ctx.fillStyle = type === 'plasticBottle' ? '#8fe3ed' : '#68a982';
+        ctx.fillRect(-sz * 0.32, -sz * 0.14, sz * 0.54, sz * 0.28);
+        ctx.fillStyle = type === 'plasticBottle' ? '#168f98' : '#406a50';
+        ctx.fillRect(sz * 0.20, -sz * 0.10, sz * 0.18, sz * 0.20);
+      } else if (type === 'aluminumCan') {
+        ctx.fillStyle = '#d6dddd'; ctx.fillRect(-sz * 0.30, -sz * 0.18, sz * 0.60, sz * 0.36);
+        ctx.fillStyle = '#26a69a'; ctx.fillRect(-sz * 0.10, -sz * 0.18, sz * 0.20, sz * 0.36);
+      } else {
+        ctx.fillStyle = '#3c4245'; ctx.fillRect(-sz * 0.34, -sz * 0.16, sz * 0.68, sz * 0.32);
+        ctx.fillStyle = '#e7bf35'; ctx.fillRect(-sz * 0.34, -sz * 0.16, sz * 0.16, sz * 0.32);
       }
       ctx.restore();
     }

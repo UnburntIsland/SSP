@@ -89,6 +89,22 @@
         { radius: 74, dps: 15, cooldown: 3.6, duration: 5.0, up: "傷害提升，持續更久" },
         { radius: 92, dps: 20, cooldown: 3.2, duration: 5.0, up: "範圍與傷害提升（滿級）" }
       ]
+    },
+    {
+      id: "recycle_sentry",
+      name: "回收哨兵",
+      type: "deployable",
+      iconId: "skill_sentry",
+      desc: "每 5 秒部署一座自動哨兵，鎖定附近污染物並發射能量彈。",
+      eduText: "模組化設計能延長設備壽命；零件可維修、替換與回收，就能減少電子廢棄物。",
+      maxLevel: 5,
+      levels: [
+        { cooldown: 5, duration: 15, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "解鎖：哨兵存活 15 秒" },
+        { cooldown: 5, duration: 20, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 15 → 20 秒" },
+        { cooldown: 5, duration: 25, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 20 → 25 秒" },
+        { cooldown: 5, duration: 30, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 25 → 30 秒" },
+        { cooldown: 5, duration: 35, damage: 5, fireCooldown: 0.9, range: 220, speed: 380, up: "哨兵存活時間 30 → 35 秒（滿級）" }
+      ]
     }
   ];
 

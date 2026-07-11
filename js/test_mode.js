@@ -121,6 +121,16 @@
           time: g.time || 0,
            enemies: g.enemies ? g.enemies.length : 0,
            enemyProjectiles: g.enemyProjectiles ? g.enemyProjectiles.length : 0,
+           deployables: g.deployables ? g.deployables.map(function (device) {
+             return {
+               x: device.x,
+               y: device.y,
+               life: device.life,
+               duration: device.duration,
+               direction: device.direction,
+               dead: !!device.dead
+             };
+           }) : [],
            pickups: g.pickups ? g.pickups.length : 0,
            quizCorrect: g.quizCorrect || 0,
            quizIncorrect: g.quizIncorrect || 0,
@@ -128,6 +138,11 @@
            bestQuizStreak: g.bestQuizStreak || 0,
            eliteRewardLevel: g.eliteRewardLevel || 0,
            mapCleaned: g.mapCleanedCount || 0,
+           mapObjects: global.StageRenderer && global.StageRenderer.props ? global.StageRenderer.props.map(function (prop) {
+             return { id: prop.id, type: prop.type, x: prop.x, y: prop.y };
+           }) : [],
+           mapObjectSpawnInterval: g.mapObjectSpawnInterval || 0,
+           mapObjectSpawnRemaining: g.mapObjectSpawnInterval ? Math.max(0, g.mapObjectSpawnInterval - (g.mapObjectSpawnAcc || 0)) : 0,
            contamination: g.contamination ? {
              active: !!g.contamination.active,
              outside: !!g.contamination.outside,
@@ -145,6 +160,10 @@
             dashCooldown: p.dashCooldown,
             dashTimer: p.dashTimer,
             eliteDamageMult: p.eliteDamageMult,
+            passives: (p.passiveUpgradeOrder || []).map(function (id) {
+              var passive = p.passiveUpgrades && p.passiveUpgrades[id];
+              return passive ? { id: id, level: passive.level } : null;
+            }).filter(Boolean),
             weapons: p.weapons.map(function (w) { return { id: w.skill.id, level: w.level, timer: w.timer }; })
           } : null,
           save: global.Storage ? JSON.parse(JSON.stringify(global.Storage.data)) : null
@@ -167,6 +186,20 @@
          if (!global.Game.paused) global.Game.triggerLevelUp();
          return true;
        },
+       grantPassive: function (id) {
+         if (!global.Game || !global.Game.running || global.Game.ended) return false;
+         return global.Game.applyPassiveUpgrade(id);
+       },
+       setSkillLevel: function (id, level) {
+         if (!global.Game || !global.Game.player) return false;
+         var player = global.Game.player;
+         if (!player.hasSkill(id)) player.addSkill(id);
+         var weapon = player.getWeapon(id);
+         if (!weapon) return false;
+         var target = Math.max(1, Math.min(weapon.skill.maxLevel, Number(level) || 1));
+         weapon.level = target;
+         return { id: id, level: weapon.level, stats: weapon.stats() };
+       },
        setGameTime: function (seconds) {
          if (!global.Game || !global.Game.running) return false;
          global.Game.time = Math.max(0, Number(seconds) || 0);
@@ -186,6 +219,12 @@
          global.Game.enemies.push(enemy);
          return enemy;
        },
+       spawnMapObject: function (type, x, y) {
+         if (!global.Game || !global.Game.running || !global.StageRenderer || !global.StageRenderer.spawnRandomObject) return null;
+         var p = global.Game.player;
+         var position = (x == null || y == null) ? null : { x: x, y: y };
+         return global.StageRenderer.spawnRandomObject(p, type, position);
+       },
       unlockKnowledge: function () {
         var entry = global.Storage.unlockNextKnowledge();
         if (global.App && global.App.ui) global.App.ui.buildCodex();
@@ -200,8 +239,9 @@
 
     var wantsScenario = params.get("qaLevelUp") === "1" || params.get("qaRanged") === "1" ||
       params.get("qaZone") === "1" || params.get("qaDefeat") === "1" ||
-      !!params.get("qaKnowledge") || params.get("qaMap") === "1" || params.get("qaZoneOutside") === "1" ||
-      params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak");
+      !!params.get("qaKnowledge") || !!params.get("qaMap") || params.get("qaZoneOutside") === "1" ||
+      params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak") || params.get("qaPassives") === "1" ||
+      params.get("qaTurret") === "1";
     if (wantsScenario) {
       var scenarioPoll = setInterval(function () {
         if (!global.Game || !global.Game.running || !global.Game.player) return;
@@ -248,6 +288,41 @@
           var streakTarget = Math.max(0, Math.min(10, Number(params.get("qaQuizStreak")) || 0));
           for (var qs = 0; qs < streakTarget; qs++) global.Game.applyQuizAnswer({ correct: true });
         }
+        if (params.get("qaPassives") === "1") {
+          ["vitality", "swift", "sense", "efficiency", "mend", "eco_sneakers", "sorting_pouch", "refill_snack"].forEach(function (id) {
+            global.Game.applyPassiveUpgrade(id);
+          });
+          global.Game.applyPassiveUpgrade("swift");
+          global.Game.applyPassiveUpgrade("efficiency");
+        }
+        if (params.get("qaTurret") === "1") {
+          global.Game.stage.waves = [];
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
+          global.Game.projectiles = [];
+          var turretLevel = Math.max(1, Math.min(5, Number(params.get("qaTurretLevel")) || 1));
+          if (!global.Game.player.hasSkill("recycle_sentry")) global.Game.player.addSkill("recycle_sentry");
+          var turretWeapon = global.Game.player.getWeapon("recycle_sentry");
+          turretWeapon.level = turretLevel;
+          turretWeapon.timer = 0.05;
+          var turretDir = (params.get("qaTurretDir") || "E").toUpperCase();
+          var turretVector = global.Animation.directionVector(turretDir);
+          var turretEnemyDef = global.GameData.getEnemy("battery_slime");
+          var turretEnemy = new global.Enemy(
+            turretEnemyDef,
+            global.Game.player.x + turretVector.x * 185,
+            global.Game.player.y + turretVector.y * 185,
+            1
+          );
+          turretEnemy.spawnAge = turretEnemy.spawnDuration;
+          turretEnemy.speed = 0;
+          turretEnemy.contact = 0;
+          turretEnemy.ranged = null;
+          turretEnemy.maxHp = 9999;
+          turretEnemy.hp = 9999;
+          global.Game.enemies.push(turretEnemy);
+        }
         if (params.get("qaKnowledge")) {
           var near = params.get("qaKnowledge") === "collect" ? 8 : 105;
           if (params.get("qaKnowledge") === "collect" && global.Storage && global.GameData.knowledge.length) {
@@ -259,11 +334,29 @@
           }
           global.Game.pickups.push(new global.Pickup("card", global.Game.player.x + near, global.Game.player.y));
         }
-        if (params.get("qaMap") === "1" && global.StageRenderer && global.StageRenderer.props) {
-          var station = global.StageRenderer.props.find(function (prop) { return prop.type === "recycleBin"; });
-          if (station) {
-            global.Game.player.x = station.x;
-            global.Game.player.y = station.y;
+        if (params.get("qaMap") && global.StageRenderer && global.StageRenderer.spawnRandomObject) {
+          var mapMode = params.get("qaMap");
+          var mapPlayer = global.Game.player;
+          if (mapMode === "timing") {
+            global.Game.stage.waves = [];
+            global.Game.stage.events = [];
+            global.Game.enemies = [];
+            global.Game.enemyProjectiles = [];
+            global.Game.mapObjectSpawnAcc = 0;
+          } else {
+            var mapTypes = ["plasticBottle", "aluminumCan", "glassBottle", "discardedBattery"];
+            for (var mt = 0; mt < mapTypes.length; mt++) {
+              global.StageRenderer.spawnRandomObject(mapPlayer, mapTypes[mt], {
+                x: mapPlayer.x - 150 + mt * 100,
+                y: mapPlayer.y + (mt % 2 ? 82 : -82)
+              });
+            }
+            if (mapMode === "collect" && global.StageRenderer.props[0]) {
+              global.Game.player.xp = 0;
+              global.Game.player.xpToNext = Math.max(global.Game.player.xpToNext, 9999);
+              global.Game.player.x = global.StageRenderer.props[0].x;
+              global.Game.player.y = global.StageRenderer.props[0].y;
+            }
           }
         }
         if (params.get("qaDefeat") === "1") {

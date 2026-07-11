@@ -47,12 +47,27 @@
       },
       passiveText: "技能冷卻 -20%、最大生命值 -20%",
       flavour: "用乾淨能源驅動裝置，相信節能行動能讓世界更明亮。"
+    },
+    {
+      id: "mechanic",
+      name: "循環機械師",
+      role: "部署型",
+      spriteId: "char_mechanic",
+      startingSkill: "recycle_sentry",
+      passive: {},
+      passiveText: "裝置專精：開局攜帶回收哨兵",
+      flavour: "把回收零件組成自動哨兵，讓循環科技在污染潮中守住陣地。"
     }
   ];
 
   // 8 方向動畫資產設定（spriteBasePath + animationSet）—— 資料驅動，所有角色套同一規則
   (function () {
-    var FOLDER = { ranger: "ranger", beachcomber: "beachcomber", solar: "solar_engineer" };
+    var FOLDER = {
+      ranger: "ranger",
+      beachcomber: "beachcomber",
+      solar: "solar_engineer",
+      mechanic: "circular_mechanic"
+    };
     var D = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     // 8 方向 idle / walk 全部列出，不在資料層假設哪些 walk 存在。
     // 「某方向 walk 是否可用」由執行期依「資料夾實際檔案」判斷：
@@ -68,10 +83,10 @@
     }
     global.GameData.characters.forEach(function (ch) {
       var folder = FOLDER[ch.id] || ch.id;
-      ch.canonicalId = ch.id === "solar" ? "solar_engineer" : ch.id;
+      ch.canonicalId = ch.id === "solar" ? "solar_engineer" : (ch.id === "mechanic" ? "circular_mechanic" : ch.id);
       ch.animationId = ch.canonicalId;
       ch.spriteBasePath = "assets/images/characters/" + folder + "/";
-      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : "");
+      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : (ch.id === "mechanic" ? "mechanic_1" : ""));
       ch.animationSet = buildAnimSet();
     });
   })();
@@ -83,7 +98,10 @@
     coastal_cleanup: "beachcomber",
     coastal_cleanup_volunteer: "beachcomber",
     solar: "solar",
-    solar_engineer: "solar"
+    solar_engineer: "solar",
+    mechanic: "mechanic",
+    circular_mechanic: "mechanic",
+    recycling_mechanic: "mechanic"
   };
 
   global.GameData.resolveCharacterId = function (id) {

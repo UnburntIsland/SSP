@@ -2,8 +2,8 @@
    weapons.js  —  自動攻擊的武器/技能行為 + 投射物 / 區域 / 脈衝
    每個 Weapon 包一個 skill；依 skill.type 表現不同行為：
      projectile 種子飛刃 / aura 回收磁網 / pulse 太陽能脈衝
-     orbit 風力葉片 / zone 堆肥孢子
-   update(dt, ctx) 會把效果放進 ctx 的 projectiles / zones / pulses。
+     orbit 風力葉片 / zone 堆肥孢子 / deployable 回收哨兵
+   update(dt, ctx) 會把效果放進 ctx 的 projectiles / zones / pulses / deployables。
    ============================================================ */
 (function (global) {
 
@@ -19,6 +19,8 @@
     this.dead = false;
     this.spin = Math.random() * Math.PI;
     this.visualAge = 0;
+    this.hitEffectId = "seed_blade";
+    this.hitEffectGroup = "hit";
     this.hitSet = [];   // 已命中的敵人，避免同一發重複打同一隻
   }
   Projectile.prototype.update = function (dt) {
@@ -53,6 +55,181 @@
     ctx.fillStyle = "#2e7d32";
     ctx.fillRect(-1, -vr, 2, vr * 2);
     ctx.restore();
+  };
+
+  /* ---------------- 回收哨兵能量彈 ---------------- */
+  function TurretProjectile(x, y, vx, vy, damage, eliteMult) {
+    this.x = x; this.y = y;
+    this.vx = vx; this.vy = vy;
+    this.damage = damage;
+    this.eliteMult = eliteMult || 1;
+    this.pierce = 0;
+    this.radius = 5;
+    this.life = 1.8;
+    this.dead = false;
+    this.visualAge = 0;
+    this.hitSet = [];
+    this.hitEffectId = "common";
+    this.hitEffectGroup = "hit_small";
+  }
+  TurretProjectile.prototype.update = function (dt) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.visualAge += dt;
+    this.life -= dt;
+    if (this.life <= 0) this.dead = true;
+  };
+  TurretProjectile.prototype.draw = function (ctx) {
+    var angle = Math.atan2(this.vy, this.vx);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(angle);
+    ctx.globalAlpha = 0.34;
+    ctx.fillStyle = "#52fff0";
+    ctx.fillRect(-12, -4, 18, 8);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#e9fffb";
+    ctx.fillRect(-5, -2, 12, 4);
+    ctx.fillStyle = "#ffd33f";
+    ctx.fillRect(-8, -1, 5, 2);
+    ctx.restore();
+  };
+
+  /* ---------------- 可部署回收哨兵 ---------------- */
+  function RecycleSentry(x, y, opt) {
+    this.x = x; this.y = y;
+    this.owner = opt.owner;
+    this.duration = opt.duration;
+    this.life = opt.duration;
+    this.damage = opt.damage;
+    this.fireCooldown = opt.fireCooldown;
+    this.fireTimer = 0.22;
+    this.range = opt.range;
+    this.projectileSpeed = opt.speed;
+    this.direction = opt.direction || "S";
+    this.age = 0;
+    this.flashTimer = 0;
+    this.dead = false;
+  }
+
+  RecycleSentry.prototype.findTarget = function (enemies) {
+    var best = null;
+    var bestDistance = this.range * this.range;
+    for (var i = 0; i < enemies.length; i++) {
+      var enemy = enemies[i];
+      if (enemy.dead || (enemy.isSpawning && enemy.isSpawning())) continue;
+      var dx = enemy.x - this.x;
+      var dy = enemy.y - this.y;
+      var d2 = dx * dx + dy * dy;
+      if (d2 <= bestDistance) { bestDistance = d2; best = enemy; }
+    }
+    return best;
+  };
+
+  RecycleSentry.prototype.update = function (dt, ctx) {
+    this.age += dt;
+    this.life -= dt;
+    this.fireTimer -= dt;
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+    if (this.life <= 0) { this.dead = true; return; }
+
+    var target = this.findTarget(ctx.enemies);
+    if (!target) return;
+    var dx = target.x - this.x;
+    var dy = target.y - this.y;
+    var distance = Math.sqrt(dx * dx + dy * dy) || 1;
+    var dir = global.Animation && global.Animation.getDirectionFromVector
+      ? global.Animation.getDirectionFromVector(dx, dy)
+      : null;
+    if (dir) this.direction = dir;
+
+    if (this.fireTimer <= 0) {
+      var ux = dx / distance;
+      var uy = dy / distance;
+      ctx.projectiles.push(new TurretProjectile(
+        this.x + ux * 16,
+        this.y + uy * 16,
+        ux * this.projectileSpeed,
+        uy * this.projectileSpeed,
+        this.damage,
+        (this.owner && this.owner.eliteDamageMult) || 1
+      ));
+      this.fireTimer = this.fireCooldown;
+      this.flashTimer = 0.09;
+    }
+  };
+
+  RecycleSentry.prototype.draw = function (ctx) {
+    var baseSize = global.Config
+      ? global.Config.RENDER_SIZES.deployable / global.Config.CAMERA_ZOOM
+      : 36;
+    var spawnT = Math.max(0, Math.min(1, this.age / 0.28));
+    var spawnScale = 0.68 + (1 - Math.pow(1 - spawnT, 3)) * 0.32;
+    var alpha = Math.min(1, spawnT * 1.4, this.life < 1 ? this.life : 1);
+    var size = baseSize * spawnScale;
+
+    ctx.save();
+    ctx.globalAlpha = 0.24 * alpha;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y + baseSize * 0.28, baseSize * 0.34, baseSize * 0.13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    var key = "deployable_recycle_sentry_" + this.direction;
+    var drawn = global.Assets && global.Assets.ready(key) && global.Assets.drawCentered(
+      ctx, key, this.x, this.y, size, size, alpha
+    );
+    if (!drawn) {
+      var vector = global.Animation && global.Animation.directionVector
+        ? global.Animation.directionVector(this.direction)
+        : { x: 0, y: 1 };
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(this.x, this.y);
+      ctx.fillStyle = "#3f4d52";
+      ctx.fillRect(-baseSize * 0.32, baseSize * 0.05, baseSize * 0.64, baseSize * 0.28);
+      ctx.fillStyle = "#10aaa0";
+      ctx.beginPath(); ctx.arc(0, 0, baseSize * 0.23, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(Math.atan2(vector.y, vector.x));
+      ctx.fillStyle = "#d8eeee";
+      ctx.fillRect(0, -baseSize * 0.055, baseSize * 0.32, baseSize * 0.11);
+      ctx.restore();
+    }
+
+    var lifeRatio = Math.max(0, this.life / this.duration);
+    ctx.save();
+    ctx.globalAlpha = 0.8 * alpha;
+    ctx.strokeStyle = lifeRatio > 0.25 ? "#57dfd3" : "#ff9a61";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, baseSize * 0.43, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifeRatio);
+    ctx.stroke();
+    if (this.flashTimer > 0) {
+      var muzzle = global.Animation && global.Animation.directionVector
+        ? global.Animation.directionVector(this.direction)
+        : { x: 0, y: 1 };
+      ctx.globalAlpha = this.flashTimer / 0.09;
+      ctx.fillStyle = "#e9fffb";
+      ctx.beginPath();
+      ctx.arc(this.x + muzzle.x * baseSize * 0.29, this.y + muzzle.y * baseSize * 0.29, baseSize * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    if (global.Debug && global.Debug.animationEnabled) {
+      var label = "Sentry " + this.direction + "  " + Math.max(0, this.life).toFixed(1) + "s";
+      ctx.save();
+      ctx.font = "8px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      var labelWidth = ctx.measureText(label).width + 8;
+      ctx.fillStyle = "rgba(4, 16, 20, 0.76)";
+      ctx.fillRect(this.x - labelWidth / 2, this.y - baseSize * 0.58, labelWidth, 13);
+      ctx.fillStyle = "#dffcf7";
+      ctx.fillText(label, this.x, this.y - baseSize * 0.58 + 6.5);
+      ctx.restore();
+    }
   };
 
   /* ---------------- 區域（回收磁網 / 堆肥孢子） ---------------- */
@@ -190,9 +367,10 @@
     this.skill = skill;
     this.player = player;
     this.level = 1;
-    this.timer = 0.4;          // 初始稍微延遲首發
+    this.timer = skill.type === "deployable" ? skill.levels[0].cooldown : 0.4;
     this.angle = Math.random() * Math.PI * 2; // 給 orbit 用
     this.blades = [];
+    this.deployCount = 0;
   }
 
   Weapon.prototype.stats = function () { return this.skill.levels[this.level - 1]; };
@@ -304,6 +482,37 @@
         }
         break;
       }
+
+      case "deployable": {
+        this.timer -= dt;
+        if (this.timer <= 0) {
+          var facing = this.player.animator ? this.player.animator.dir : "S";
+          var direction = global.Animation && global.Animation.directionVector
+            ? global.Animation.directionVector(facing)
+            : { x: this.player.lastMoveX || 0, y: this.player.lastMoveY || 1 };
+          var baseAngle = Math.atan2(direction.y, direction.x);
+          var deployOffsets = [0, 0.62, -0.62, 1.18, -1.18, Math.PI];
+          var deployAngle = baseAngle + deployOffsets[this.deployCount % deployOffsets.length];
+          this.deployCount += 1;
+          var tx = this.player.x + Math.cos(deployAngle) * 42;
+          var ty = this.player.y + Math.sin(deployAngle) * 42;
+          if (ctx.world) {
+            tx = Math.max(24, Math.min(ctx.world.w - 24, tx));
+            ty = Math.max(24, Math.min(ctx.world.h - 24, ty));
+          }
+          ctx.deployables.push(new RecycleSentry(tx, ty, {
+            owner: this.player,
+            direction: facing,
+            duration: s.duration,
+            damage: s.damage,
+            fireCooldown: s.fireCooldown,
+            range: s.range,
+            speed: s.speed
+          }));
+          this.timer = s.cooldown;
+        }
+        break;
+      }
     }
   };
 
@@ -340,4 +549,6 @@
   global.Projectile = Projectile;
   global.Zone = Zone;
   global.Pulse = Pulse;
+  global.RecycleSentry = RecycleSentry;
+  global.TurretProjectile = TurretProjectile;
 })(window);
