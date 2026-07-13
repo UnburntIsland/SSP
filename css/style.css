@@ -3424,6 +3424,7 @@ html.is-mobile, .is-mobile body{
   .stage-carousel-card,
   .stage-arrow{ scroll-behavior:auto; }
 }
+<<<<<<< HEAD
 
 /* ============================================================
    手機 / 平板舒適度修正
@@ -4012,3 +4013,5 @@ html.is-mobile #stage .overlay{
   touch-action:manipulation;
 }
 .rotate-hint-close:focus-visible{ outline:3px solid #ffd84a; outline-offset:3px; }
+=======
+>>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
