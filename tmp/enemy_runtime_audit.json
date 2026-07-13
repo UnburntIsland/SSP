@@ -1,0 +1,305 @@
+{
+  "enemies": {
+    "plastic_bag": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 16.71,
+      "uniqueMoveHashes": 32
+    },
+    "butt_bug": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        150,
+        151
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 53.57,
+      "uniqueMoveHashes": 32
+    },
+    "battery_slime": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        161
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 41.38,
+      "uniqueMoveHashes": 32
+    },
+    "oil_blob": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          256,
+          256
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        218,
+        218
+      ],
+      "bboxCenterRange": [
+        128.0,
+        128.5
+      ],
+      "motionMinPercent": 20.18,
+      "uniqueMoveHashes": 32
+    },
+    "bottle_mite": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 61.64,
+      "uniqueMoveHashes": 32
+    },
+    "foam_crab": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 58.51,
+      "uniqueMoveHashes": 32
+    },
+    "ghost_net": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          256,
+          256
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        220,
+        220
+      ],
+      "bboxCenterRange": [
+        127.5,
+        128.5
+      ],
+      "motionMinPercent": 89.08,
+      "uniqueMoveHashes": 32
+    },
+    "scrap_drone": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 49.19,
+      "uniqueMoveHashes": 32
+    },
+    "can_crusher": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 53.76,
+      "uniqueMoveHashes": 32
+    },
+    "compactor_golem": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          256,
+          256
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        220,
+        220
+      ],
+      "bboxCenterRange": [
+        127.5,
+        128.5
+      ],
+      "motionMinPercent": 50.64,
+      "uniqueMoveHashes": 32
+    },
+    "oil_slickling": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 57.51,
+      "uniqueMoveHashes": 32
+    },
+    "smog_drone": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 58.92,
+      "uniqueMoveHashes": 32
+    },
+    "ash_wisp": {
+      "expected": 40,
+      "found": 40,
+      "missing": [],
+      "dimensions": [
+        [
+          192,
+          192
+        ]
+      ],
+      "alpha": true,
+      "transparentCorners": true,
+      "bboxBottomRange": [
+        160,
+        160
+      ],
+      "bboxCenterRange": [
+        95.5,
+        96.5
+      ],
+      "motionMinPercent": 63.72,
+      "uniqueMoveHashes": 32
+    }
+  },
+  "totalFiles": 520,
+  "totalBytes": 15880894
+}

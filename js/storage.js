@@ -1,0 +1,197 @@
+/* ============================================================
+   storage.js  —  存檔（localStorage）
+   保存：循環幣總額、商店升級等級、已解鎖知識、目前選用角色、音量設定。
+   以 try/catch 包裹，讓 file:// 下若無法存取也能照常遊玩。
+   ============================================================ */
+(function (global) {
+  var KEY = "senloop_save_v1";
+
+  function normalizeCharacterId(id) {
+    if (!id) return "ranger";
+    if (global.GameData && global.GameData.resolveCharacterId) return global.GameData.resolveCharacterId(id);
+    if (id === "solar_engineer") return "solar";
+    return id;
+  }
+
+  var Storage = {
+    data: null,
+
+    _default: function () {
+      return {
+        coins: 0,
+        shop: {},        // { upgradeId: level }
+        knowledge: [],   // 已解鎖的 knowledge id
+        selectedCharacterId: "ranger",
+        lastChar: "ranger",
+        selectedStageId: "tidal_flat",
+        clearedStages: [],
+        // 音量設定（0~100；mute 為布林）—— 單一來源，audioManager 由此讀寫
+        audio: { master: 80, music: 70, sfx: 80, mute: false }
+      };
+    },
+
+    load: function () {
+      var d = null;
+      try {
+        var raw = global.localStorage.getItem(KEY);
+        if (raw) d = JSON.parse(raw);
+      } catch (e) { d = null; }
+      if (!d || typeof d !== "object") d = this._default();
+      // 補齊缺漏欄位（含舊存檔沒有的 audio）
+      var def = this._default();
+      for (var k in def) { if (!(k in d)) d[k] = def[k]; }
+      if (!d.shop || typeof d.shop !== "object") d.shop = {};
+      if (d.shop.recycling_sort != null && d.shop.recycle_sort == null) d.shop.recycle_sort = d.shop.recycling_sort;
+      if (d.shop.rainwater != null && d.shop.rainwater_harvest == null) d.shop.rainwater_harvest = d.shop.rainwater;
+      if (!d.selectedCharacterId && d.lastChar) d.selectedCharacterId = d.lastChar;
+      if (!d.lastChar && d.selectedCharacterId) d.lastChar = d.selectedCharacterId;
+      d.selectedCharacterId = normalizeCharacterId(d.selectedCharacterId);
+      d.lastChar = normalizeCharacterId(d.lastChar);
+      if (!Array.isArray(d.clearedStages)) d.clearedStages = [];
+      if (!d.selectedStageId || !global.GameData || !global.GameData.getStage || !global.GameData.getStage(d.selectedStageId)) {
+        d.selectedStageId = "tidal_flat";
+      }
+      // audio 子欄位也補齊
+      if (!d.audio || typeof d.audio !== "object") d.audio = def.audio;
+      for (var ak in def.audio) { if (!(ak in d.audio)) d.audio[ak] = def.audio[ak]; }
+      this.data = d;
+      return d;
+    },
+
+    save: function () {
+      try {
+        global.localStorage.setItem(KEY, JSON.stringify(this.data));
+      } catch (e) { /* file:// 或隱私模式可能失敗，靜默忽略 */ }
+    },
+
+    reset: function () {
+      this.data = this._default();
+      this.save();
+    },
+
+    /* -------- 循環幣 -------- */
+    getCoins: function () { return this.data.coins | 0; },
+    addCoins: function (n) { this.data.coins = (this.data.coins | 0) + Math.max(0, n | 0); this.save(); },
+    spendCoins: function (n) {
+      if (this.data.coins >= n) { this.data.coins -= n; this.save(); return true; }
+      return false;
+    },
+
+    /* -------- 商店升級 -------- */
+    getShopLevel: function (id) { return this.data.shop[id] | 0; },
+
+    canBuy: function (item) {
+      var lvl = this.getShopLevel(item.id);
+      if (lvl >= item.maxLevel) return false;
+      return this.data.coins >= item.prices[lvl];
+    },
+
+    buyShopUpgrade: function (item) {
+      var lvl = this.getShopLevel(item.id);
+      if (lvl >= item.maxLevel) return { ok: false, reason: "max" };
+      var price = item.prices[lvl];
+      if (this.data.coins < price) return { ok: false, reason: "coins" };
+      this.data.coins -= price;
+      this.data.shop[item.id] = lvl + 1;
+      this.save();
+      return { ok: true, level: lvl + 1, spent: price };
+    },
+
+    /* -------- 知識 / 圖鑑 -------- */
+    isKnowledgeUnlocked: function (id) { return this.data.knowledge.indexOf(id) !== -1; },
+
+    // 依資料順序解鎖下一則尚未解鎖的知識；回傳該則 entry 或 null（全部已解鎖）
+    unlockNextKnowledge: function () {
+      var all = global.GameData.knowledge;
+      for (var i = 0; i < all.length; i++) {
+        if (!this.isKnowledgeUnlocked(all[i].id)) {
+          this.data.knowledge.push(all[i].id);
+          this.save();
+          return all[i];
+        }
+      }
+      return null;
+    },
+
+    /* -------- 目前選用角色 -------- */
+    loadSelectedCharacter: function () {
+      return normalizeCharacterId(this.data.selectedCharacterId || this.data.lastChar || "ranger");
+    },
+    saveSelectedCharacter: function (id) {
+      id = normalizeCharacterId(id);
+      this.data.selectedCharacterId = id;
+      this.data.lastChar = id; // 相容舊版測試/存檔欄位
+      this.save();
+    },
+    getLastChar: function () { return this.loadSelectedCharacter(); },
+    setLastChar: function (id) { this.saveSelectedCharacter(id); },
+
+    /* -------- 關卡進度 -------- */
+    isStageCleared: function (id) {
+      return !!(this.data && this.data.clearedStages && this.data.clearedStages.indexOf(id) !== -1);
+    },
+    isStageUnlocked: function (id) {
+      var stage = global.GameData && global.GameData.getStage ? global.GameData.getStage(id) : null;
+      if (!stage) return false;
+      return !stage.unlockAfter || this.isStageCleared(stage.unlockAfter);
+    },
+    markStageCleared: function (id) {
+      if (!this.data || !global.GameData || !global.GameData.getStage(id)) return null;
+      if (!this.isStageCleared(id)) this.data.clearedStages.push(id);
+      var next = global.GameData.getNextStage ? global.GameData.getNextStage(id) : null;
+      this.save();
+      return next && this.isStageUnlocked(next.id) ? next : null;
+    },
+    loadSelectedStage: function () {
+      var id = (this.data && this.data.selectedStageId) || "tidal_flat";
+      if (this.isStageUnlocked(id)) return id;
+      var stages = (global.GameData && global.GameData.stages) || [];
+      for (var i = stages.length - 1; i >= 0; i--) {
+        if (this.isStageUnlocked(stages[i].id)) return stages[i].id;
+      }
+      return "tidal_flat";
+    },
+    saveSelectedStage: function (id) {
+      if (!this.isStageUnlocked(id)) return false;
+      this.data.selectedStageId = id;
+      this.save();
+      return true;
+    },
+
+    /* -------- 音量設定（重整後保留；商店升級/存檔不受重新開始影響） -------- */
+    getAudioSettings: function () {
+      if (!this.data) return { master: 80, music: 70, sfx: 80, mute: false };
+      if (!this.data.audio || typeof this.data.audio !== "object") {
+        this.data.audio = { master: 80, music: 70, sfx: 80, mute: false };
+      }
+      return this.data.audio;
+    },
+    setAudioSettings: function (obj) {
+      var a = this.getAudioSettings();
+      for (var k in obj) a[k] = obj[k];
+      this.save();
+    },
+
+    /* -------- 將商店等級換算為開局加成 -------- */
+    getMetaBonuses: function () {
+      var b = {
+        bonusMaxHp: 0,
+        coinBonusMult: 0,
+        cooldownReduce: 0,
+        pickupRangeBonus: 0,
+        shieldBonus: 0
+      };
+      var shop = global.GameData.shop;
+      for (var i = 0; i < shop.length; i++) {
+        var item = shop[i];
+        var lvl = this.getShopLevel(item.id);
+        if (lvl > 0) {
+          b[item.statKey] += item.values[lvl - 1];
+        }
+      }
+      return b;
+    }
+  };
+
+  global.Storage = Storage;
+})(window);
