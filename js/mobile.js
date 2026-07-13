@@ -12,10 +12,7 @@
   var FORCE_MOBILE_QA = new URLSearchParams(global.location.search).get("forceMobile") === "1";
   var MOBILE_CANVAS_SCALE_MODE = "cover";   // 手機：cover（滿版）；桌機維持原 CSS contain
   var UI_SAFE_MARGIN = 24;
-<<<<<<< HEAD
   var COMPACT_VISIBLE_WIDTH = 780;
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
   var state = {
     scale: 1, mode: "contain",
     visible: { x: 0, y: 0, width: BASE_W, height: BASE_H, centerX: BASE_W / 2, centerY: BASE_H / 2 },
@@ -29,16 +26,12 @@
 
   function getViewportSize() {
     var vv = global.visualViewport;
-<<<<<<< HEAD
     return {
       width: vv ? vv.width : global.innerWidth,
       height: vv ? vv.height : global.innerHeight,
       offsetLeft: vv ? (vv.offsetLeft || 0) : 0,
       offsetTop: vv ? (vv.offsetTop || 0) : 0
     };
-=======
-    return { width: vv ? vv.width : global.innerWidth, height: vv ? vv.height : global.innerHeight };
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
   }
 
   // 讀取 iOS safe-area（env() 無法直接從 JS 取值，用 probe 元素量測）
@@ -62,25 +55,18 @@
     var stage = document.getElementById("stage");
     if (!stage) return;
     var v = getViewportSize();
-<<<<<<< HEAD
     if (!v.width || !v.height || !isFinite(v.width) || !isFinite(v.height)) return;
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
     var mobile = isTouchDevice();
     var mode = mobile ? MOBILE_CANVAS_SCALE_MODE : "contain";
     var scale = mode === "cover"
       ? Math.max(v.width / BASE_W, v.height / BASE_H)
       : Math.min(v.width / BASE_W, v.height / BASE_H);
     state.scale = scale; state.mode = mode;
-<<<<<<< HEAD
     var stageX = v.offsetLeft + (v.width - BASE_W * scale) / 2;
     var stageY = v.offsetTop + (v.height - BASE_H * scale) / 2;
     stage.style.left = "0px";
     stage.style.top = "0px";
     stage.style.transform = "translate(" + stageX.toFixed(2) + "px, " + stageY.toFixed(2) + "px) scale(" + scale.toFixed(4) + ")";
-=======
-    stage.style.transform = "scale(" + scale.toFixed(4) + ")";
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
 
     readSafeArea();
     // 可見遊戲區（stage 座標）：cover 時對稱裁切
@@ -90,37 +76,29 @@
     var visY = (BASE_H - visH) / 2;
     state.visible = { x: visX, y: visY, width: visW, height: visH,
                       centerX: visX + visW / 2, centerY: visY + visH / 2 };
-<<<<<<< HEAD
     // 版面類別依「舞台實際可見寬」判斷，避免只看實體 viewport 的 media query
     // 而在 transform 後發生二次縮小或直向裁切。
     document.documentElement.classList.toggle("narrow-visible", visW < 520);
     document.documentElement.classList.toggle("compact-visible", visW < COMPACT_VISIBLE_WIDTH);
     document.documentElement.classList.toggle("mobile-low-scale", mobile && scale < 0.82);
-=======
-    // 窄可見區（直向等）：確認視窗等改直排、面板縮窄
-    document.documentElement.classList.toggle("narrow-visible", visW < 520);
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
     // 輸出給 CSS：邊緣內縮 = 裁切量 + safe-area（換算成 stage px）
     var s = stage.style;
     s.setProperty("--vis-inset-top",    (visY + state.safe.top    / scale).toFixed(1) + "px");
     s.setProperty("--vis-inset-bottom", (visY + state.safe.bottom / scale).toFixed(1) + "px");
     s.setProperty("--vis-inset-left",   (visX + state.safe.left   / scale).toFixed(1) + "px");
     s.setProperty("--vis-inset-right",  (visX + state.safe.right  / scale).toFixed(1) + "px");
-<<<<<<< HEAD
     s.setProperty("--stage-scale", scale.toFixed(4));
     s.setProperty("--visible-stage-width", visW.toFixed(1) + "px");
     s.setProperty("--visible-stage-height", visH.toFixed(1) + "px");
 
     // DOM 介面會跟著 stage 一起縮放，因此反向補償，確保最終螢幕上的
     // 主要觸控區接近 48px、正文約 16px，不再於小手機縮成難點的小字。
-    var touchTarget = Math.min(96, Math.max(44, 48 / scale));
-    var readableFont = Math.min(31, Math.max(18, 16 / scale));
-    var captionFont = Math.min(28, Math.max(13, 14 / scale));
+    var touchTarget = Math.min(120, Math.max(32, 48 / scale));
+    var readableFont = Math.min(40, Math.max(12, 16 / scale));
+    var captionFont = Math.min(35, Math.max(10, 14 / scale));
     s.setProperty("--mobile-touch-target", touchTarget.toFixed(1) + "px");
     s.setProperty("--mobile-readable-font", readableFont.toFixed(1) + "px");
     s.setProperty("--mobile-caption-font", captionFont.toFixed(1) + "px");
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
     updateDebugLayout();
   }
 
@@ -148,13 +126,9 @@
     var hint = document.getElementById("rotate-hint");
     if (!hint) return;
     var portrait = global.innerHeight > global.innerWidth;
-<<<<<<< HEAD
     var show = portrait && !hintDismissed;
     hint.classList.toggle("hidden", !show);
     hint.setAttribute("aria-hidden", String(!show));
-=======
-    hint.classList.toggle("hidden", !portrait || hintDismissed);
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
   }
   function setupRotateHintDismiss() {
     var hint = document.getElementById("rotate-hint");
@@ -162,7 +136,6 @@
     function dismiss() {
       hintDismissed = true;
       hint.classList.add("hidden");
-<<<<<<< HEAD
       hint.setAttribute("aria-hidden", "true");
     }
     var tip = document.createElement("button");
@@ -170,15 +143,6 @@
     tip.className = "rotate-hint-close";
     tip.textContent = "繼續直向遊玩";
     tip.addEventListener("click", dismiss);
-=======
-    }
-    hint.addEventListener("click", dismiss);
-    hint.addEventListener("pointerup", dismiss);
-    hint.addEventListener("touchend", function (e) { e.preventDefault(); dismiss(); }, { passive: false });
-    var tip = document.createElement("div");
-    tip.className = "rotate-hint-close";
-    tip.textContent = "（點擊任意處關閉，仍可直向遊玩）";
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
     var inner = hint.querySelector(".rotate-hint-inner");
     if (inner) inner.appendChild(tip);
   }
@@ -207,11 +171,8 @@
   function setupFullscreenButton() {
     var menu = document.getElementById("screen-menu");
     if (!menu) return;
-<<<<<<< HEAD
     var root = document.documentElement;
     if (!root.requestFullscreen && !root.webkitRequestFullscreen) return;
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
     var btn = document.createElement("button");
     btn.id = "mobile-fullscreen-btn";
     btn.type = "button";
@@ -219,10 +180,7 @@
     btn.addEventListener("click", function (e) { e.stopPropagation(); enterFullscreen(); });
     menu.appendChild(btn);
     document.addEventListener("fullscreenchange", function () { setTimeout(fitStage, 120); });
-<<<<<<< HEAD
     document.addEventListener("webkitfullscreenchange", function () { setTimeout(fitStage, 120); });
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
   }
 
   /* ---------------- 手機暫停按鈕（HUD 右上，遊戲中才顯示） ---------------- */
@@ -433,7 +391,6 @@
     updateDebugLayout();
   }
 
-<<<<<<< HEAD
   var viewportFrame = 0;
   function onViewportChange() {
     if (viewportFrame) return;
@@ -444,9 +401,6 @@
       if (global.Input && global.Input.cancelTouch) global.Input.cancelTouch();
     });
   }
-=======
-  function onViewportChange() { fitStage(); updateRotateHint(); }
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
 
   function init() {
     setupDebugLayout();                      // debugLayout 桌機也可用
@@ -459,21 +413,15 @@
     setupPauseButton();
     setupRotateHintDismiss();
     global.addEventListener("resize", onViewportChange);
-<<<<<<< HEAD
     if (global.visualViewport) {
       global.visualViewport.addEventListener("resize", onViewportChange);
       global.visualViewport.addEventListener("scroll", onViewportChange);
     }
     global.addEventListener("pageshow", onViewportChange);
-=======
-    if (global.visualViewport) global.visualViewport.addEventListener("resize", onViewportChange);
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
     global.addEventListener("orientationchange", function () {
       setTimeout(onViewportChange, 120);
       setTimeout(onViewportChange, 400);
     });
-<<<<<<< HEAD
-=======
     // 觸控可靠性：部分瀏覽器在 slider 拖曳後會吞掉下一個 tap 的 click，
     // pointerup 落在按鈕上且 220ms 內沒收到 click 時補發一次（有去重，不會雙觸發）
     document.addEventListener("click", function (e) {
@@ -482,27 +430,13 @@
     }, true);
     document.addEventListener("pointerup", function (e) {
       var btn = e.target && e.target.closest ? e.target.closest("[data-action], .btn, .mobile-char-item") : null;
-      if (!btn) return;
+      if (!btn || e.pointerType === "mouse" || btn.disabled || btn.getAttribute("aria-disabled") === "true") return;
       var t0 = Date.now();
       setTimeout(function () {
-        if ((btn.__lastClick || 0) < t0 && document.contains(btn)) btn.click();
+        if ((btn.__lastClick || 0) < t0 && document.contains(btn) && !btn.disabled) btn.click();
       }, 220);
     }, true);
 
-    // 防 iOS 雙擊縮放：僅「同一位置附近的快速第二觸」才攔截，
-    // 不影響快速點擊不同按鈕
-    var lastTouch = 0, lastTx = -999, lastTy = -999;
-    document.addEventListener("touchend", function (e) {
-      var t = e.changedTouches && e.changedTouches[0];
-      var now = Date.now();
-      if (t) {
-        var near = Math.abs(t.clientX - lastTx) < 30 && Math.abs(t.clientY - lastTy) < 30;
-        if (now - lastTouch < 320 && near && e.cancelable) e.preventDefault();
-        lastTx = t.clientX; lastTy = t.clientY;
-      }
-      lastTouch = now;
-    }, { passive: false });
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
   }
 
   if (document.readyState === "loading") {

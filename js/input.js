@@ -19,14 +19,10 @@
     }
   });
   global.addEventListener("keyup", function (e) { keys[e.code] = false; });
-<<<<<<< HEAD
   global.addEventListener("blur", function () {
     keys = {}; pressedOnce = {}; dashRequested = false;
     if (global.Input && global.Input.cancelTouch) global.Input.cancelTouch();
   });
-=======
-  global.addEventListener("blur", function () { keys = {}; pressedOnce = {}; dashRequested = false; });
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
 
   var Input = {
     // 內部座標的滑鼠位置（0..canvas.width, 0..canvas.height）
@@ -77,15 +73,12 @@
        僅在觸控裝置上綁定，不影響滑鼠與鍵盤。 */
     touch: { active: false, id: null, ox: 0, oy: 0, x: 0, y: 0 },
 
-<<<<<<< HEAD
     cancelTouch: function () {
       this.touch.active = false;
       this.touch.id = null;
       this.touch.ox = this.touch.oy = this.touch.x = this.touch.y = 0;
     },
 
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
     isTouchDevice: function () {
       return ("ontouchstart" in global) || !!(global.navigator && navigator.maxTouchPoints > 0);
     },
@@ -188,11 +181,8 @@
   };
 
   global.Input = Input;
-<<<<<<< HEAD
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) Input.cancelTouch();
   });
   global.addEventListener("pagehide", function () { Input.cancelTouch(); });
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
 })(window);

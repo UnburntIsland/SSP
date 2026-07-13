@@ -3424,8 +3424,6 @@ html.is-mobile, .is-mobile body{
   .stage-carousel-card,
   .stage-arrow{ scroll-behavior:auto; }
 }
-<<<<<<< HEAD
-
 /* ============================================================
    手機 / 平板舒適度修正
    - mobile.js 依 stage 的實際縮放輸出可讀字級與 48px 實體觸控目標
@@ -3830,6 +3828,38 @@ html.is-mobile #stage .overlay{
   overflow:visible;
 }
 .compact-visible #stage #screen-characters .char-card{ min-height:240px; }
+.compact-visible #stage :is(
+  .char-name,
+  .shop-name,
+  .codex-title,
+  .codex-enemy-name,
+  .help-row strong,
+  .levelup-name,
+  .quiz-question,
+  .quiz-answer,
+  .knowledge-card-text,
+  .confirm-desc,
+  .current-character-name,
+  .stage-card-caption strong,
+  .result-stats .total
+){
+  font-size:var(--mobile-readable-font);
+}
+.compact-visible #stage :is(
+  .char-role,
+  .char-line,
+  .char-flavour,
+  .shop-level-badge,
+  .codex-enemy-type,
+  .levelup-tag,
+  .levelup-effect,
+  .levelup-edu,
+  .levelup-key,
+  .knowledge-card-note
+){
+  font-size:var(--mobile-caption-font);
+  line-height:1.5;
+}
 .compact-visible #stage #screen-characters .screen-footer{
   width:100%;
   grid-template-columns:minmax(0, 1fr) minmax(0, 1.4fr);
@@ -3879,7 +3909,54 @@ html.is-mobile #stage .overlay{
   height:88px;
 }
 .compact-visible #stage #screen-help .help-list{ width:100%; max-height:none; }
-.compact-visible #stage .result-stats{ width:100%; min-width:0; }
+.compact-visible #stage .result-title{
+  max-width:100%;
+  font-size:calc(var(--mobile-readable-font) * 1.65);
+  line-height:1.18;
+  letter-spacing:1px;
+  overflow-wrap:anywhere;
+}
+.compact-visible #stage .result-flavour{
+  font-size:var(--mobile-readable-font);
+  line-height:1.55;
+}
+.compact-visible #stage .result-stats{
+  width:100%;
+  min-width:0;
+  padding:16px;
+  font-size:var(--mobile-caption-font);
+  line-height:1.65;
+}
+.compact-visible #stage .result-stats .row{
+  gap:12px;
+  align-items:start;
+}
+.compact-visible #stage .result-stats .row .v{
+  min-width:0;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+
+/* 所有頁尾操作在窄畫面使用等寬網格，避免兩顆按鈕互相擠壓。 */
+.compact-visible #stage .screen-footer{
+  width:100%;
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+  gap:10px;
+  margin-top:8px;
+}
+.compact-visible #stage .screen-footer .btn{
+  width:100%;
+  min-width:0;
+  min-height:var(--mobile-touch-target);
+  padding:8px 12px;
+  white-space:normal;
+}
+.narrow-visible #stage .screen-footer,
+.narrow-visible #stage #screen-characters .screen-footer{
+  grid-template-columns:1fr;
+}
 
 /* 窄設定頁改用可伸縮面板，不再把內容硬塞進橫向圖片定位。 */
 .compact-visible #stage #screen-settings .screen-title{ transform:none; }
@@ -3988,16 +4065,25 @@ html.is-mobile #stage .overlay{
   font-size:var(--mobile-readable-font);
 }
 .compact-visible #stage .toast{
-  bottom:calc(18px + var(--vis-inset-bottom, 0px));
+  bottom:calc(36px + var(--mobile-touch-target) + var(--mobile-touch-target) + var(--vis-inset-bottom, 0px));
   width:calc(var(--visible-stage-width) - 28px);
   max-width:440px;
+  font-size:var(--mobile-caption-font);
 }
 
+#rotate-hint{
+  padding-top:calc(16px + var(--safe-top));
+  padding-right:calc(16px + var(--safe-right));
+  padding-bottom:calc(16px + var(--safe-bottom));
+  padding-left:calc(16px + var(--safe-left));
+}
 .rotate-hint-inner{
-  padding-top:calc(24px + var(--safe-top));
-  padding-right:calc(24px + var(--safe-right));
-  padding-bottom:calc(24px + var(--safe-bottom));
-  padding-left:calc(24px + var(--safe-left));
+  width:min(420px, 100%);
+  padding:24px;
+  background:rgba(10, 38, 45, .97);
+  border:2px solid rgba(87, 235, 218, .72);
+  border-radius:12px;
+  box-shadow:0 10px 36px rgba(0,0,0,.42);
 }
 .rotate-hint-close{
   min-width:180px;
@@ -4013,5 +4099,111 @@ html.is-mobile #stage .overlay{
   touch-action:manipulation;
 }
 .rotate-hint-close:focus-visible{ outline:3px solid #ffd84a; outline-offset:3px; }
-=======
->>>>>>> a59b459d299175a21f9fff54637f9d44ce4e4e75
+
+/* 手機／平板直向遊戲 HUD：保留血量、計時、技能與衝刺，讓次要資訊退到不遮畫面的區域。 */
+.compact-visible #stage .hud-tl{
+  left:calc(14px + var(--vis-inset-left, 0px));
+  top:calc(12px + var(--vis-inset-top, 0px));
+  width:calc(var(--visible-stage-width) - var(--mobile-touch-target) - 46px);
+  max-width:none;
+  gap:5px;
+}
+.compact-visible #stage .hud-tl .hp-bar{
+  min-width:0;
+  height:24px;
+}
+.compact-visible #stage .hud-tl .xp-bar{ height:12px; }
+.compact-visible #stage .hud-charname,
+.compact-visible #stage .hud-lv,
+.compact-visible #stage .bar-text{
+  font-size:var(--mobile-caption-font);
+}
+.compact-visible #stage .hud-tc{
+  top:calc(42px + var(--mobile-touch-target) + var(--vis-inset-top, 0px));
+  width:calc(var(--visible-stage-width) - 28px);
+  max-width:none;
+}
+.compact-visible #stage .hud-timer{
+  height:auto;
+  font-size:var(--mobile-readable-font);
+  line-height:1.2;
+}
+.compact-visible #stage :is(.hud-sub, .hud-zone){
+  font-size:var(--mobile-caption-font);
+  line-height:1.35;
+  white-space:normal;
+}
+.compact-visible #stage .hud-tr{ display:none; }
+.compact-visible #stage .hud-skills{
+  left:calc(14px + var(--vis-inset-left, 0px));
+  bottom:calc(14px + var(--vis-inset-bottom, 0px));
+  width:calc(var(--visible-stage-width) - var(--mobile-touch-target) - 46px);
+  max-width:none;
+  padding:2px 0 5px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  flex-wrap:nowrap;
+  pointer-events:auto;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+}
+.compact-visible #stage .hud-skills::-webkit-scrollbar,
+.compact-visible #stage .hud-passives::-webkit-scrollbar{ display:none; }
+.compact-visible #stage .hud-passives{
+  left:calc(14px + var(--vis-inset-left, 0px));
+  right:auto;
+  bottom:calc(26px + var(--mobile-touch-target) + var(--vis-inset-bottom, 0px));
+  width:calc(var(--visible-stage-width) - 28px);
+  max-width:none;
+  padding:2px 0 5px;
+  justify-content:flex-start;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  overflow-y:hidden;
+  pointer-events:auto;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+}
+.compact-visible #stage .hud-passives:empty{ display:none; }
+.compact-visible #stage .hud-skill-detail,
+.compact-visible #stage .hud-skill-detail.passive-side{
+  left:calc(14px + var(--vis-inset-left, 0px));
+  right:auto;
+  bottom:calc(44px + var(--mobile-touch-target) + var(--mobile-touch-target) + var(--vis-inset-bottom, 0px));
+  width:calc(var(--visible-stage-width) - 28px);
+  max-height:230px;
+  padding:14px;
+  overflow:auto;
+}
+.compact-visible #stage .hud-skill-detail h3{ font-size:var(--mobile-readable-font); }
+.compact-visible #stage .hud-skill-detail :is(p, .hud-skill-detail-stat, .hud-skill-detail-meta){
+  font-size:var(--mobile-caption-font);
+}
+
+.compact-visible #stage #mobile-coin-chip,
+.compact-visible #stage #mobile-fullscreen-btn{
+  min-height:var(--mobile-touch-target);
+  font-size:var(--mobile-caption-font);
+}
+.compact-visible #stage #mobile-coin-chip{
+  max-width:min(170px, calc(var(--visible-stage-width) - 190px));
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+/* 提高權重，避免舊版各頁的固定小字／固定高度蓋掉動態舒適尺寸。 */
+html.is-mobile #stage :is(.screen, .overlay) .btn{
+  min-height:var(--mobile-touch-target);
+  font-size:var(--mobile-readable-font);
+}
+html.is-mobile #stage #mobile-char-list .mobile-char-item{
+  min-height:var(--mobile-touch-target);
+}
+html.is-mobile #stage #mobile-char-list .mobile-char-item-name{
+  font-size:var(--mobile-readable-font);
+}
+html.is-mobile #stage #mobile-char-list .mobile-char-item-role,
+html.is-mobile #stage #mobile-pause-btn{
+  font-size:var(--mobile-caption-font);
+}
