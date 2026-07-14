@@ -1,0 +1,366 @@
+{
+  "skinId": "chemist_springguard",
+  "source": "C:\\Users\\aswen\\Desktop\\SSP\\assets\\images\\characters\\skins\\_masters\\chemist_springguard.png",
+  "frames": {
+    "idle_N_0": {
+      "coverage": 0.3031,
+      "bbox": [
+        51,
+        9,
+        141,
+        185
+      ]
+    },
+    "walk_N_0": {
+      "coverage": 0.2972,
+      "bbox": [
+        49,
+        9,
+        143,
+        185
+      ]
+    },
+    "walk_N_1": {
+      "coverage": 0.29,
+      "bbox": [
+        48,
+        9,
+        144,
+        185
+      ]
+    },
+    "walk_N_2": {
+      "coverage": 0.2799,
+      "bbox": [
+        47,
+        9,
+        144,
+        185
+      ]
+    },
+    "walk_N_3": {
+      "coverage": 0.2674,
+      "bbox": [
+        52,
+        9,
+        140,
+        185
+      ]
+    },
+    "idle_NE_0": {
+      "coverage": 0.2974,
+      "bbox": [
+        55,
+        9,
+        136,
+        185
+      ]
+    },
+    "walk_NE_0": {
+      "coverage": 0.2928,
+      "bbox": [
+        56,
+        9,
+        136,
+        185
+      ]
+    },
+    "walk_NE_1": {
+      "coverage": 0.2958,
+      "bbox": [
+        51,
+        9,
+        141,
+        185
+      ]
+    },
+    "walk_NE_2": {
+      "coverage": 0.3112,
+      "bbox": [
+        50,
+        9,
+        142,
+        185
+      ]
+    },
+    "walk_NE_3": {
+      "coverage": 0.2896,
+      "bbox": [
+        56,
+        9,
+        136,
+        185
+      ]
+    },
+    "idle_E_0": {
+      "coverage": 0.2953,
+      "bbox": [
+        52,
+        9,
+        140,
+        185
+      ]
+    },
+    "walk_E_0": {
+      "coverage": 0.3057,
+      "bbox": [
+        53,
+        9,
+        139,
+        185
+      ]
+    },
+    "walk_E_1": {
+      "coverage": 0.3139,
+      "bbox": [
+        46,
+        9,
+        145,
+        185
+      ]
+    },
+    "walk_E_2": {
+      "coverage": 0.3026,
+      "bbox": [
+        50,
+        9,
+        141,
+        185
+      ]
+    },
+    "walk_E_3": {
+      "coverage": 0.3107,
+      "bbox": [
+        50,
+        9,
+        142,
+        185
+      ]
+    },
+    "idle_SE_0": {
+      "coverage": 0.3227,
+      "bbox": [
+        52,
+        9,
+        140,
+        185
+      ]
+    },
+    "walk_SE_0": {
+      "coverage": 0.3235,
+      "bbox": [
+        52,
+        9,
+        140,
+        185
+      ]
+    },
+    "walk_SE_1": {
+      "coverage": 0.3181,
+      "bbox": [
+        52,
+        9,
+        140,
+        185
+      ]
+    },
+    "walk_SE_2": {
+      "coverage": 0.3201,
+      "bbox": [
+        50,
+        9,
+        142,
+        185
+      ]
+    },
+    "walk_SE_3": {
+      "coverage": 0.3095,
+      "bbox": [
+        50,
+        9,
+        142,
+        185
+      ]
+    },
+    "idle_S_0": {
+      "coverage": 0.3313,
+      "bbox": [
+        48,
+        9,
+        144,
+        185
+      ]
+    },
+    "walk_S_0": {
+      "coverage": 0.326,
+      "bbox": [
+        48,
+        9,
+        143,
+        185
+      ]
+    },
+    "walk_S_1": {
+      "coverage": 0.3213,
+      "bbox": [
+        48,
+        9,
+        143,
+        185
+      ]
+    },
+    "walk_S_2": {
+      "coverage": 0.3188,
+      "bbox": [
+        46,
+        9,
+        145,
+        185
+      ]
+    },
+    "walk_S_3": {
+      "coverage": 0.3237,
+      "bbox": [
+        49,
+        9,
+        143,
+        185
+      ]
+    },
+    "idle_SW_0": {
+      "coverage": 0.3009,
+      "bbox": [
+        52,
+        10,
+        140,
+        185
+      ]
+    },
+    "walk_SW_0": {
+      "coverage": 0.3003,
+      "bbox": [
+        51,
+        11,
+        141,
+        185
+      ]
+    },
+    "walk_SW_1": {
+      "coverage": 0.3006,
+      "bbox": [
+        50,
+        10,
+        142,
+        185
+      ]
+    },
+    "walk_SW_2": {
+      "coverage": 0.2968,
+      "bbox": [
+        51,
+        10,
+        141,
+        185
+      ]
+    },
+    "walk_SW_3": {
+      "coverage": 0.2974,
+      "bbox": [
+        52,
+        9,
+        140,
+        185
+      ]
+    },
+    "idle_W_0": {
+      "coverage": 0.2874,
+      "bbox": [
+        53,
+        9,
+        138,
+        185
+      ]
+    },
+    "walk_W_0": {
+      "coverage": 0.2921,
+      "bbox": [
+        53,
+        9,
+        139,
+        185
+      ]
+    },
+    "walk_W_1": {
+      "coverage": 0.3075,
+      "bbox": [
+        50,
+        9,
+        142,
+        185
+      ]
+    },
+    "walk_W_2": {
+      "coverage": 0.3127,
+      "bbox": [
+        49,
+        10,
+        143,
+        185
+      ]
+    },
+    "walk_W_3": {
+      "coverage": 0.2977,
+      "bbox": [
+        52,
+        9,
+        139,
+        185
+      ]
+    },
+    "idle_NW_0": {
+      "coverage": 0.2951,
+      "bbox": [
+        56,
+        11,
+        136,
+        185
+      ]
+    },
+    "walk_NW_0": {
+      "coverage": 0.299,
+      "bbox": [
+        54,
+        11,
+        137,
+        185
+      ]
+    },
+    "walk_NW_1": {
+      "coverage": 0.3017,
+      "bbox": [
+        54,
+        11,
+        137,
+        185
+      ]
+    },
+    "walk_NW_2": {
+      "coverage": 0.3015,
+      "bbox": [
+        54,
+        10,
+        137,
+        185
+      ]
+    },
+    "walk_NW_3": {
+      "coverage": 0.2989,
+      "bbox": [
+        54,
+        11,
+        138,
+        185
+      ]
+    }
+  }
+}

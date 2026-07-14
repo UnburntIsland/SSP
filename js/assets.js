@@ -29,6 +29,8 @@
       "assets/images/characters/char_solar.png" ] },
     char_mechanic: { label: "循環機械師", paths: [
       "assets/images/characters/circular_mechanic/idle_S_0.png?v=mechanic_1" ] },
+    char_chemist: { label: "生態藥劑師", paths: [
+      "assets/images/characters/eco_chemist/idle_S_0.png?v=chemist_1" ] },
 
     // -------- 敵人 --------
     enemy_bag:     { label: "塑膠袋怪", paths: [
@@ -95,6 +97,8 @@
       "assets/images/skills/concepts/skill_compost_spores_icon_256.png" ] },
     skill_sentry: { label: "回收哨兵", paths: [
       "assets/images/deployables/recycle_sentry/turret_S_0.png?v=sentry_1" ] },
+    skill_trail: { label: "淨化藥跡", paths: [
+      "assets/images/skills/skill_purifying_trail.png?v=chemist_1" ] },
 
     // -------- 回收哨兵 8 方向（GPT-image） --------
     deployable_recycle_sentry_N:  { label: "回收哨兵 N",  paths: ["assets/images/deployables/recycle_sentry/turret_N_0.png?v=sentry_1"] },

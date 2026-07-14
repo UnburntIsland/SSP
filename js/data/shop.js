@@ -14,7 +14,7 @@
       iconId: "shop_soil",
       statKey: "bonusMaxHp",
       maxLevel: 5,
-      prices: [40, 70, 110, 160, 230],
+      prices: [80, 140, 220, 320, 460],
       values: [10, 22, 36, 52, 70],
       format: function (v) { return "最大生命值 +" + v; },
       eduText: "健康有機質的土壤能蓄水、固碳，是陸地生態的根基。"
@@ -25,7 +25,7 @@
       iconId: "shop_recycle",
       statKey: "coinBonusMult",
       maxLevel: 5,
-      prices: [50, 90, 140, 200, 280],
+      prices: [100, 180, 280, 400, 560],
       values: [0.10, 0.20, 0.32, 0.45, 0.60],
       format: function (v) { return "每局循環幣 +" + Math.round(v * 100) + "%"; },
       eduText: "正確分類能提高回收率，讓更多材料真正被再利用。"
@@ -36,7 +36,7 @@
       iconId: "shop_energy",
       statKey: "cooldownReduce",
       maxLevel: 5,
-      prices: [60, 100, 150, 210, 300],
+      prices: [120, 200, 300, 420, 600],
       values: [0.04, 0.08, 0.12, 0.16, 0.20],
       format: function (v) { return "技能冷卻 -" + Math.round(v * 100) + "%"; },
       eduText: "隨手關燈、選用節能設備，累積起來就是可觀的能源節省。"
@@ -47,7 +47,7 @@
       iconId: "shop_eco",
       statKey: "pickupRangeBonus",
       maxLevel: 5,
-      prices: [40, 70, 110, 160, 230],
+      prices: [80, 140, 220, 320, 460],
       values: [0.10, 0.20, 0.32, 0.45, 0.60],
       format: function (v) { return "拾取範圍 +" + Math.round(v * 100) + "%"; },
       eduText: "觀察與認識周遭生態，是願意保護環境的第一步。"
@@ -58,7 +58,7 @@
       iconId: "shop_rain",
       statKey: "shieldBonus",
       maxLevel: 5,
-      prices: [50, 90, 140, 200, 280],
+      prices: [100, 180, 280, 400, 560],
       values: [0.4, 0.8, 1.2, 1.6, 2.0],
       format: function (v) { return "受傷後護盾 +" + v.toFixed(1) + " 秒"; },
       eduText: "收集雨水可用於澆灌與清潔，降低對自來水的依賴。"

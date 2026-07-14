@@ -3,7 +3,7 @@
    是整個程式的進入點（最後載入）。
    狀態：HOME / CHARACTER_SELECT / SHOP / CODEX / SETTINGS_FROM_HOME /
         PLAYING / PAUSED / SETTINGS_FROM_PAUSE / CONFIRM_HOME /
-        CONFIRM_RESTART / GAME_OVER / VICTORY
+        CONFIRM_RESTART / CONFIRM_RESET / GAME_OVER / VICTORY
    ============================================================ */
 (function (global) {
 
@@ -12,7 +12,9 @@
   var SCREENS = {
     menu: "screen-menu",
     characters: "screen-characters",
+    gacha: "screen-gacha",
     shop: "screen-shop",
+    achievements: "screen-achievements",
     codex: "screen-codex",
     help: "screen-help",
     settings: "screen-settings",
@@ -29,6 +31,8 @@
     selectedStageId: DEFAULT_STAGE_ID,
     currentStageId: DEFAULT_STAGE_ID,
     stageSwipeStartX: null,
+    pendingCharacterStats: { attack: 0, speed: 0, hp: 0 },
+    gachaDrawing: false,
 
     boot: function () {
       global.Storage.load();
@@ -55,6 +59,7 @@
       this.wireStageSelector();
       this.bindKeys();
       this.ui.updateCoinLabels();
+      if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
       this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
       this.updateStageSelector();
       this.ui.refreshSettings();
@@ -73,12 +78,16 @@
     saveSelectedCharacter: function (id) {
       var character = global.GameData.getCharacter(id) || global.GameData.getCharacter("ranger");
       id = character ? character.id : "ranger";
+      if (global.Storage.isCharacterOwned && !global.Storage.isCharacterOwned(id)) return false;
+      var saved = true;
+      if (global.Storage.saveSelectedCharacter) saved = global.Storage.saveSelectedCharacter(id);
+      else global.Storage.setLastChar(id);
+      if (saved === false) return false;
       this.selectedCharacterId = id;
       this.currentSelectedCharacter = id;
       this.selectedChar = id;
-      if (global.Storage.saveSelectedCharacter) global.Storage.saveSelectedCharacter(id);
-      else global.Storage.setLastChar(id);
       if (this.ui) this.ui.updateHomeCharacterPreview(id);
+      return true;
     },
 
     loadSelectedStage: function () {
@@ -104,7 +113,8 @@
       id = id || this.selectedCharacterId || "ranger";
       var ch = global.GameData.getCharacter(id) || global.GameData.getCharacter("ranger") || global.GameData.characters[0];
       var skill = ch ? global.GameData.getSkill(ch.startingSkill) : null;
-      return { character: ch, skill: skill };
+      var skin = ch && global.Storage.getEquippedSkin ? global.GameData.getSkin(global.Storage.getEquippedSkin(ch.id)) : null;
+      return { character: ch, skill: skill, skin: skin };
     },
 
     wireButtons: function () {
@@ -115,7 +125,7 @@
         while (t && t !== root && !(t.dataset && t.dataset.action)) t = t.parentNode;
         if (!t || !t.dataset || !t.dataset.action) return;
         if (global.AudioManager) global.AudioManager.playSfx("click");
-        self.handleAction(t.dataset.action);
+        self.handleAction(t.dataset.action, t);
       });
     },
 
@@ -152,6 +162,11 @@
         if (e.repeat) return;
         var c = e.code;
         if (c !== "Escape" && c !== "KeyP") return;
+        if (c === "Escape" && self.ui.isGachaResultVisible && self.ui.isGachaResultVisible()) {
+          e.preventDefault();
+          self.confirmGachaResult();
+          return;
+        }
         if (self.ui.isKnowledgeVisible && self.ui.isKnowledgeVisible()) { e.preventDefault(); return; }
         // 升級選擇進行中：ESC/P 不作用，交給升級面板（避免破壞升級流程）
         if (self.ui.isLevelUpVisible()) return;
@@ -161,20 +176,27 @@
         else if (st === "PAUSED") { e.preventDefault(); self.resume(); }
         else if (c === "Escape") {
           if (st === "SETTINGS_FROM_PAUSE" || st === "SETTINGS_FROM_HOME") { e.preventDefault(); self.closeSettings(); }
-          else if (st === "CONFIRM_HOME" || st === "CONFIRM_RESTART") { e.preventDefault(); self.confirmCancel(); }
-          else if (st === "CHARACTER_SELECT" || st === "SHOP" || st === "CODEX" || st === "HELP") { e.preventDefault(); self.handleAction("back"); }
+          else if (st === "CONFIRM_HOME" || st === "CONFIRM_RESTART" || st === "CONFIRM_RESET") { e.preventDefault(); self.confirmCancel(); }
+          else if (st === "CHARACTER_SELECT" || st === "GACHA" || st === "SHOP" || st === "ACHIEVEMENTS" || st === "CODEX" || st === "HELP") { e.preventDefault(); self.handleAction("back"); }
         }
       });
     },
 
-    handleAction: function (action) {
+    handleAction: function (action, source) {
       switch (action) {
         // 首頁
         case "play":          this.startSelectedStage(); break;
         case "stage-prev":    this.cycleStage(-1); break;
         case "stage-next":    this.cycleStage(1); break;
         case "characters":    this.openCharacterSelect(); break;
+        case "gacha":         this.openGacha(); break;
+        case "gacha-pull":    this.pullGacha(); break;
+        case "gacha-result-confirm": this.confirmGachaResult(); break;
+        case "commerce-hub":
         case "shop":          this.showScreen("shop"); this.ui.buildShop(); this.ui.updateCoinLabels(); this.setState("SHOP"); break;
+        case "achievements":  this.openAchievements(); break;
+        case "achievement-claim-all": this.claimAllAchievements(); break;
+        case "records-hub":
         case "codex":         this.showScreen("codex"); this.ui.buildCodex(); this.setState("CODEX"); break;
         case "help":          this.showScreen("help"); this.setState("HELP"); break;
         case "settings-home": this.openSettings("home"); break;
@@ -198,6 +220,9 @@
         case "confirm-cancel": this.confirmCancel(); break;
         case "confirm-ok":     this.confirmOk(); break;
       }
+      if (source && source.classList && source.classList.contains("btn-page-switch") && this.ui.focusVisiblePageSwitch) {
+        this.ui.focusVisiblePageSwitch();
+      }
     },
 
     showScreen: function (name) {
@@ -209,6 +234,7 @@
       this.ui.hideLevelUp();
       if (this.ui.hideKnowledgeCard) this.ui.hideKnowledgeCard(false);
       if (this.ui.hideRunIntro) this.ui.hideRunIntro();
+      if (this.ui.hideGachaResult) this.ui.hideGachaResult();
       this.ui.showPause(false);
       this.ui.showConfirm(false);
 
@@ -221,7 +247,57 @@
         document.getElementById(SCREENS[name]).classList.remove("hidden");
       }
       if (name === "menu" && this.ui) this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
+      if (name === "menu" && this.ui && this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
       if (name === "menu") this.updateStageSelector();
+    },
+
+    openAchievements: function () {
+      this.showScreen("achievements");
+      if (this.ui.setAchievementGroup) this.ui.setAchievementGroup(this.ui._achievementGroup || "all");
+      else if (this.ui.buildAchievements) this.ui.buildAchievements();
+      this.setState("ACHIEVEMENTS");
+    },
+
+    claimAchievement: function (id) {
+      if (!global.Achievements) return;
+      var result = global.Achievements.claim(id);
+      if (!result.ok) {
+        var message = result.reason === "claimed" ? "這份獎勵已經領取。" :
+          (result.reason === "locked" ? "尚未完成這項成就。" : "獎勵暫時無法領取，請稍後再試。");
+        this.ui.showToast("無法領取", message);
+      } else {
+        var parts = [];
+        if (result.coins) parts.push("循環幣 ♻ " + result.coins.toLocaleString("zh-TW"));
+        if (result.points) {
+          var character = global.GameData.getCharacter(result.targetCharacterId);
+          parts.push((character ? character.name : "角色") + "技能點 ×" + result.points);
+        }
+        this.ui.showToast("成就獎勵已領取", parts.join("、") || "獎勵已加入存檔。");
+      }
+      this.ui.updateCoinLabels();
+      if (this.ui.buildAchievements) this.ui.buildAchievements();
+    },
+
+    claimAllAchievements: function () {
+      if (!global.Achievements) return;
+      var claimable = global.Achievements.getAll({ claimable: true });
+      var claimed = 0;
+      var coins = 0;
+      var points = 0;
+      claimable.forEach(function (item) {
+        var result = global.Achievements.claim(item.id);
+        if (!result.ok) return;
+        claimed += 1;
+        coins += result.coins || 0;
+        points += result.points || 0;
+      });
+      if (claimed) {
+        var detail = "共 " + claimed + " 項、循環幣 ♻ " + coins.toLocaleString("zh-TW");
+        if (points) detail += "、角色技能點 ×" + points;
+        this.ui.showToast("成就獎勵已全部領取", detail);
+      }
+      this.ui.updateCoinLabels();
+      if (this.ui.buildAchievements) this.ui.buildAchievements();
     },
 
     cycleStage: function (delta) {
@@ -309,8 +385,10 @@
     /* ---------------- 角色 / 商店 ---------------- */
     openCharacterSelect: function () {
       this.candidateCharacterId = this.selectedCharacterId;
+      this.pendingCharacterStats = { attack: 0, speed: 0, hp: 0 };
       this.showScreen("characters");
       this.ui.buildCharacters(this.candidateCharacterId);
+      this.ui.updateCoinLabels();
       this.setState("CHARACTER_SELECT");
     },
 
@@ -318,15 +396,85 @@
       var character = global.GameData.getCharacter(id);
       if (!character) return;
       this.candidateCharacterId = character.id;
+      this.pendingCharacterStats = { attack: 0, speed: 0, hp: 0 };
       this.ui.buildCharacters(character.id);
     },
 
     confirmCharacterSelection: function () {
       var id = this.candidateCharacterId || this.selectedCharacterId || "ranger";
+      if (!global.Storage.isCharacterOwned(id)) {
+        this.ui.showToast("角色尚未解鎖", "請從生態扭蛋取得這名守護者。");
+        return;
+      }
       this.saveSelectedCharacter(id);
       this.showScreen("menu");
       this.ui.updateCoinLabels();
       this.setState("HOME");
+    },
+
+    changePendingCharacterStat: function (stat, delta) {
+      if (["attack", "speed", "hp"].indexOf(stat) === -1) return;
+      var progress = global.Storage.getCharacterProgress(this.candidateCharacterId);
+      var pending = this.pendingCharacterStats;
+      var used = pending.attack + pending.speed + pending.hp;
+      if (delta > 0 && used >= progress.availablePoints) return;
+      pending[stat] = Math.max(0, pending[stat] + (delta > 0 ? 1 : -1));
+      this.ui.buildCharacters(this.candidateCharacterId);
+    },
+
+    confirmCharacterStats: function () {
+      var result = global.Storage.allocateCharacterStats(this.candidateCharacterId, this.pendingCharacterStats);
+      if (!result.ok) return;
+      this.pendingCharacterStats = { attack: 0, speed: 0, hp: 0 };
+      this.ui.showToast("能力強化完成", "已使用 " + result.spent + " 點角色技能點。");
+      this.ui.buildCharacters(this.candidateCharacterId);
+    },
+
+    equipCharacterSkin: function (skinId) {
+      var result = global.Storage.equipSkin(this.candidateCharacterId, skinId);
+      if (!result.ok) {
+        this.ui.showToast("尚無法裝備", result.reason === "character" ? "請先解鎖角色。" : "請先從扭蛋取得這個 Skin。");
+        return;
+      }
+      if (this.selectedCharacterId === this.candidateCharacterId) this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
+      this.ui.buildCharacters(this.candidateCharacterId);
+    },
+
+    openGacha: function () {
+      this.gachaDrawing = false;
+      this.showScreen("gacha");
+      this.ui.buildGacha();
+      this.ui.updateCoinLabels();
+      this.setState("GACHA");
+    },
+
+    pullGacha: function () {
+      if (this.gachaDrawing) return;
+      var result = global.Gacha.pull();
+      if (!result.ok) {
+        if (result.reason === "coins") this.ui.showToast("循環幣不足", "每次抽取需要 1,000 枚循環幣。");
+        return;
+      }
+      try { global.dispatchEvent(new Event("gacha-progress")); } catch (e) {}
+      var self = this;
+      this.gachaDrawing = true;
+      this.ui.setGachaDrawing(true);
+      global.setTimeout(function () {
+        self.ui.setGachaDrawing(false);
+        self.ui.buildGacha(result);
+        self.ui.updateCoinLabels();
+        if (!self.ui.showGachaResult || !self.ui.showGachaResult(result)) {
+          self.gachaDrawing = false;
+        }
+      }, 720);
+    },
+
+    confirmGachaResult: function () {
+      if (this.ui.hideGachaResult) this.ui.hideGachaResult();
+      this.gachaDrawing = false;
+      this.ui.setGachaDrawing(false);
+      this.ui.buildGacha();
+      this.ui.updateCoinLabels();
     },
 
     buyUpgrade: function (id) {
@@ -343,13 +491,23 @@
     },
 
     resetSave: function () {
-      var ok = global.confirm("確定要重置所有存檔嗎？循環幣、商店升級與圖鑑都會清空。");
-      if (!ok) return;
+      this.ui.setConfirm(
+        "確定重置所有存檔？",
+        "循環幣、角色與造型、技能點、永久升級、關卡進度與圖鑑都會清空。此操作無法復原。",
+        "確認重置"
+      );
+      this.ui.showConfirm(true);
+      this.setState("CONFIRM_RESET");
+    },
+
+    doResetSave: function () {
+      this.ui.showConfirm(false);
       global.Storage.reset();
       if (global.AudioManager) global.AudioManager.init();
       this.selectedCharacterId = "ranger";
       this.currentSelectedCharacter = "ranger";
       this.candidateCharacterId = "ranger";
+      this.pendingCharacterStats = { attack: 0, speed: 0, hp: 0 };
       this.selectedChar = "ranger";
       this.currentChar = "ranger";
       this.selectedStageId = DEFAULT_STAGE_ID;
@@ -358,6 +516,7 @@
       this.ui.updateHomeCharacterPreview("ranger");
       this.updateStageSelector();
       this.ui.refreshSettings();
+      try { global.dispatchEvent(new Event("gacha-progress")); } catch (e) {}
       this.showScreen("menu");
       this.setState("HOME");
     },
@@ -412,7 +571,12 @@
     },
 
     confirmCancel: function () {
+      var resetConfirm = this.state === "CONFIRM_RESET";
       this.ui.showConfirm(false);
+      if (resetConfirm) {
+        this.setState("HOME");
+        return;
+      }
       this.ui.showPause(true);
       this.setState("PAUSED");
     },
@@ -420,6 +584,7 @@
     confirmOk: function () {
       if (this.state === "CONFIRM_HOME") this.doReturnHome();
       else if (this.state === "CONFIRM_RESTART") this.doRestart();
+      else if (this.state === "CONFIRM_RESET") this.doResetSave();
     },
 
     doReturnHome: function () {
@@ -441,11 +606,17 @@
 
     /* ---------------- 一局生命週期 ---------------- */
     startRun: function (charId, stageId) {
-      var character = global.GameData.getCharacter(charId) || global.GameData.characters[0];
-      this.currentChar = character.id;
+      var baseCharacter = global.GameData.getCharacter(charId) || global.GameData.characters[0];
+      if (!global.Storage.isCharacterOwned(baseCharacter.id)) baseCharacter = global.GameData.getCharacter("ranger") || global.GameData.characters[0];
+      var equippedSkinId = global.Storage.getEquippedSkin(baseCharacter.id);
+      var character = global.GameData.makePlayableCharacter
+        ? global.GameData.makePlayableCharacter(baseCharacter.id, equippedSkinId)
+        : baseCharacter;
+      this.currentChar = baseCharacter.id;
       var stage = global.GameData.getStage(stageId || this.selectedStageId) || global.GameData.getStage(DEFAULT_STAGE_ID);
       this.currentStageId = stage.id;
       var meta = global.Storage.getMetaBonuses();
+      meta.characterGrowth = global.Storage.getCharacterBonuses(baseCharacter.id);
       var player = new global.Player(character, meta);
 
       this.showScreen(null);     // 隱藏所有選單與覆蓋層
@@ -483,10 +654,20 @@
           if (global.Storage.saveSelectedStage) global.Storage.saveSelectedStage(unlocked.id);
         }
       }
+      if (global.Achievements && global.Achievements.recordRun) {
+        var achievementResult = global.Achievements.recordRun(stats);
+        stats.newAchievements = achievementResult && achievementResult.unlockedAchievements
+          ? achievementResult.unlockedAchievements
+          : [];
+      }
       this.ui.buildResult(stats);
       this.showScreen(stats.result === "victory" ? "victory" : "gameover");
       this.ui.updateCoinLabels();
+      if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
       this.updateStageSelector();
+      if (stats.newAchievements && stats.newAchievements.length) {
+        this.ui.showToast("完成 " + stats.newAchievements.length + " 項新成就", "返回主畫面後可前往成就頁領取獎勵。");
+      }
       this.setState(stats.result === "victory" ? "VICTORY" : "GAME_OVER");
     },
 

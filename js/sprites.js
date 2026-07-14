@@ -85,6 +85,24 @@
         "...BB..BB..."
       ]
     },
+    char_chemist: {
+      palette: { H: "#67263e", h: "#351929", M: "#bcefe8", S: "#c98662", e: "#20323a", T: "#159f99", t: "#0b6667", W: "#eee8d2", A: "#e28a24", G: "#2d3b3f", B: "#17252b" },
+      rows: [
+        "....hhhh....",
+        "...hHHHHh...",
+        "..hHHMMHHh..",
+        "....SSSS....",
+        "...SSeeSS...",
+        "...SSSSSS...",
+        "..tTWWWWTt..",
+        ".tTTWWWWTTt.",
+        ".tTTAAAATTt.",
+        "..GGG..GGG..",
+        "...TT..TT...",
+        "...BB..BB...",
+        "...BB..BB..."
+      ]
+    },
 
     // -------- 敵人 --------
     enemy_bag: {
@@ -510,6 +528,22 @@
           ctx.fillStyle = "#ffd33f"; ctx.fillRect(size * 0.22, size * 0.62, size * 0.12, size * 0.10);
           ctx.fillRect(size * 0.66, size * 0.62, size * 0.12, size * 0.10);
           ctx.fillStyle = "#d9f9f5"; ctx.fillRect(c - size * 0.04, size * 0.10, size * 0.08, size * 0.30);
+          break;
+        }
+        case "skill_trail": {
+          disc("#082f31", size * 0.46);
+          ctx.strokeStyle = "#6ce7c3";
+          ctx.lineWidth = Math.max(2, size * 0.12);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(size * 0.18, size * 0.72);
+          ctx.quadraticCurveTo(size * 0.34, size * 0.44, size * 0.50, size * 0.58);
+          ctx.quadraticCurveTo(size * 0.66, size * 0.72, size * 0.82, size * 0.28);
+          ctx.stroke();
+          ctx.fillStyle = "#d9fff1";
+          [[0.25, 0.67, 0.055], [0.51, 0.55, 0.045], [0.75, 0.36, 0.06]].forEach(function (dot) {
+            ctx.beginPath(); ctx.arc(size * dot[0], size * dot[1], size * dot[2], 0, Math.PI * 2); ctx.fill();
+          });
           break;
         }
         case "shop_soil": {

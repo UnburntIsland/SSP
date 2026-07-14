@@ -127,7 +127,8 @@
   Enemy.prototype.takeDamage = function (n, options) {
     options = options || {};
     if (this.dead) return false;
-    if (!options.continuous && this.damageInvulnTimer > 0) return false;
+    // damageInvulnTimer 只控制受擊閃爍，不再吞掉同一瞬間來自不同技能的傷害。
+    // 每顆投射物本身已有 hitSet，區域技能也有各自的結算節流，因此不需要全域傷害無敵。
     this.hp -= n;
     if (options.continuous) {
       if (this.continuousHitFlashTimer <= 0) {

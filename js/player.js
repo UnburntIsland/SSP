@@ -12,6 +12,7 @@
     pickupRange: 72,
     invuln: 0.6          // 受擊後無敵時間（秒），雨水收集會延長
   };
+  var MIN_COOLDOWN_MULT = 0.60;
 
   function Player(character, meta) {
     this.character = character;
@@ -19,20 +20,27 @@
 
     var p = character.passive || {};
     meta = meta || {};
+    var growth = meta.characterGrowth || { attackMult: 1, speedMult: 1, hpMult: 1 };
 
-    // 生命值：基礎 + 商店土壤加成，再乘上角色倍率
-    this.maxHp = Math.round((BASE.maxHp + (meta.bonusMaxHp || 0)) * (p.maxHpMult || 1));
+    // 生命值：基礎 + 商店土壤，再乘角色能力強化與 Skin。
+    this.maxHp = Math.round((BASE.maxHp + (meta.bonusMaxHp || 0)) * (p.maxHpMult || 1) * (growth.hpMult || 1));
     this.hp = this.maxHp;
 
-    this.speed = BASE.speed * (p.speedMult || 1);
+    this.speed = BASE.speed * (p.speedMult || 1) * (growth.speedMult || 1);
+    this.damageMult = (p.damageMult || 1) * (growth.attackMult || 1);
     this.environmentSpeedMult = 1;
     this.radius = BASE.radius;
 
     // 拾取範圍：基礎 × 角色倍率 ×（1 + 商店生態感知）
     this.pickupRange = BASE.pickupRange * (p.pickupRangeMult || 1) * (1 + (meta.pickupRangeBonus || 0));
 
-    // 技能冷卻倍率：角色倍率 ×（1 - 商店節能）
-    this.cooldownMult = (p.cooldownMult || 1) * (1 - (meta.cooldownReduce || 0));
+    // 技能冷卻倍率：角色倍率 ×（1 - 商店節能）。
+    // 60% 是全域安全下限，避免永久升級與局內節能反覆相乘後趨近零冷卻。
+    this.minCooldownMult = MIN_COOLDOWN_MULT;
+    this.cooldownMult = Math.max(
+      this.minCooldownMult,
+      (p.cooldownMult || 1) * (1 - (meta.cooldownReduce || 0))
+    );
 
     // 局後循環幣倍率（商店回收分類）
     this.coinMult = 1 + (meta.coinBonusMult || 0);
@@ -88,16 +96,27 @@
     return null;
   };
 
-  Player.prototype.addSkill = function (skillId) {
-    if (this.hasSkill(skillId)) { this.upgradeSkill(skillId); return; }
+  Player.prototype.addSkill = function (skillId, options) {
     var skill = global.GameData.getSkill(skillId);
-    if (!skill) return;
+    if (!skill) return false;
+    var testOverride = !!(options && options.allowTestOverride && global.TestMode && global.TestMode.enabled);
+    if (!testOverride && global.GameData.canCharacterUseSkill && !global.GameData.canCharacterUseSkill(skill, this.character)) {
+      return false;
+    }
+    if (this.hasSkill(skillId)) { this.upgradeSkill(skillId); return true; }
     this.weapons.push(new global.Weapon(skill, this));
+    return true;
   };
 
   Player.prototype.upgradeSkill = function (skillId) {
     var w = this.getWeapon(skillId);
-    if (w) w.levelUp();
+    if (!w) return false;
+    if (global.GameData.canCharacterUseSkill && !global.GameData.canCharacterUseSkill(w.skill, this.character)) {
+      return false;
+    }
+    var before = w.level;
+    w.levelUp();
+    return w.level > before;
   };
 
   // 回傳本次升了幾級（0 表示沒升級）

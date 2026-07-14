@@ -1,0 +1,277 @@
+{
+  "skinCount": 15,
+  "expectedFramesPerSkin": 40,
+  "totalFrames": 600,
+  "skins": {
+    "ranger_thorn": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.3314,
+        0.3961
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "ranger_gale": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.3415,
+        0.4044
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "ranger_canopy": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.3503,
+        0.4236
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "beach_harpoon": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2147,
+        0.2949
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "beach_wave": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.219,
+        0.2937
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "beach_coral": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.218,
+        0.2877
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "solar_flare": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2822,
+        0.3604
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "solar_lighttrail": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2811,
+        0.359
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "solar_battery": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2803,
+        0.3588
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "mechanic_arc": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.3048,
+        0.3457
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "mechanic_bearing": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2855,
+        0.3197
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "mechanic_bulwark": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.3204,
+        0.3509
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "chemist_catalyst": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2671,
+        0.3287
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "chemist_current": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2652,
+        0.3294
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    },
+    "chemist_springguard": {
+      "frameCount": 40,
+      "coverageRange": [
+        0.2674,
+        0.3313
+      ],
+      "walkVariants": {
+        "N": 4,
+        "NE": 4,
+        "E": 4,
+        "SE": 4,
+        "S": 4,
+        "SW": 4,
+        "W": 4,
+        "NW": 4
+      },
+      "residualMagentaPixels": 0
+    }
+  }
+}

@@ -2165,11 +2165,11 @@ html.is-mobile, .is-mobile body{
 
 /* ============================================================
    手機大廳（is-mobile 限定；桌機不受影響）
-   - 隱藏「角色選擇」按鈕與底部金幣列
+   - 保留角色選擇入口，並以角色卡提供快速切換
    - 角色卡移到按鈕右側，點擊展開摺疊選單直接切換角色
    - 金幣 chip 顯示於左上角
    ============================================================ */
-.is-mobile #screen-menu [data-action="characters"]{ display:none; }
+.is-mobile #screen-menu [data-action="characters"]{ display:block; }
 .is-mobile #screen-menu .coin-display{ display:none; }
 .is-mobile #screen-menu{ overflow:visible; }  /* absolute(inset:0) 本身即定位基準，滿版置中 */
 .is-mobile #screen-menu .menu-buttons{ transform:translateX(-165px); }
@@ -3092,9 +3092,10 @@ html.is-mobile, .is-mobile body{
   inset:0;
   z-index:2;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
-  padding:36px;
+  padding:24px;
   color:#fff0b0;
   font-size:15px;
   line-height:1.55;
@@ -3104,20 +3105,24 @@ html.is-mobile, .is-mobile body{
 }
 .stage-card-lock::before{
   content:"";
-  position:absolute;
+  position:static;
+  order:-1;
+  flex:0 0 auto;
   width:50px;
   height:38px;
-  top:74px;
+  margin-bottom:14px;
   border:5px solid #ffd45c;
   border-radius:4px;
   box-shadow:inset 0 0 0 3px rgba(8,28,34,.9);
 }
 .stage-card-lock::after{
   content:"";
-  position:absolute;
+  position:static;
+  order:-2;
+  flex:0 0 auto;
   width:28px;
   height:28px;
-  top:50px;
+  margin-bottom:-4px;
   border:5px solid #ffd45c;
   border-bottom:0;
   border-radius:16px 16px 0 0;
@@ -3845,6 +3850,423 @@ html.is-mobile #stage .overlay{
 ){
   font-size:var(--mobile-readable-font);
 }
+
+/* ============================================================
+   生態扭蛋 / 守護者管理（2026-07）
+   ============================================================ */
+#screen-characters{
+  padding:18px 24px 14px;
+  gap:8px;
+}
+#screen-characters .screen-title{ font-size:30px; margin:0; }
+.guardian-summary{
+  width:min(1160px, calc(100% - 30px));
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  color:#b9d9d0;
+  font-size:13px;
+}
+.guardian-summary span{ color:#4dd0c4; }
+.guardian-layout{
+  width:min(1160px, calc(100% - 30px));
+  height:496px;
+  display:grid;
+  grid-template-columns:250px minmax(0, 1fr);
+  gap:14px;
+  min-height:0;
+}
+#screen-characters .guardian-list{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+#screen-characters .guardian-list-card{
+  position:relative;
+  flex:0 0 auto;
+  width:100%;
+  min-height:108px;
+  display:grid;
+  grid-template-columns:78px 1fr;
+  grid-template-rows:1fr;
+  align-items:center;
+  padding:9px 10px;
+  border:2px solid rgba(117,171,160,.48);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(21,68,84,.96),rgba(11,43,57,.96));
+  box-shadow:0 4px 0 rgba(5,18,25,.82);
+  cursor:pointer;
+  overflow:hidden;
+}
+#screen-characters .guardian-list-card:hover{ transform:translateY(-1px); border-color:#4dd0c4; }
+#screen-characters .guardian-list-card.selected{ border-color:#ffd84a; box-shadow:0 4px 0 rgba(5,18,25,.82),0 0 0 2px rgba(255,216,74,.28); }
+#screen-characters .guardian-list-card.locked{ filter:saturate(.45); }
+#screen-characters .guardian-list-card.locked .char-portrait{ opacity:.38; filter:brightness(.45); }
+#screen-characters .guardian-list-card .char-portrait{
+  width:70px;
+  height:82px;
+  object-fit:contain;
+  background:rgba(3,16,24,.42);
+  border:1px solid rgba(117,171,160,.35);
+  border-radius:6px;
+  margin:0;
+}
+.guardian-list-copy{ min-width:0; }
+#screen-characters .guardian-list-card .char-name{ font-size:17px; text-align:left; margin:0; }
+#screen-characters .guardian-list-card .char-role{ font-size:11px; text-align:left; margin:5px 0 0; letter-spacing:.5px; }
+.guardian-point-badge{
+  position:absolute; right:7px; top:7px; min-width:22px; height:22px; padding:0 5px;
+  display:grid; place-items:center; border-radius:11px; background:#f06a4a; color:white; font-size:12px; font-weight:700;
+}
+.guardian-current-mark{ position:absolute; right:7px; bottom:7px; color:#ffd84a; font-size:10px; }
+.guardian-detail{
+  min-width:0;
+  display:grid;
+  grid-template-columns:300px minmax(0,1fr);
+  gap:12px;
+  padding:12px;
+  border:2px solid rgba(117,171,160,.45);
+  border-radius:10px;
+  background:linear-gradient(135deg,rgba(9,39,52,.96),rgba(16,58,68,.94));
+  box-shadow:0 5px 0 rgba(4,17,24,.8);
+}
+.guardian-showcase{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:6px 12px;
+  border-right:1px solid rgba(117,171,160,.25);
+}
+.guardian-state{ color:#ffd84a; font-size:11px; letter-spacing:1px; }
+.guardian-main-portrait{ width:210px; height:236px; object-fit:contain; image-rendering:pixelated; margin:2px 0; }
+.guardian-name{ color:#78d66b; font-size:24px; margin:0; }
+.guardian-role{ color:#ffd84a; font-size:12px; margin-top:4px; }
+.guardian-skill,.guardian-passive{ color:#d8f4ec; font-size:12px; line-height:1.45; margin-top:6px; }
+.guardian-unlock-hint{ color:#f3b59f; font-size:11px; line-height:1.45; margin-top:10px; }
+.guardian-manage{ min-width:0; display:flex; flex-direction:column; }
+.guardian-section-title{ color:#dff4e8; font-size:16px; margin:0 0 7px; }
+.guardian-skins{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+.guardian-skin-card{
+  min-width:0; min-height:126px; padding:5px;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  border:1px solid rgba(117,171,160,.48); border-radius:7px;
+  background:rgba(5,29,40,.7); color:#d8f4ec; cursor:pointer;
+}
+.guardian-skin-card:hover:not(:disabled){ border-color:#4dd0c4; transform:translateY(-1px); }
+.guardian-skin-card.active{ border:2px solid #ffd84a; background:rgba(76,70,22,.35); }
+.guardian-skin-card.locked{ opacity:.55; }
+.guardian-skin-thumb{ width:70px; height:74px; object-fit:contain; image-rendering:pixelated; }
+.guardian-skin-silhouette{ width:70px; height:74px; display:grid; place-items:center; font-size:30px; color:#527580; background:rgba(1,13,20,.42); }
+.guardian-skin-name{ width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:#e7f3bd; margin-top:2px; }
+.guardian-skin-bonus{ font-size:10px; color:#4dd0c4; margin-top:3px; }
+.guardian-upgrade-header{ display:flex; justify-content:space-between; align-items:center; margin-top:11px; }
+.guardian-upgrade-header .guardian-section-title{ margin:0; }
+.guardian-points{ color:#ffd84a; font-size:12px; }
+.guardian-stats{ display:flex; flex-direction:column; gap:6px; margin-top:7px; }
+.guardian-stat-row{
+  min-height:48px; display:grid; grid-template-columns:28px minmax(0,1fr) 34px 34px; gap:6px; align-items:center;
+  padding:5px 7px; border-radius:6px; background:rgba(4,27,37,.62); border:1px solid rgba(117,171,160,.22);
+}
+.guardian-stat-icon{ color:#ffd84a; font-size:18px; text-align:center; }
+.guardian-stat-copy{ display:flex; flex-direction:column; min-width:0; }
+.guardian-stat-name{ color:#dff4e8; font-size:13px; }
+.guardian-stat-value{ color:#94c9bd; font-size:10px; margin-top:2px; }
+.guardian-stat-button{ width:32px; height:32px; border:1px solid #4dd0c4; border-radius:5px; background:#123f4d; color:#e8fff9; font-size:20px; cursor:pointer; }
+.guardian-stat-button:disabled{ opacity:.35; cursor:not-allowed; }
+.guardian-apply{ align-self:flex-end; min-width:170px; min-height:40px; height:40px; margin-top:8px; font-size:14px; }
+#screen-characters .screen-footer{ grid-template-columns:120px 180px; margin-top:1px; }
+#screen-characters .screen-footer .btn{ height:44px; min-height:44px; font-size:16px; }
+
+/* 成對頁面共用標題列。切換導覽統一放在頁尾，避免與內容狀態互相搶位。 */
+.paired-page-header{
+  width:min(1020px,calc(100% - 40px));
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  flex:0 0 auto;
+  margin:0 auto;
+}
+#screen-shop > .paired-page-header{ width:min(720px,calc(100% - 40px)); }
+.paired-page-heading{
+  min-width:0;
+  text-align:left;
+}
+.paired-page-heading .screen-title{ margin:0; text-align:left; }
+.paired-page-heading .screen-desc{ margin:5px 0 0; line-height:1.45; }
+.paired-page-tools{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex:0 0 auto;
+}
+
+/* 配對頁切換鍵與返回鍵共用相同尺寸與按鈕骨架，只用青綠色表示「前往另一頁」。 */
+.paired-page-footer{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(150px,180px));
+  justify-content:center;
+  gap:12px;
+}
+.paired-page-footer .btn{
+  width:100%;
+  min-width:0;
+  min-height:44px;
+}
+.btn-page-switch{
+  background:#155b61;
+  border-color:#0b3439;
+  box-shadow:0 4px 0 #0b3439,inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.btn-page-switch:hover{ background:#22777a; }
+.btn-page-switch:focus-visible{
+  outline:3px solid #fff1a8;
+  outline-offset:3px;
+}
+
+#screen-gacha{ padding:22px 34px 16px; gap:12px; }
+.gacha-header{ width:min(1120px,calc(100% - 40px)); display:flex; justify-content:space-between; align-items:center; gap:20px; }
+#screen-gacha .screen-title{ margin:0; font-size:32px; }
+#screen-gacha .screen-desc{ margin:4px 0 0; }
+.gacha-wallet{ min-width:150px; padding:10px 16px; text-align:center; border:2px solid #4dd0c4; border-radius:10px; background:rgba(7,37,48,.86); color:#4dd0c4; font-size:22px; }
+.gacha-layout{ width:min(1120px,calc(100% - 40px)); height:510px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:16px; }
+.gacha-machine-panel,.gacha-pool-panel{ border:2px solid rgba(117,171,160,.45); border-radius:12px; background:linear-gradient(150deg,rgba(11,48,62,.96),rgba(6,31,43,.96)); box-shadow:0 5px 0 rgba(3,15,22,.8); }
+.gacha-machine-panel{ display:flex; flex-direction:column; align-items:center; padding:15px 22px; }
+.gacha-collection{ width:100%; display:flex; justify-content:center; gap:10px; }
+.gacha-collection span{ padding:5px 10px; border-radius:12px; background:rgba(77,208,196,.12); color:#bfe9de; font-size:11px; }
+.gacha-machine{ width:100%; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.gacha-capsule{
+  width:166px; height:166px; display:grid; place-items:center; border-radius:50%;
+  border:8px solid #f3e7c6; background:linear-gradient(180deg,#f7c948 0 48%,#f06a4a 49% 100%);
+  box-shadow:inset 0 0 0 6px rgba(36,48,57,.3),0 12px 0 rgba(3,18,27,.45),0 0 32px rgba(247,201,72,.22);
+}
+.gacha-capsule span{ display:grid; place-items:center; width:48px; height:48px; border-radius:50%; background:#243039; color:#f3e7c6; font-size:30px; }
+.gacha-machine.drawing .gacha-capsule{ animation:gachaShake .13s linear infinite; }
+.gacha-machine.revealed .gacha-capsule{ animation:gachaReveal .7s ease both; }
+@keyframes gachaShake{ 0%,100%{transform:translateX(-4px) rotate(-3deg)} 50%{transform:translateX(4px) rotate(3deg)} }
+@keyframes gachaReveal{ 0%{transform:scale(.85) rotate(-12deg)} 55%{transform:scale(1.14) rotate(7deg)} 100%{transform:scale(1)} }
+.gacha-result{ min-height:58px; margin-top:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#c6e4dc; font-size:13px; }
+.gacha-result strong{ color:#ffd84a; font-size:18px; margin-bottom:5px; }
+.gacha-result span{ color:#bfe9de; }
+.gacha-pull{ width:280px; min-height:52px; font-size:17px; }
+
+/* 抽取完成後的獨立獎勵頁：使用實際角色／Skin 圖片，確認後才回到扭蛋機。 */
+.gacha-reward-overlay{
+  z-index:36;
+  padding:16px;
+  box-sizing:border-box;
+  background:radial-gradient(circle at 50% 36%,rgba(35,116,109,.42),rgba(4,14,22,.92) 62%);
+  backdrop-filter:blur(3px);
+}
+.gacha-reward-panel{
+  --reward-accent:#78d66b;
+  position:relative;
+  width:min(480px,calc(100% - 40px));
+  max-height:calc(100% - 18px);
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  overflow-y:auto;
+  padding:24px 30px 26px;
+  color:#e9f7f1;
+  background:linear-gradient(165deg,rgba(13,54,65,.98),rgba(5,27,39,.99));
+  border:3px solid var(--reward-accent);
+  border-radius:16px;
+  box-shadow:0 8px 0 #071820,0 0 42px color-mix(in srgb,var(--reward-accent) 34%,transparent),inset 0 0 0 2px rgba(255,255,255,.06);
+  animation:gachaRewardPanelIn .28s cubic-bezier(.2,.8,.25,1) both;
+}
+.gacha-reward-panel::before{
+  content:"";
+  position:absolute;
+  inset:8px;
+  border:1px solid color-mix(in srgb,var(--reward-accent) 42%,transparent);
+  border-radius:11px;
+  pointer-events:none;
+}
+@keyframes gachaRewardPanelIn{
+  from{ opacity:0; transform:translateY(18px) scale(.94); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+.gacha-reward-eyebrow{
+  position:relative;
+  z-index:1;
+  padding:5px 14px;
+  color:#071820;
+  background:var(--reward-accent);
+  border:2px solid rgba(255,255,255,.58);
+  border-radius:999px;
+  box-shadow:0 3px 0 rgba(3,18,25,.82);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:1.5px;
+}
+.gacha-reward-visual{
+  position:relative;
+  width:210px;
+  height:220px;
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:3px solid color-mix(in srgb,var(--reward-accent) 70%,#e8fff5);
+  border-radius:14px;
+  background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--reward-accent) 30%,transparent),rgba(4,22,31,.94) 70%);
+  box-shadow:inset 0 0 28px rgba(0,0,0,.32),0 5px 0 rgba(2,15,21,.82);
+}
+.gacha-reward-visual::after{
+  content:"";
+  position:absolute;
+  inset:8px;
+  border:1px dashed color-mix(in srgb,var(--reward-accent) 52%,transparent);
+  border-radius:9px;
+  pointer-events:none;
+}
+.gacha-reward-image{
+  width:100%;
+  height:100%;
+  max-width:196px;
+  max-height:206px;
+  object-fit:contain;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 7px 4px rgba(0,0,0,.46));
+}
+.gacha-reward-title{
+  position:relative;
+  z-index:1;
+  margin:1px 0 0;
+  color:#fff3b0;
+  font-size:28px;
+  line-height:1.2;
+  letter-spacing:1px;
+  text-shadow:3px 3px 0 #071820;
+}
+.gacha-reward-desc{
+  position:relative;
+  z-index:1;
+  max-width:390px;
+  margin:0;
+  color:#cce8df;
+  font-size:13px;
+  line-height:1.6;
+}
+.gacha-reward-bonus{
+  position:relative;
+  z-index:1;
+  min-height:34px;
+  display:grid;
+  place-items:center;
+  padding:6px 18px;
+  color:var(--reward-accent);
+  background:rgba(3,20,29,.72);
+  border:2px solid color-mix(in srgb,var(--reward-accent) 68%,#17343d);
+  border-radius:8px;
+  font-size:14px;
+  font-weight:700;
+}
+.gacha-reward-confirm{
+  position:relative;
+  z-index:1;
+  width:min(260px,100%);
+  min-height:48px;
+  margin-top:2px;
+  font-size:16px;
+}
+.gacha-reward-panel .btn.ui-button.gacha-reward-confirm{
+  width:min(260px,100%);
+}
+.gacha-pool-panel{ min-height:0; padding:15px; display:flex; flex-direction:column; overflow:hidden; }
+.gacha-pool-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  color:#ffd84a;
+  font-size:15px;
+  margin-bottom:10px;
+}
+.gacha-pool-title::after{
+  content:"↕ 滑動查看全部";
+  flex:0 0 auto;
+  color:#8fc9ba;
+  font-size:10px;
+  font-weight:400;
+  letter-spacing:.4px;
+  white-space:nowrap;
+}
+.gacha-pool{
+  flex:1 1 auto;
+  min-height:0;
+  max-height:100%;
+  overflow-x:hidden;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding-right:4px;
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+.gacha-pool:focus-visible{
+  outline:3px solid #ffd84a;
+  outline-offset:3px;
+}
+.gacha-pool-item{ min-height:66px; display:grid; grid-template-columns:56px 54px minmax(0,1fr) 64px; align-items:center; gap:8px; padding:5px 8px; border-radius:6px; background:rgba(4,25,35,.62); border:1px solid rgba(117,171,160,.18); }
+.gacha-pool-thumb{
+  width:52px;
+  height:52px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:2px solid var(--gacha-item-accent,rgba(120,214,107,.55));
+  border-radius:7px;
+  background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.12),rgba(5,24,33,.8) 72%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.gacha-pool-thumb-image{
+  width:100%;
+  height:100%;
+  max-width:50px;
+  max-height:50px;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
+.gacha-pool-kind{ color:#0b2631; background:#78d66b; border-radius:4px; text-align:center; padding:2px 4px; font-size:10px; line-height:1.2; white-space:nowrap; }
+.gacha-pool-item.skin .gacha-pool-kind{ background:#4dd0c4; }
+.gacha-pool-name{ color:#dff4e8; font-size:12px; }
+.gacha-pool-chance{ color:#ffd84a; text-align:right; font-size:12px; }
+#screen-gacha .screen-footer{ margin-top:0; }
+#screen-gacha .screen-footer .btn{ width:150px; min-height:42px; height:42px; font-size:15px; }
+
+.mobile-char-item.locked{ opacity:.55; }
+.mobile-char-item.locked .mobile-char-item-icon{ filter:brightness(.4) grayscale(.5); }
+
+.is-mobile #screen-characters,.is-mobile #screen-gacha{
+  padding-left:calc(var(--vis-inset-left,0px) + 12px);
+  padding-right:calc(var(--vis-inset-right,0px) + 12px);
+}
+.is-mobile .guardian-layout,.is-mobile .gacha-layout{ width:100%; }
+.is-mobile .guardian-layout{ grid-template-columns:210px minmax(0,1fr); gap:8px; }
+.is-mobile .guardian-detail{ grid-template-columns:250px minmax(0,1fr); gap:7px; padding:8px; }
+.is-mobile .guardian-main-portrait{ width:170px; height:205px; }
+.is-mobile .guardian-skin-card{ min-height:112px; }
+.is-mobile .guardian-skin-thumb,.is-mobile .guardian-skin-silhouette{ width:58px; height:62px; }
+.is-mobile .gacha-layout{ grid-template-columns:minmax(0,1fr) minmax(0,.86fr); }
 .compact-visible #stage :is(
   .char-role,
   .char-line,
@@ -3899,11 +4321,14 @@ html.is-mobile #stage .overlay{
   overflow:visible;
 }
 .compact-visible #stage #screen-codex .codex-enemy-card{
-  min-height:126px;
+  min-height:136px;
   grid-template-columns:96px minmax(0, 1fr);
   grid-template-rows:auto;
 }
-.compact-visible #stage #screen-codex .codex-enemy-art{ min-height:126px; }
+.compact-visible #stage #screen-codex .codex-enemy-art{
+  min-height:0;
+  height:100%;
+}
 .compact-visible #stage #screen-codex .codex-enemy-art :is(img, canvas){
   width:88px;
   height:88px;
@@ -4008,11 +4433,42 @@ html.is-mobile #stage .overlay{
 /* 窄 overlay：panel 寬度只取可見區，卡片改一欄並可捲。 */
 .compact-visible #stage .overlay{ align-items:flex-start; }
 .compact-visible #stage #overlay-levelup .overlay-inner,
-.compact-visible #stage :is(.knowledge-card-panel, .run-intro-panel, .enemy-intro-card, .pause-panel),
+.compact-visible #stage :is(.knowledge-card-panel, .run-intro-panel, .enemy-intro-card, .pause-panel, .gacha-reward-panel),
 .compact-visible #stage #overlay-confirm .confirm-panel{
   width:100%;
   max-width:440px;
   max-height:none;
+}
+.compact-visible #stage .gacha-reward-overlay{
+  align-items:flex-start;
+  overflow-y:auto;
+  padding:12px 16px;
+}
+.compact-visible #stage .gacha-reward-panel{
+  width:min(440px,calc(var(--visible-stage-width,440px) - 32px));
+  max-height:calc(var(--visible-stage-height,720px) - 24px);
+  gap:7px;
+  padding:18px 16px 20px;
+}
+.compact-visible #stage .gacha-reward-visual{
+  width:160px;
+  height:168px;
+}
+.compact-visible #stage .gacha-reward-image{
+  max-width:150px;
+  max-height:158px;
+}
+.compact-visible #stage .gacha-reward-title{
+  font-size:calc(var(--mobile-readable-font) * 1.4);
+}
+.compact-visible #stage .gacha-reward-desc,
+.compact-visible #stage .gacha-reward-bonus,
+.compact-visible #stage .gacha-reward-eyebrow{
+  font-size:var(--mobile-caption-font);
+}
+.compact-visible #stage .gacha-reward-confirm{
+  min-height:var(--mobile-touch-target);
+  font-size:var(--mobile-readable-font);
 }
 .compact-visible #stage #overlay-levelup .levelup-options,
 .compact-visible #stage #overlay-levelup .quiz-options{
@@ -4206,4 +4662,1582 @@ html.is-mobile #stage #mobile-char-list .mobile-char-item-name{
 html.is-mobile #stage #mobile-char-list .mobile-char-item-role,
 html.is-mobile #stage #mobile-pause-btn{
   font-size:var(--mobile-caption-font);
+}
+
+/* ============================================================
+   跨裝置 GUI 收斂（桌機／平板／手機）
+   - 頁首、內容、頁尾各自佔列，避免低高度時上下同時被裁切
+   - 直向裝置只捲中央內容，主要操作永遠留在畫面內
+   ============================================================ */
+:is(.btn, .link-reset, .stage-arrow, .guardian-list-card, .guardian-skin-card,
+    .guardian-stat-button, .codex-tab, .mobile-char-item):focus-visible{
+  outline:3px solid #ffd84a;
+  outline-offset:3px;
+}
+.link-reset{
+  min-height:42px;
+  padding:7px 10px;
+  border-radius:5px;
+}
+.shop-buy .btn{ min-height:42px; }
+.guardian-stat-button{ width:44px; height:44px; }
+.guardian-stat-row{ grid-template-columns:28px minmax(0,1fr) 46px 46px; }
+.guardian-skin-name{ line-height:1.3; }
+
+#screen-characters{
+  --guardian-roster-height:467px;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  justify-content:stretch;
+  align-content:stretch;
+  align-items:stretch;
+}
+#screen-characters > .screen-title,
+#screen-characters > .screen-footer{ justify-self:center; }
+.guardian-summary{ justify-self:center; }
+.guardian-layout{
+  height:min(var(--guardian-roster-height),100%);
+  max-height:var(--guardian-roster-height);
+  min-height:0;
+  align-self:center;
+  justify-self:center;
+}
+#screen-characters .guardian-list{
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  padding:2px 5px 6px 2px;
+}
+.guardian-detail{
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+#screen-gacha{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  justify-content:stretch;
+  align-content:stretch;
+  align-items:stretch;
+}
+.gacha-header,.gacha-layout{ justify-self:center; }
+.gacha-layout{
+  height:auto;
+  min-height:0;
+  grid-template-rows:minmax(0,1fr);
+  align-items:stretch;
+  align-self:stretch;
+}
+.gacha-machine-panel,.gacha-pool-panel{ min-height:0; }
+.gacha-collection{ flex-wrap:wrap; }
+.gacha-pool-item{ grid-template-columns:56px 54px minmax(0,1fr) 64px; }
+.gacha-pool-name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#screen-gacha > .screen-footer{ justify-self:center; }
+
+html:not(.is-mobile) #screen-settings .slider{ min-height:42px; }
+html:not(.is-mobile) #screen-settings .setting-row[data-setting="mute"] .toggle{ min-height:42px; }
+@media (min-width:901px) and (min-height:701px){
+  html:not(.is-mobile) .guardian-layout,
+  html:not(.is-mobile) .gacha-layout{
+    max-height:560px;
+    align-self:center;
+  }
+  html:not(.is-mobile) #screen-gacha .gacha-layout{
+    max-height:none;
+    align-self:stretch;
+  }
+  html:not(.is-mobile) #screen-characters .guardian-layout{
+    height:var(--guardian-roster-height);
+    max-height:var(--guardian-roster-height);
+    align-self:center;
+  }
+}
+
+:is(.shop-list,.codex-list,.help-list,.guardian-list,.guardian-detail,.gacha-pool,.gacha-layout){
+  scrollbar-width:thin;
+  scrollbar-color:#4f9f99 rgba(4,22,30,.55);
+}
+:is(.shop-list,.codex-list,.help-list,.guardian-list,.guardian-detail,.gacha-pool,.gacha-layout)::-webkit-scrollbar{
+  width:9px;
+  height:9px;
+}
+:is(.shop-list,.codex-list,.help-list,.guardian-list,.guardian-detail,.gacha-pool,.gacha-layout)::-webkit-scrollbar-track{
+  background:rgba(4,22,30,.55);
+  border-radius:8px;
+}
+:is(.shop-list,.codex-list,.help-list,.guardian-list,.guardian-detail,.gacha-pool,.gacha-layout)::-webkit-scrollbar-thumb{
+  background:#4f9f99;
+  border:2px solid rgba(4,22,30,.72);
+  border-radius:8px;
+}
+
+@media (max-width:900px){
+  .guardian-layout{ grid-template-columns:210px minmax(0,1fr); }
+  .guardian-detail{ grid-template-columns:220px minmax(0,1fr); }
+  .guardian-skins{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .guardian-main-portrait{ width:160px; height:190px; }
+}
+
+@media (max-height:800px){
+  #screen-characters{ --guardian-roster-height:427px; }
+  #screen-characters .guardian-list-card{
+    min-height:98px;
+    grid-template-columns:70px minmax(0,1fr);
+    padding:7px 9px;
+  }
+  #screen-characters .guardian-list-card .char-portrait{
+    width:64px;
+    height:76px;
+  }
+}
+
+@media (max-height:620px){
+  #screen-characters{ --guardian-roster-height:363px; }
+  #screen-characters,#screen-gacha{ gap:5px; padding-top:8px; padding-bottom:8px; }
+  #screen-characters .screen-title,#screen-gacha .screen-title{ font-size:25px; line-height:1.05; }
+  .guardian-summary{ font-size:11px; }
+  #screen-characters .guardian-list-card{ min-height:82px; grid-template-columns:60px minmax(0,1fr); padding:6px 8px; }
+  #screen-characters .guardian-list-card .char-portrait{ width:54px; height:66px; }
+  .guardian-detail{ padding:7px; }
+  .guardian-showcase{ padding:3px 7px; }
+  .guardian-main-portrait{ width:110px; height:126px; }
+  .guardian-name{ font-size:18px; }
+  .guardian-skill,.guardian-passive,.guardian-role{ margin-top:3px; }
+  .guardian-skin-card{ min-height:88px; }
+  .guardian-skin-thumb,.guardian-skin-silhouette{ width:48px; height:50px; }
+  .guardian-upgrade-header{ margin-top:5px; }
+  .guardian-stats{ gap:3px; margin-top:4px; }
+  .guardian-stat-row{ min-height:38px; padding:3px 5px; }
+  .guardian-stat-button{ width:42px; height:42px; }
+  .guardian-apply{ margin-top:4px; }
+  .gacha-header .screen-desc{ display:none; }
+  .gacha-wallet{ min-width:120px; padding:6px 12px; font-size:18px; }
+  .gacha-layout{ gap:8px; }
+  .gacha-machine-panel,.gacha-pool-panel{ padding:7px; }
+  .gacha-collection{ gap:4px; }
+  .gacha-collection span{ padding:3px 7px; }
+  .gacha-capsule{ width:108px; height:108px; border-width:6px; }
+  .gacha-result{ min-height:38px; margin-top:4px; }
+  .gacha-pull{ min-height:44px; }
+  .gacha-pool-title{ margin-bottom:4px; }
+  .gacha-pool{ gap:3px; }
+  .gacha-pool-item{ min-height:60px; grid-template-columns:52px 58px minmax(0,1fr) 58px; padding:3px 6px; }
+  .gacha-pool-thumb{ width:48px; height:48px; }
+  .gacha-pool-thumb-image{ max-width:46px; max-height:46px; }
+}
+
+/* mobile.js 的 cover 裁切與安全區，四邊都必須套到新增頁面。 */
+html.is-mobile #stage :is(#screen-characters,#screen-gacha){
+  padding-top:calc(10px + var(--vis-inset-top,0px));
+  padding-right:calc(12px + var(--vis-inset-right,0px));
+  padding-bottom:calc(10px + var(--vis-inset-bottom,0px));
+  padding-left:calc(12px + var(--vis-inset-left,0px));
+  gap:8px;
+}
+html.is-mobile #stage #screen-menu [data-action="characters"]{ display:block; }
+html.is-mobile #stage #screen-menu .link-reset{
+  min-height:var(--mobile-touch-target,52px);
+  padding:8px 14px;
+  font-size:var(--mobile-caption-font,14px);
+}
+html.is-mobile #stage :is(#screen-characters,#screen-gacha) .screen-title{
+  font-size:calc(var(--mobile-readable-font,18px) * 1.45);
+  line-height:1.12;
+  letter-spacing:2px;
+}
+html.is-mobile #stage :is(
+  .guardian-list-card .char-name,.guardian-name,.guardian-section-title,
+  .guardian-stat-name,.gacha-pool-title,.gacha-result strong
+){ font-size:var(--mobile-readable-font,18px); }
+html.is-mobile #stage :is(
+  .guardian-summary,.guardian-state,.guardian-list-card .char-role,.guardian-role,
+  .guardian-skill,.guardian-passive,.guardian-unlock-hint,.guardian-points,
+  .guardian-skin-name,.guardian-skin-bonus,.guardian-stat-value,
+  .gacha-header .screen-desc,.gacha-collection span,.gacha-result,
+  .gacha-pool-kind,.gacha-pool-name,.gacha-pool-chance
+){
+  font-size:var(--mobile-caption-font,14px);
+  line-height:1.42;
+}
+html.is-mobile #stage .gacha-wallet{ font-size:var(--mobile-readable-font,18px); }
+html.is-mobile #stage .guardian-list-card{
+  min-height:max(92px,calc(var(--mobile-touch-target,52px) * 1.9));
+}
+html.is-mobile #stage .guardian-skin-card{
+  min-height:max(92px,calc(var(--mobile-touch-target,52px) * 1.8));
+}
+html.is-mobile #stage .guardian-stat-row{
+  min-height:var(--mobile-touch-target,52px);
+  grid-template-columns:28px minmax(0,1fr) var(--mobile-touch-target,52px) var(--mobile-touch-target,52px);
+}
+html.is-mobile #stage .guardian-stat-button{
+  width:var(--mobile-touch-target,52px);
+  height:var(--mobile-touch-target,52px);
+  min-width:var(--mobile-touch-target,52px);
+  min-height:var(--mobile-touch-target,52px);
+  font-size:var(--mobile-readable-font,18px);
+}
+html.is-mobile #stage #screen-characters .screen-footer .btn,
+html.is-mobile #stage #screen-gacha .screen-footer .btn,
+html.is-mobile #stage .gacha-pull{
+  height:auto;
+  min-height:var(--mobile-touch-target,52px);
+  font-size:var(--mobile-readable-font,18px);
+}
+
+/* 手機橫向的可見高度較短：保留雙欄，但縮短裝飾並固定安全頁首／頁尾。 */
+.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-menu .menu-buttons{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-areas:"characters commerce" "records settings";
+  gap:8px;
+}
+.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-menu [data-action="characters"]{ grid-area:characters; }
+.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-menu [data-action="commerce-hub"]{ grid-area:commerce; }
+.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-menu [data-action="records-hub"]{ grid-area:records; }
+.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-menu [data-action="settings-home"]{ grid-area:settings; }
+.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-menu .menu-buttons .btn{
+  width:100%;
+  min-width:0;
+  font-size:calc(var(--mobile-readable-font) * .88);
+}
+.short-visible #stage :is(#screen-characters,#screen-gacha){ overflow:hidden; }
+.short-visible #stage .guardian-layout,
+.short-visible #stage .gacha-layout{ min-height:0; }
+.short-visible #stage :is(.guardian-list,.guardian-detail,.gacha-pool){ overflow-y:auto; }
+.short-visible #stage .guardian-detail{ grid-template-columns:210px minmax(0,1fr); }
+.short-visible #stage .guardian-main-portrait{ width:104px; height:116px; }
+.short-visible #stage .guardian-skins{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+.short-visible #stage .guardian-skin-card{
+  min-height:calc(var(--mobile-touch-target,52px) * 1.42);
+}
+.short-visible #stage .guardian-skin-thumb,
+.short-visible #stage .guardian-skin-silhouette{ width:46px; height:48px; }
+.short-visible #stage .gacha-header{ width:100%; }
+.short-visible #stage .gacha-header .screen-desc{ display:none; }
+.short-visible #stage .gacha-wallet{ min-width:110px; padding:5px 10px; }
+.short-visible #stage .gacha-machine-panel,
+.short-visible #stage .gacha-pool-panel{ padding:6px; }
+.short-visible #stage .gacha-capsule{ width:104px; height:104px; }
+.short-visible #stage .gacha-result{ min-height:34px; margin-top:3px; }
+.short-visible #stage .gacha-pull{ width:min(250px,100%); }
+
+/* 直向手機／平板：內容在中央列捲動，底部操作永遠可見。 */
+.compact-visible #stage #screen-characters,
+.compact-visible #stage #screen-gacha{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  justify-content:stretch;
+  align-content:stretch;
+  overflow:hidden;
+  align-items:stretch;
+  justify-items:stretch;
+}
+.compact-visible.is-mobile #stage #screen-menu .menu-buttons{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-areas:"characters commerce" "records settings";
+  gap:6px;
+}
+.compact-visible.is-mobile #stage #screen-menu .link-reset{
+  position:relative;
+  top:-8px;
+}
+.compact-visible.is-mobile #stage .stage-selector{
+  --stage-card-width:min(200px,calc(var(--visible-stage-width) - var(--mobile-touch-target) - var(--mobile-touch-target) - 48px));
+}
+.compact-visible.is-mobile #stage #screen-menu [data-action="characters"]{ grid-area:characters; }
+.compact-visible.is-mobile #stage #screen-menu [data-action="commerce-hub"]{ grid-area:commerce; }
+.compact-visible.is-mobile #stage #screen-menu [data-action="records-hub"]{ grid-area:records; }
+.compact-visible.is-mobile #stage #screen-menu [data-action="settings-home"]{ grid-area:settings; }
+.compact-visible.is-mobile #stage #screen-menu .menu-buttons .btn{
+  width:100%;
+  min-width:0;
+}
+.compact-visible.is-mobile #stage .gameplay-help-btn{
+  top:calc(12px + var(--vis-inset-top,0px));
+  right:calc(128px + var(--vis-inset-right,0px));
+  bottom:auto;
+}
+.compact-visible #stage #screen-characters{
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+}
+.compact-visible #stage #screen-gacha{
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+.compact-visible #stage :is(.guardian-summary,.guardian-layout,.gacha-header,.gacha-layout){
+  width:100%;
+  max-width:none;
+}
+.compact-visible #stage .guardian-layout{
+  height:auto;
+  max-height:none;
+  align-self:stretch;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  padding:2px 3px 10px;
+}
+.compact-visible #stage #screen-characters .guardian-list{
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:none;
+  grid-auto-flow:column;
+  grid-auto-columns:clamp(210px,76vw,260px);
+  gap:8px;
+  width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  overscroll-behavior-inline:contain;
+  scroll-snap-type:x proximity;
+  scrollbar-gutter:auto;
+  touch-action:pan-x;
+  padding:2px 3px 8px;
+}
+.compact-visible #stage #screen-characters .guardian-list-card{
+  min-height:max(92px,calc(var(--mobile-touch-target) * 1.9));
+  grid-template-columns:58px minmax(0,1fr);
+  padding:6px;
+  scroll-snap-align:start;
+}
+.compact-visible #stage #screen-characters .guardian-list-card .char-portrait{
+  width:52px;
+  height:64px;
+}
+.compact-visible #stage #screen-characters .guardian-list-card .char-name{
+  white-space:normal;
+  line-height:1.3;
+}
+.compact-visible #stage .guardian-detail{
+  flex:0 0 auto;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  overflow:visible;
+}
+.compact-visible #stage .guardian-showcase{
+  border-right:0;
+  border-bottom:1px solid rgba(117,171,160,.25);
+  padding-bottom:12px;
+}
+.compact-visible #stage .guardian-main-portrait{ width:145px; height:164px; }
+.compact-visible #stage .guardian-skins{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+.compact-visible #stage .guardian-skin-name{
+  display:-webkit-box;
+  overflow:hidden;
+  white-space:normal;
+  text-overflow:clip;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.compact-visible #stage .guardian-apply{ width:100%; min-width:0; align-self:stretch; }
+.compact-visible #stage .gacha-header{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+}
+.compact-visible #stage .gacha-header > div:first-child{ min-width:0; text-align:left; }
+.compact-visible #stage .gacha-header .screen-desc{ max-width:none; margin-top:4px; }
+.compact-visible #stage .gacha-wallet{
+  min-width:105px;
+  padding:8px 10px;
+}
+.compact-visible #stage .gacha-layout{
+  height:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  padding:2px 3px 10px;
+}
+.compact-visible #stage .gacha-machine-panel{
+  flex:0 0 auto;
+  min-height:260px;
+  padding:10px;
+}
+.compact-visible #stage .gacha-capsule{ width:110px; height:110px; }
+.compact-visible #stage .gacha-result{ min-height:44px; margin-top:4px; }
+.compact-visible #stage .gacha-pull{ width:100%; }
+.compact-visible #stage .gacha-pool-panel{
+  flex:0 0 auto;
+  height:290px;
+  padding:12px;
+}
+.compact-visible #stage .gacha-pool-item{
+  grid-template-columns:58px minmax(0,1fr) 58px;
+  grid-template-rows:auto auto;
+  column-gap:8px;
+  row-gap:2px;
+}
+.compact-visible #stage .gacha-pool-thumb{
+  width:54px;
+  height:54px;
+  grid-column:1;
+  grid-row:1 / 3;
+}
+.compact-visible #stage .gacha-pool-thumb-image{ max-width:52px; max-height:52px; }
+.compact-visible #stage .gacha-pool-kind{
+  grid-column:2;
+  grid-row:2;
+  min-width:48px;
+  justify-self:start;
+}
+.compact-visible #stage .gacha-pool-name{
+  grid-column:2;
+  grid-row:1;
+  align-self:end;
+  justify-self:start;
+  text-align:left;
+}
+.compact-visible #stage .gacha-pool-chance{
+  grid-column:3;
+  grid-row:1 / 3;
+  align-self:center;
+}
+.compact-visible #stage :is(#screen-characters,#screen-gacha) > .screen-footer{
+  position:relative;
+  z-index:5;
+  width:100%;
+  margin:0;
+  padding-top:7px;
+  background:linear-gradient(180deg,rgba(5,23,31,0),rgba(5,23,31,.94) 28%);
+}
+.compact-visible #stage #screen-gacha > .screen-footer{ display:grid; grid-template-columns:1fr; }
+.compact-visible #stage #screen-characters > .screen-footer{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+}
+
+/* 窄直向頁面固定主要導覽，只有內容清單捲動。 */
+.compact-visible #stage :is(#screen-shop,#screen-codex,#screen-help,#screen-settings){
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  justify-content:stretch;
+  align-content:stretch;
+  align-items:stretch;
+  justify-items:stretch;
+  overflow:hidden;
+}
+.compact-visible #stage #screen-shop{
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+.compact-visible #stage #screen-codex{
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+}
+.compact-visible #stage #screen-help{
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+}
+.compact-visible #stage #screen-settings{
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+.compact-visible #stage :is(#screen-shop,#screen-codex,#screen-help,#screen-settings) > :is(.paired-page-header,.screen-title,.screen-desc,.coin-display,.codex-tabs){
+  justify-self:center;
+}
+.compact-visible #stage #screen-shop .shop-list,
+.compact-visible #stage #screen-codex .codex-list,
+.compact-visible #stage #screen-help .help-list,
+.compact-visible #stage #screen-settings .settings-panel{
+  min-height:0;
+  max-height:none;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+.compact-visible #stage #screen-shop .shop-list,
+.compact-visible #stage #screen-codex .codex-list,
+.compact-visible #stage #screen-help .help-list{
+  width:100%;
+  padding-right:4px;
+}
+.compact-visible #stage :is(#screen-shop,#screen-codex,#screen-help,#screen-settings) > .screen-footer{
+  position:relative;
+  z-index:5;
+  width:100%;
+  margin:0;
+  padding-top:7px;
+  background:linear-gradient(180deg,rgba(5,23,31,0),rgba(5,23,31,.94) 28%);
+}
+.compact-visible #stage :is(#overlay-pause,#overlay-confirm){
+  align-items:center;
+  justify-content:center;
+}
+
+/* 首頁「目前角色」：放大右側角色圖，同時保留各裝置可讀的文字寬度。 */
+#screen-menu #home-character-preview .current-character-portrait{
+  width:78px;
+  height:78px;
+}
+#screen-menu #home-character-preview .current-character-canvas{
+  max-width:74px;
+  max-height:74px;
+  object-fit:contain;
+}
+html.is-mobile #stage #home-character-preview .current-character-portrait{
+  width:72px;
+  height:72px;
+}
+html.is-mobile #stage #home-character-preview .current-character-canvas{
+  max-width:68px;
+  max-height:68px;
+}
+.compact-visible #stage #home-character-preview .current-character-portrait{
+  width:68px;
+  height:68px;
+}
+.compact-visible #stage #home-character-preview .current-character-canvas{
+  max-width:64px;
+  max-height:64px;
+}
+.short-visible #stage #home-character-preview .current-character-portrait{
+  width:58px;
+  height:58px;
+}
+.short-visible #stage #home-character-preview .current-character-canvas{
+  max-width:54px;
+  max-height:54px;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .gacha-machine.drawing .gacha-capsule,
+  .gacha-machine.revealed .gacha-capsule{ animation:none !important; }
+}
+
+/* Mobile/tablet control layout stabilization. */
+.compact-visible #stage #screen-shop .shop-item{
+  flex:0 0 auto;
+}
+
+.mobile-low-scale #stage .settings-panel{
+  width:min(520px, calc(100% - 40px));
+  min-height:0;
+  aspect-ratio:1276 / 981;
+}
+.mobile-low-scale #stage .settings-inner{
+  top:22%;
+  bottom:8%;
+}
+html.is-mobile #stage #screen-settings .slider::-webkit-slider-thumb{
+  margin-top:calc((10px - (var(--mobile-touch-target, 52px) * .76)) / 2);
+}
+
+:is(.compact-visible, .mobile-low-scale) #stage .pause-panel.has-asset .pause-buttons{
+  grid-template-rows:repeat(4, minmax(var(--mobile-touch-target), auto));
+  gap:8px;
+}
+:is(.compact-visible, .mobile-low-scale) #stage .pause-buttons .btn{
+  height:var(--mobile-touch-target);
+  min-height:var(--mobile-touch-target);
+}
+.mobile-low-scale #stage .pause-panel.has-asset{
+  width:min(390px, calc(var(--visible-stage-width) - 32px));
+}
+
+html.is-mobile:not(.narrow-visible) #stage #overlay-confirm .confirm-panel.has-asset .confirm-buttons{
+  height:var(--mobile-touch-target);
+}
+html.is-mobile:not(.narrow-visible) #stage #overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn{
+  height:100%;
+  min-height:var(--mobile-touch-target);
+}
+.narrow-visible.is-mobile #stage #overlay-confirm .confirm-panel.has-asset .confirm-buttons .btn{
+  height:var(--mobile-touch-target);
+  min-height:var(--mobile-touch-target);
+}
+
+.mobile-low-scale #stage :is(.confirm-desc, .knowledge-card-eyebrow, .knowledge-card-note){
+  font-size:var(--mobile-caption-font);
+}
+.mobile-low-scale #stage :is(.dash-cooldown, .skill-chip .lv, .passive-chip .lv){
+  font-size:calc(var(--mobile-caption-font) * .78);
+}
+
+.compact-visible.is-mobile #stage #screen-menu .link-reset{
+  top:-12px;
+}
+.compact-visible.is-mobile #stage .gameplay-help-btn{
+  right:calc(140px + var(--vis-inset-right, 0px));
+}
+
+/* ============================================================
+   成就系統：首頁入口、分類清單、進度與領獎狀態
+   ============================================================ */
+.achievement-menu-button{
+  position:relative;
+  isolation:isolate;
+}
+#screen-menu .achievement-menu-button .btn-label{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  overflow:visible;
+}
+.achievement-menu-badge{
+  position:absolute;
+  z-index:2;
+  top:3px;
+  right:7px;
+  min-width:25px;
+  height:25px;
+  display:grid;
+  place-items:center;
+  padding:0 6px;
+  color:#fff;
+  font-size:11px;
+  line-height:1;
+  background:linear-gradient(180deg,#ff835e,#d44336);
+  border:2px solid #fff1b0;
+  border-radius:999px;
+  box-shadow:0 3px 0 #641f1a,0 0 0 2px rgba(5,18,25,.72);
+  text-shadow:1px 1px 0 rgba(55,8,5,.85);
+  pointer-events:none;
+}
+
+#screen-achievements{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  justify-content:stretch;
+  align-content:stretch;
+  align-items:stretch;
+  justify-items:stretch;
+  gap:10px;
+  padding:18px 28px 14px;
+  overflow:hidden;
+  text-align:left;
+}
+.achievement-header,
+.achievement-tabs,
+.achievement-list,
+#screen-achievements > .screen-footer{
+  width:min(1060px,calc(100% - 32px));
+  min-width:0;
+  justify-self:center;
+}
+.achievement-header{
+  min-height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:22px;
+}
+.achievement-heading{
+  min-width:0;
+  flex:1 1 auto;
+}
+#screen-achievements .screen-title{
+  margin:0;
+  font-size:32px;
+  line-height:1.1;
+}
+#screen-achievements .screen-desc{
+  max-width:680px;
+  margin-top:5px;
+  line-height:1.45;
+}
+.achievement-summary{
+  flex:0 0 auto;
+  display:flex;
+  align-items:stretch;
+  gap:8px;
+}
+.achievement-summary-item{
+  min-width:112px;
+  min-height:54px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  padding:7px 12px;
+  color:#d9f2e9;
+  background:linear-gradient(180deg,rgba(18,67,78,.96),rgba(8,38,50,.96));
+  border:2px solid rgba(115,205,187,.5);
+  border-radius:8px;
+  box-shadow:0 4px 0 rgba(3,16,23,.86),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.achievement-summary-item.claimable{
+  border-color:rgba(255,208,79,.72);
+  background:linear-gradient(180deg,rgba(83,74,23,.96),rgba(48,45,17,.96));
+}
+.achievement-summary-label{
+  color:#9bc9bd;
+  font-size:10px;
+  line-height:1;
+  letter-spacing:.8px;
+}
+.achievement-summary-item strong{
+  color:#fff0a7;
+  font-size:17px;
+  line-height:1;
+  white-space:nowrap;
+}
+.achievement-summary-item.claimable strong{ color:#ffd451; }
+
+.achievement-tabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:3px;
+  padding:3px;
+  background:rgba(4,22,30,.94);
+  border:2px solid #1e5863;
+  border-radius:7px;
+  box-shadow:0 4px 0 rgba(3,13,18,.78);
+}
+.achievement-tab{
+  min-width:0;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 14px;
+  color:#a9cec4;
+  font:700 14px/1.2 var(--pixel-font);
+  letter-spacing:.5px;
+  background:transparent;
+  border:0;
+  border-radius:4px;
+  cursor:pointer;
+  touch-action:manipulation;
+  text-shadow:var(--text-outline-soft);
+}
+.achievement-tab:hover{ color:#fff4b8; background:#123d46; }
+.achievement-tab.active,
+.achievement-tab[aria-selected="true"]{
+  color:#071b24;
+  background:linear-gradient(180deg,#a8f0cc,#74cda7);
+  box-shadow:inset 0 -3px 0 #499978;
+  text-shadow:none;
+}
+.achievement-tab:focus-visible,
+.achievement-claim:focus-visible{
+  outline:3px solid #ffd84a;
+  outline-offset:2px;
+}
+
+.achievement-list{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:10px;
+  padding:3px 7px 9px 3px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:#4f9f99 rgba(4,22,30,.55);
+}
+.achievement-list::-webkit-scrollbar{ width:9px; }
+.achievement-list::-webkit-scrollbar-track{
+  background:rgba(4,22,30,.55);
+  border-radius:8px;
+}
+.achievement-list::-webkit-scrollbar-thumb{
+  background:#4f9f99;
+  border:2px solid rgba(4,22,30,.72);
+  border-radius:8px;
+}
+.achievement-empty{
+  min-height:180px;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  color:#a9cec4;
+  font-size:14px;
+  line-height:1.6;
+  text-align:center;
+  background:rgba(8,37,48,.72);
+  border:2px dashed rgba(117,171,160,.42);
+  border-radius:10px;
+}
+
+.achievement-card{
+  --achievement-accent:#58cbb9;
+  flex:0 0 auto;
+  min-width:0;
+  min-height:116px;
+  display:grid;
+  grid-template-columns:84px minmax(0,1fr) 188px;
+  grid-template-areas:"icon copy reward";
+  align-items:center;
+  gap:14px;
+  padding:11px 13px;
+  color:#e7f4ee;
+  background:linear-gradient(135deg,rgba(13,55,69,.97),rgba(7,36,49,.97));
+  border:2px solid rgba(88,203,185,.46);
+  border-left:5px solid var(--achievement-accent);
+  border-radius:10px;
+  box-shadow:0 5px 0 rgba(3,15,22,.84),inset 0 1px 0 rgba(255,255,255,.05);
+  transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease;
+}
+.achievement-card:hover{
+  transform:translateY(-1px);
+  border-color:rgba(110,231,209,.74);
+  border-left-color:var(--achievement-accent);
+  box-shadow:0 6px 0 rgba(3,15,22,.84),0 0 0 2px rgba(88,203,185,.1);
+}
+.achievement-card:is(.is-claimable,.claimable){
+  --achievement-accent:#ffd451;
+  background:linear-gradient(135deg,rgba(45,68,54,.98),rgba(13,48,51,.98));
+  border-color:rgba(255,212,81,.72);
+  box-shadow:0 5px 0 rgba(3,15,22,.84),0 0 20px rgba(255,212,81,.08);
+}
+.achievement-card:is(.is-claimed,.claimed){ --achievement-accent:#78d66b; }
+.achievement-card:is(.is-claimed,.claimed) :is(.achievement-icon,.achievement-copy){ opacity:.72; }
+.achievement-card:is(.is-locked,.locked){
+  --achievement-accent:#61747b;
+  filter:saturate(.58);
+}
+.achievement-card:is(.is-locked,.locked) .achievement-icon{ filter:grayscale(1) brightness(.52); }
+
+.achievement-icon-frame{
+  grid-area:icon;
+  position:relative;
+  width:80px;
+  height:80px;
+  display:grid;
+  place-items:center;
+  align-self:center;
+  overflow:hidden;
+  background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.12),rgba(4,24,34,.88) 72%);
+  border:2px solid var(--achievement-accent);
+  border-radius:9px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.035),0 3px 0 rgba(3,14,20,.75);
+}
+.achievement-icon{
+  width:74px;
+  height:74px;
+  display:block;
+  object-fit:contain;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 4px 0 rgba(0,0,0,.24));
+}
+.achievement-tier{
+  position:absolute;
+  right:3px;
+  bottom:3px;
+  max-width:calc(100% - 6px);
+  padding:3px 5px;
+  overflow:hidden;
+  color:#fff5bf;
+  font-size:9px;
+  line-height:1;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  background:rgba(5,22,29,.9);
+  border:1px solid color-mix(in srgb,var(--achievement-accent) 70%,#17333b);
+  border-radius:4px;
+}
+.achievement-copy{
+  grid-area:copy;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:5px;
+}
+.achievement-title-row{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+.achievement-name{
+  min-width:0;
+  overflow:hidden;
+  color:#fff0a7;
+  font-size:17px;
+  line-height:1.25;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  text-shadow:var(--text-outline-soft);
+}
+.achievement-status{
+  flex:0 0 auto;
+  padding:3px 7px;
+  color:#bfe8de;
+  font-size:10px;
+  line-height:1.1;
+  white-space:nowrap;
+  background:rgba(75,133,126,.22);
+  border:1px solid rgba(126,222,204,.38);
+  border-radius:999px;
+}
+.achievement-card:is(.is-claimable,.claimable) .achievement-status{
+  color:#332b08;
+  background:#ffd451;
+  border-color:#fff0a0;
+  text-shadow:none;
+}
+.achievement-card:is(.is-claimed,.claimed) .achievement-status{
+  color:#06270f;
+  background:#78d66b;
+  border-color:#b7f39f;
+  text-shadow:none;
+}
+.achievement-desc{
+  margin:0;
+  overflow:hidden;
+  color:#c5ded7;
+  font-size:12px;
+  line-height:1.45;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.achievement-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+.achievement-meta span,
+.achievement-chip{
+  padding:2px 6px;
+  color:#9bc9bd;
+  font-size:9px;
+  line-height:1.2;
+  background:rgba(4,24,33,.54);
+  border:1px solid rgba(117,171,160,.24);
+  border-radius:4px;
+}
+.achievement-progress-row{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+}
+.achievement-progress{
+  position:relative;
+  height:12px;
+  overflow:hidden;
+  background:#061923;
+  border:2px solid #0a1a23;
+  border-radius:999px;
+  box-shadow:inset 0 2px 2px rgba(0,0,0,.5);
+}
+.achievement-progress > span,
+.achievement-progress-fill{
+  display:block;
+  height:100%;
+  min-width:0;
+  background:linear-gradient(90deg,#3ea68f,var(--achievement-accent));
+  border-radius:inherit;
+  transition:width .3s ease;
+}
+.achievement-progress-row output,
+.achievement-progress-value{
+  min-width:58px;
+  color:#dff5ed;
+  font-size:10px;
+  line-height:1;
+  text-align:right;
+  white-space:nowrap;
+}
+
+.achievement-reward{
+  grid-area:reward;
+  min-width:0;
+  min-height:86px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:center;
+  gap:6px;
+  padding:8px 10px;
+  text-align:center;
+  background:rgba(4,25,34,.58);
+  border:1px solid rgba(117,171,160,.25);
+  border-radius:8px;
+}
+.achievement-reward-label{
+  color:#8fc9ba;
+  font-size:9px;
+  line-height:1;
+  letter-spacing:1px;
+}
+.achievement-reward strong,
+.achievement-reward-value{
+  min-width:0;
+  overflow:hidden;
+  color:#ffd451;
+  font-size:13px;
+  line-height:1.25;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.achievement-reward-icon{
+  width:22px;
+  height:22px;
+  object-fit:contain;
+  vertical-align:middle;
+  image-rendering:pixelated;
+}
+.achievement-claim{
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  padding:7px 12px;
+  font-size:14px;
+}
+.achievement-card:is(.is-claimed,.claimed) .achievement-claim:disabled{
+  opacity:.72;
+  color:#c9ead0;
+  filter:saturate(.8);
+}
+
+#screen-achievements > .screen-footer{
+  min-height:48px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(150px,180px));
+  justify-content:center;
+  gap:12px;
+  margin:0;
+  padding-top:2px;
+}
+#screen-achievements > .screen-footer .btn{
+  width:100%;
+  min-width:0;
+  min-height:44px;
+}
+
+.debug-ui .achievement-card,
+.debug-ui .achievement-summary-item{ outline:1px dashed #00e5ff !important; }
+.debug-ui .achievement-icon{ outline:1px solid #ffd400 !important; }
+
+/* 手機／平板沿用 mobile.js 輸出的可見舞台與動態觸控 token。 */
+html.is-mobile #stage #screen-achievements{
+  padding-top:calc(10px + var(--vis-inset-top,0px));
+  padding-right:calc(12px + var(--vis-inset-right,0px));
+  padding-bottom:calc(10px + var(--vis-inset-bottom,0px));
+  padding-left:calc(12px + var(--vis-inset-left,0px));
+}
+html.is-mobile #stage .achievement-list{
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+html.is-mobile #stage .achievement-tab,
+html.is-mobile #stage .achievement-claim,
+html.is-mobile #stage #screen-achievements > .screen-footer .btn{
+  min-height:var(--mobile-touch-target,52px);
+}
+html.is-mobile #stage .achievement-tab,
+html.is-mobile #stage .achievement-name,
+html.is-mobile #stage .achievement-reward strong,
+html.is-mobile #stage .achievement-reward-value{
+  font-size:var(--mobile-readable-font,18px);
+}
+html.is-mobile #stage :is(
+  .achievement-desc,.achievement-status,.achievement-summary-label,
+  .achievement-progress-value,.achievement-progress-row output,
+  .achievement-reward-label,.achievement-tier,.achievement-meta span,.achievement-chip
+){
+  font-size:var(--mobile-caption-font,14px);
+}
+
+/* 手機橫向與直向首頁固定為精簡的 2 × 2 主選單。 */
+.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-menu .menu-buttons,
+.compact-visible.is-mobile #stage #screen-menu .menu-buttons{
+  grid-template-areas:
+    "characters commerce"
+    "records settings";
+}
+
+/* 低高度橫向：縮短裝飾，中央清單獨立捲動，頁尾留在可視區。 */
+.short-visible #stage #screen-achievements{
+  gap:6px;
+  padding-top:calc(7px + var(--vis-inset-top,0px));
+  padding-bottom:calc(7px + var(--vis-inset-bottom,0px));
+}
+.short-visible #stage #screen-achievements .achievement-header{ min-height:50px; }
+.short-visible #stage #screen-achievements .screen-title{ font-size:25px; }
+.short-visible #stage #screen-achievements .screen-desc{ display:none; }
+.short-visible #stage .achievement-summary-item{
+  min-height:46px;
+  padding:5px 10px;
+}
+.short-visible #stage .achievement-card{
+  min-height:100px;
+  grid-template-columns:70px minmax(0,1fr) 178px;
+  gap:10px;
+  padding:7px 10px;
+}
+.short-visible #stage .achievement-icon-frame{ width:66px; height:66px; }
+.short-visible #stage .achievement-icon{ width:62px; height:62px; }
+.short-visible #stage .achievement-reward{ min-height:76px; padding:6px 8px; }
+.short-visible #stage .achievement-desc{ -webkit-line-clamp:1; }
+
+/* 直向手機／平板：卡片改為圖示＋內容，獎勵列折到下方。 */
+.compact-visible #stage #screen-achievements{
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  gap:8px;
+  overflow:hidden;
+}
+.compact-visible #stage #screen-achievements :is(.achievement-header,.achievement-tabs,.achievement-list),
+.compact-visible #stage #screen-achievements > .screen-footer{
+  width:100%;
+}
+.compact-visible #stage .achievement-header{
+  min-height:0;
+  flex-direction:column;
+  align-items:stretch;
+  gap:8px;
+  text-align:center;
+}
+.compact-visible #stage #screen-achievements .screen-title{
+  font-size:calc(var(--mobile-readable-font,18px) * 1.45);
+}
+.compact-visible #stage #screen-achievements .screen-desc{
+  max-width:none;
+  margin-top:3px;
+  font-size:var(--mobile-caption-font,14px);
+}
+.compact-visible #stage .achievement-summary{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+}
+.compact-visible #stage .achievement-summary-item{
+  min-width:0;
+  min-height:var(--mobile-touch-target,52px);
+  padding:6px 8px;
+}
+.compact-visible #stage .achievement-tabs{ gap:2px; padding:2px; }
+.compact-visible #stage .achievement-tab{
+  min-width:0;
+  padding:6px 5px;
+  white-space:normal;
+}
+.compact-visible #stage .achievement-list{
+  width:100%;
+  min-height:0;
+  max-height:none;
+  gap:9px;
+  padding:2px 4px 9px 1px;
+  overflow-x:hidden;
+  overflow-y:auto;
+}
+.compact-visible #stage .achievement-card{
+  min-height:0;
+  grid-template-columns:66px minmax(0,1fr);
+  grid-template-areas:
+    "icon copy"
+    "reward reward";
+  align-items:start;
+  gap:9px 10px;
+  padding:10px;
+}
+.compact-visible #stage .achievement-icon-frame{
+  width:64px;
+  height:64px;
+}
+.compact-visible #stage .achievement-icon{
+  width:60px;
+  height:60px;
+}
+.compact-visible #stage .achievement-title-row{
+  align-items:flex-start;
+  flex-wrap:wrap;
+  gap:5px;
+}
+.compact-visible #stage .achievement-name{
+  flex:1 1 150px;
+  overflow:visible;
+  white-space:normal;
+  text-overflow:clip;
+}
+.compact-visible #stage .achievement-desc{ -webkit-line-clamp:3; }
+.compact-visible #stage .achievement-progress-row{
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:6px;
+}
+.compact-visible #stage .achievement-reward{
+  min-height:0;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) minmax(116px,auto);
+  align-items:center;
+  gap:7px;
+  padding:7px;
+  text-align:left;
+}
+.compact-visible #stage .achievement-reward strong,
+.compact-visible #stage .achievement-reward-value{ white-space:normal; }
+.compact-visible #stage .achievement-claim{ min-width:116px; }
+.compact-visible #stage #screen-achievements > .screen-footer{
+  position:relative;
+  z-index:5;
+  width:100%;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  gap:8px;
+  margin:0;
+  padding-top:7px;
+  background:linear-gradient(180deg,rgba(5,23,31,0),rgba(5,23,31,.94) 28%);
+}
+
+.narrow-visible #stage .achievement-card{
+  grid-template-columns:58px minmax(0,1fr);
+  column-gap:8px;
+  padding:8px;
+}
+.narrow-visible #stage .achievement-icon-frame{ width:56px; height:56px; }
+.narrow-visible #stage .achievement-icon{ width:52px; height:52px; }
+.narrow-visible #stage .achievement-reward{
+  grid-template-columns:minmax(0,1fr) minmax(112px,1fr);
+  grid-template-areas:"label value" "claim claim";
+  text-align:left;
+}
+.narrow-visible #stage .achievement-reward-label{ grid-area:label; }
+.narrow-visible #stage .achievement-reward :is(strong,.achievement-reward-value){
+  grid-area:value;
+  text-align:right;
+}
+.narrow-visible #stage .achievement-claim{
+  grid-area:claim;
+  width:100%;
+  min-width:0;
+}
+.narrow-visible #stage #screen-achievements > .screen-footer{
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+}
+
+/* 結算資料增加成就與傷害後，行動按鈕仍固定在可視區，戰績本身獨立捲動。 */
+html.is-mobile #stage .result-screen{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  align-content:stretch;
+  align-items:stretch;
+  justify-items:center;
+  gap:8px;
+  overflow:hidden;
+}
+html.is-mobile #stage .result-screen :is(.result-title,.result-flavour){
+  margin:0;
+  text-align:center;
+}
+html.is-mobile #stage .result-screen .result-stats{
+  width:min(720px,100%);
+  min-width:0;
+  min-height:0;
+  max-height:none;
+  margin:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+html.is-mobile #stage .result-screen > .screen-footer{
+  position:relative;
+  z-index:5;
+  width:min(720px,100%);
+  min-height:calc(var(--mobile-touch-target,52px) + 7px);
+  align-items:center;
+  justify-content:center;
+  margin:0;
+  padding-top:7px;
+  background:linear-gradient(180deg,rgba(5,23,31,0),rgba(5,23,31,.94) 28%);
+}
+.narrow-visible #stage #screen-victory > .screen-footer{
+  grid-template-columns:minmax(160px,300px);
+  justify-content:center;
+}
+.narrow-visible #stage #screen-gameover > .screen-footer{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+html.is-mobile.short-visible #stage .result-screen{
+  grid-template-rows:auto minmax(0,1fr) auto;
+  gap:5px;
+}
+html.is-mobile.short-visible #stage .result-screen .result-flavour{ display:none; }
+html.is-mobile.short-visible #stage .result-screen .result-title{
+  font-size:calc(var(--mobile-readable-font,18px) * 1.35);
+  line-height:1.15;
+}
+html.is-mobile.short-visible #stage .result-screen .result-stats{
+  padding:10px 14px;
+  font-size:var(--mobile-caption-font,14px);
+  line-height:1.45;
+}
+.compact-visible #stage .achievement-tier{
+  font-size:max(9px,calc(var(--mobile-caption-font,14px) * .64));
+  letter-spacing:0;
+}
+
+/* Final phone/tablet control pass.
+   Short landscape screens keep navigation visible while only their content
+   area scrolls.  The settings artwork is replaced by a compact 2 x 2 control
+   grid here because the desktop panel's baked-in spacing cannot safely fit a
+   390px-tall viewport after the stage scale is applied. */
+html.is-mobile #stage .btn .btn-label{
+  min-width:0;
+  max-width:100%;
+  line-height:1.25;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+}
+
+.compact-visible #stage :is(.shop-header,.gacha-header){
+  width:100%;
+  max-width:none;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:7px;
+}
+.compact-visible #stage :is(.shop-header,.gacha-header) .paired-page-tools{
+  width:100%;
+  justify-content:space-between;
+}
+.compact-visible #stage .codex-header{
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+}
+.narrow-visible #stage :is(.gacha-header,.shop-header,.codex-header) .screen-desc,
+.narrow-visible #stage .achievement-heading .screen-desc{
+  display:none;
+}
+
+html.is-mobile #stage .paired-page-footer .btn{
+  min-height:var(--mobile-touch-target,52px);
+  font-size:var(--mobile-readable-font,18px);
+  white-space:nowrap;
+}
+.compact-visible #stage :is(#screen-gacha,#screen-shop,#screen-codex) > .paired-page-footer,
+.narrow-visible #stage :is(#screen-gacha,#screen-shop,#screen-codex) > .paired-page-footer{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.compact-visible #stage #screen-achievements > .achievement-footer{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.narrow-visible #stage #screen-achievements > .achievement-footer{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.narrow-visible #stage #screen-achievements > .achievement-footer .btn{
+  min-width:0;
+  padding-right:6px;
+  padding-left:6px;
+}
+
+html.is-mobile.short-visible #stage :is(
+  #screen-shop,
+  #screen-codex,
+  #screen-help
+),
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  justify-content:stretch;
+  align-content:stretch;
+  align-items:stretch;
+  justify-items:stretch;
+  gap:6px;
+  overflow:hidden;
+}
+html.is-mobile.short-visible #stage #screen-shop{
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+html.is-mobile.short-visible #stage #screen-codex{
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+}
+html.is-mobile.short-visible #stage #screen-help{
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings{
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+html.is-mobile.short-visible #stage :is(
+  #screen-shop,
+  #screen-codex,
+  #screen-help
+) > :is(.paired-page-header,.screen-title,.screen-desc,.coin-display,.codex-tabs),
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings > .screen-title{
+  min-width:0;
+  max-width:100%;
+  margin-top:0;
+  margin-bottom:0;
+  justify-self:center;
+}
+html.is-mobile.short-visible #stage :is(
+  #screen-shop .shop-list,
+  #screen-codex .codex-list,
+  #screen-help .help-list
+){
+  width:100%;
+  min-height:0;
+  max-height:none;
+  padding-right:4px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+html.is-mobile.short-visible #stage :is(
+  #screen-shop,
+  #screen-codex,
+  #screen-help
+) > .screen-footer,
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings > .screen-footer{
+  position:relative;
+  z-index:5;
+  width:100%;
+  min-height:calc(var(--mobile-touch-target,52px) + 6px);
+  display:grid;
+  grid-template-columns:minmax(160px,300px);
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  margin:0;
+  padding-top:6px;
+  background:linear-gradient(180deg,rgba(5,23,31,0),rgba(5,23,31,.94) 28%);
+}
+html.is-mobile.short-visible #stage :is(
+  #screen-shop,
+  #screen-codex,
+  #screen-help
+) > .screen-footer .btn,
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings > .screen-footer .btn{
+  width:100%;
+  min-width:0;
+  min-height:var(--mobile-touch-target,52px);
+}
+
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings > .screen-title{
+  position:relative;
+  z-index:2;
+  transform:none;
+  pointer-events:none;
+  font-size:calc(var(--mobile-readable-font,18px) * 1.35);
+  line-height:1.15;
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings :is(
+  .settings-panel,
+  .settings-panel.has-asset
+){
+  width:min(760px,calc(var(--visible-stage-width,1280px) - 32px));
+  height:auto;
+  min-height:0;
+  max-height:100%;
+  aspect-ratio:auto;
+  margin:0 auto;
+  padding:14px 16px;
+  overflow:hidden;
+  background-image:none !important;
+  background-color:rgba(12,46,50,.97);
+  border:3px solid rgba(143,228,189,.54);
+  border-radius:8px;
+  box-shadow:0 6px 0 #06141d;
+  filter:none;
+}
+html.is-mobile.mobile-low-scale:not(.short-visible) #stage #screen-settings :is(
+  .settings-panel,
+  .settings-panel.has-asset
+){
+  width:min(1120px,calc(var(--visible-stage-width,1280px) - 32px));
+}
+html.is-mobile.mobile-low-scale:not(.short-visible) #stage :is(
+  #mobile-coin-chip,
+  #mobile-fullscreen-btn
+){
+  top:calc(var(--mobile-touch-target,52px) * .4 + var(--vis-inset-top,0px));
+}
+html.is-mobile.mobile-low-scale:not(.short-visible) #stage #mobile-fullscreen-btn{
+  width:var(--mobile-touch-target,52px);
+  min-width:var(--mobile-touch-target,52px);
+  max-width:var(--mobile-touch-target,52px);
+  padding:0;
+  font-size:0;
+}
+html.is-mobile.mobile-low-scale:not(.short-visible) #stage #mobile-fullscreen-btn::before{
+  content:"⛶";
+  font-size:var(--mobile-caption-font,14px);
+}
+html.is-mobile.mobile-low-scale:not(.short-visible) #stage #screen-menu .home-layout{
+  width:min(940px,calc(100% - 24px));
+  grid-template-columns:minmax(0,430px) minmax(0,480px);
+}
+html.is-mobile.mobile-low-scale:not(.short-visible) #stage #screen-menu :is(
+  .home-actions,
+  .mobile-character-picker,
+  .home-actions .menu-buttons,
+  #home-character-preview
+){
+  width:480px;
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings .settings-inner{
+  position:static;
+  width:100%;
+  height:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(var(--mobile-touch-target,52px),1fr));
+  gap:8px 12px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings .setting-row{
+  width:100%;
+  min-width:0;
+  min-height:var(--mobile-touch-target,52px);
+  grid-template-columns:28px minmax(72px,96px) minmax(0,1fr) 36px;
+  grid-template-areas:none;
+  column-gap:8px;
+  row-gap:0;
+  padding:0 4px;
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings :is(
+  .setting-label,
+  .setting-val,
+  .setting-row[data-setting="mute"] .toggle
+){
+  min-width:0;
+  font-size:var(--mobile-caption-font,14px);
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings .setting-row[data-setting="mute"] .toggle{
+  grid-column:3 / 5;
+  width:100%;
+  height:auto;
+  min-height:var(--mobile-touch-target,52px);
+  padding:6px 10px;
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings .screen-footer{
+  margin-top:0;
+}
+html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings [data-action="settings-back"]{
+  width:100%;
+  height:auto;
+  min-height:var(--mobile-touch-target,52px);
+  padding:6px 14px;
+  font-size:var(--mobile-readable-font,18px);
+}
+
+@media (prefers-reduced-motion:reduce){
+  .achievement-card,
+  .achievement-progress > span,
+  .achievement-progress-fill{ transition:none !important; }
 }

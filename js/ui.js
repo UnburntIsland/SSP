@@ -25,14 +25,16 @@
     pulse: ["damage", "radius", "cooldown"],
     orbit: ["dps", "count", "radius", "hitRadius", "knockback", "rotSpeed"],
     zone: ["dps", "radius", "duration", "cooldown"],
-    deployable: ["damage", "duration", "cooldown", "fireCooldown", "range"]
+    deployable: ["damage", "duration", "cooldown", "fireCooldown", "range"],
+    trail: ["damage", "tickCooldown", "radius", "duration"]
   };
 
   var SKILL_STAT_LABELS = {
     damage: "傷害", dps: "每秒傷害", count: "數量", cooldown: "冷卻",
     speed: "速度", pierce: "貫穿", eliteMult: "精英倍率", radius: "範圍",
     duration: "持續時間", pull: "吸力", hitRadius: "命中範圍",
-    knockback: "擊退", rotSpeed: "轉速", fireCooldown: "射擊間隔", range: "射程"
+    knockback: "擊退", rotSpeed: "轉速", fireCooldown: "射擊間隔", range: "射程",
+    tickCooldown: "扣血間隔"
   };
 
   function compactNumber(value) {
@@ -40,9 +42,15 @@
     return Math.abs(rounded - Math.round(rounded)) < 0.001 ? String(Math.round(rounded)) : String(rounded);
   }
 
-  function formatSkillStat(key, value, player) {
-    if (key === "cooldown") value *= player && player.cooldownMult != null ? player.cooldownMult : 1;
-    if (key === "cooldown" || key === "duration" || key === "fireCooldown") return compactNumber(value) + " 秒";
+  function formatSkillStat(key, value, player, skill) {
+    if (key === "cooldown") {
+      var rawMult = player && player.cooldownMult != null ? Number(player.cooldownMult) : 1;
+      if (!isFinite(rawMult)) rawMult = 1;
+      var minMult = player && player.minCooldownMult != null ? player.minCooldownMult : 0.60;
+      value = Math.max(skill && skill.minCooldown || 0.45, value * Math.max(minMult, rawMult));
+    }
+    if (key === "damage" || key === "dps") value *= player && player.damageMult != null ? player.damageMult : 1;
+    if (key === "cooldown" || key === "duration" || key === "fireCooldown" || key === "tickCooldown") return compactNumber(value) + " 秒";
     if (key === "eliteMult" || key === "pull") return "×" + compactNumber(value);
     return compactNumber(value);
   }
@@ -51,6 +59,27 @@
     if (cls) e.className = cls;
     if (text != null) e.textContent = text;
     return e;
+  }
+
+  function makeCharacterVisual(character, skinId, className, fallbackScale) {
+    var skin = global.GameData && global.GameData.getSkin ? global.GameData.getSkin(skinId) : null;
+    if (skin && skin.characterId === character.id) {
+      var img = document.createElement("img");
+      img.className = className || "";
+      img.src = skin.previewImage;
+      img.alt = character.name + "・" + skin.name;
+      img.draggable = false;
+      img.addEventListener("error", function () {
+        if (!img.parentNode || !global.Sprites || !global.Sprites.makeCanvas) return;
+        var canvas = global.Sprites.makeCanvas(character.spriteId, fallbackScale || 5);
+        canvas.className = className || "";
+        img.parentNode.replaceChild(canvas, img);
+      }, { once: true });
+      return img;
+    }
+    var fallback = global.Sprites.makeCanvas(character.spriteId, fallbackScale || 5);
+    fallback.className = className || "";
+    return fallback;
   }
 
   var SETTINGS_ROWS = [
@@ -69,10 +98,15 @@
         "#screen-menu .menu-buttons .btn",
         "#screen-menu .stage-start-button",
         "#screen-characters .screen-footer .btn",
+        "#screen-characters .guardian-apply",
+        "#screen-gacha .btn",
+        "#screen-achievements .screen-footer .btn",
+        "#screen-achievements .achievement-claim",
         "#screen-help .screen-footer .btn",
         "#screen-settings .screen-footer .btn",
         "#overlay-pause .btn",
         "#overlay-knowledge .btn",
+        "#overlay-gacha-result .btn",
         "#overlay-confirm .btn",
         ".result-screen .screen-footer .btn"
       ].join(",")
@@ -90,6 +124,7 @@
     "confirm-cancel": "ui_icon_cancel",
     "confirm-ok": "ui_icon_confirm",
     "confirm-character": "ui_icon_confirm",
+    "achievement-claim-all": "ui_icon_confirm",
     back: "ui_icon_back",
     start: "ui_icon_confirm",
     menu: "ui_icon_home"
@@ -234,6 +269,80 @@
     }
   }
 
+  function focusWithoutScroll(target) {
+    if (!target || !target.focus) return;
+    try { target.focus({ preventScroll: true }); }
+    catch (e) { target.focus(); }
+  }
+
+  function dialogFocusableElements(overlay) {
+    if (!overlay) return [];
+    return Array.prototype.filter.call(overlay.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ), function (item) {
+      var style = global.getComputedStyle ? global.getComputedStyle(item) : null;
+      return !style || (style.display !== "none" && style.visibility !== "hidden");
+    });
+  }
+
+  function openDialog(overlay, preferredSelector) {
+    if (!overlay) return;
+    var wasHidden = overlay.classList.contains("hidden");
+    if (wasHidden && document.activeElement && !overlay.contains(document.activeElement)) {
+      overlay._returnFocus = document.activeElement;
+    }
+    overlay.classList.remove("hidden");
+    overlay.setAttribute("aria-hidden", "false");
+    global.requestAnimationFrame(function () {
+      if (overlay.classList.contains("hidden")) return;
+      var target = preferredSelector ? overlay.querySelector(preferredSelector) : null;
+      if (!target) target = dialogFocusableElements(overlay)[0];
+      if (!target) target = overlay.querySelector('[tabindex="-1"]') || overlay;
+      focusWithoutScroll(target);
+    });
+  }
+
+  function closeDialog(overlay) {
+    if (!overlay) return;
+    var wasOpen = !overlay.classList.contains("hidden");
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+    if (!wasOpen) return;
+    var returnFocus = overlay._returnFocus;
+    overlay._returnFocus = null;
+    if (returnFocus && document.contains(returnFocus) && !returnFocus.disabled) {
+      focusWithoutScroll(returnFocus);
+    }
+  }
+
+  function installDialogFocusTrap() {
+    if (document.documentElement.dataset.dialogFocusTrap === "true") return;
+    document.documentElement.dataset.dialogFocusTrap = "true";
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var dialogs = Array.prototype.filter.call(document.querySelectorAll('[role="dialog"]'), function (dialog) {
+        return !dialog.classList.contains("hidden") && dialog.getAttribute("aria-hidden") !== "true";
+      });
+      var overlay = dialogs[dialogs.length - 1];
+      if (!overlay) return;
+      var focusable = dialogFocusableElements(overlay);
+      if (!focusable.length) {
+        e.preventDefault();
+        focusWithoutScroll(overlay.querySelector('[tabindex="-1"]') || overlay);
+        return;
+      }
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        focusWithoutScroll(last);
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        focusWithoutScroll(first);
+      }
+    });
+  }
+
   var UI = {
     init: function (app) {
       this.app = app;
@@ -242,8 +351,30 @@
       this.dom = {
         menuCoins: $("menu-coins"),
         shopCoins: $("shop-coins"),
+        characterCoins: $("character-coins"),
+        gachaCoins: $("gacha-coins"),
         characterList: $("character-list"),
+        characterDetail: $("character-detail"),
+        gachaCollection: $("gacha-collection"),
+        gachaMachine: $("gacha-machine"),
+        gachaResult: $("gacha-result"),
+        gachaPool: $("gacha-pool"),
+        gachaPull: $("gacha-pull"),
+        gachaRewardOverlay: $("overlay-gacha-result"),
+        gachaRewardPanel: $("gacha-reward-panel"),
+        gachaRewardVisual: $("gacha-reward-visual"),
+        gachaRewardEyebrow: $("gacha-reward-eyebrow"),
+        gachaRewardTitle: $("gacha-reward-title"),
+        gachaRewardDesc: $("gacha-reward-desc"),
+        gachaRewardBonus: $("gacha-reward-bonus"),
         shopList: $("shop-list"),
+        achievementList: $("achievement-list"),
+        achievementCompleteCount: $("achievement-complete-count"),
+        achievementTotalCount: $("achievement-total-count"),
+        achievementClaimableCount: $("achievement-claimable-count"),
+        achievementMenuBadge: $("achievement-menu-badge"),
+        achievementCodexBadge: $("achievement-codex-badge"),
+        achievementClaimAll: $("achievement-claim-all"),
         codexList: $("codex-list"), codexDesc: $("codex-view-desc"),
         hud: $("hud"),
         hpFill: $("hp-fill"), hpText: $("hp-text"),
@@ -289,6 +420,7 @@
       };
       this._hudSig = "";
       this._passiveHudSig = null;
+      installDialogFocusTrap();
       this.initSettings();
       if (this.dom.dashButton) {
         this.dom.dashButton.addEventListener("pointerdown", function (e) {
@@ -337,9 +469,36 @@
         tab.addEventListener("click", function () {
           uiSelf.setCodexView(tab.dataset.codexView);
         });
+        tab.addEventListener("keydown", function (e) {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+          var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-codex-view]"));
+          var current = tabs.indexOf(tab);
+          var next = e.key === "Home" ? 0 : (e.key === "End" ? tabs.length - 1 : current + (e.key === "ArrowRight" ? 1 : -1));
+          next = (next + tabs.length) % tabs.length;
+          e.preventDefault();
+          uiSelf.setCodexView(tabs[next].dataset.codexView);
+          focusWithoutScroll(tabs[next]);
+        });
       });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-achievement-group]"), function (tab) {
+        tab.addEventListener("click", function () {
+          uiSelf.setAchievementGroup(tab.dataset.achievementGroup);
+        });
+        tab.addEventListener("keydown", function (e) {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+          var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-achievement-group]"));
+          var current = tabs.indexOf(tab);
+          var next = e.key === "Home" ? 0 : (e.key === "End" ? tabs.length - 1 : current + (e.key === "ArrowRight" ? 1 : -1));
+          next = (next + tabs.length) % tabs.length;
+          e.preventDefault();
+          uiSelf.setAchievementGroup(tabs[next].dataset.achievementGroup);
+          focusWithoutScroll(tabs[next]);
+        });
+      });
+      this._achievementGroup = "all";
       this.applyUiAssets();
       this.updateHomeCharacterPreview(app && app.selectedCharacterId);
+      this.updateAchievementMenuBadge();
       this.scheduleUiAssetRefresh();
     },
 
@@ -347,6 +506,8 @@
       var c = global.Storage.getCoins();
       if (this.dom.menuCoins) this.dom.menuCoins.textContent = c;
       if (this.dom.shopCoins) this.dom.shopCoins.textContent = c;
+      if (this.dom.characterCoins) this.dom.characterCoins.textContent = c;
+      if (this.dom.gachaCoins) this.dom.gachaCoins.textContent = c;
     },
 
     updateHomeCharacterPreview: function (characterId) {
@@ -370,9 +531,10 @@
         container.appendChild(canvas);
       }
 
-      replaceWithCanvas(this.dom.homeCharacterPortrait, global.Sprites.makeCanvas(ch.spriteId, 5), "current-character-canvas");
+      var equippedSkin = global.Storage && global.Storage.getEquippedSkin ? global.Storage.getEquippedSkin(ch.id) : null;
+      replaceWithCanvas(this.dom.homeCharacterPortrait, makeCharacterVisual(ch, equippedSkin, "current-character-canvas", 5), "current-character-canvas");
       if (this.dom.menuArt) {
-        var art = global.Sprites.makeCanvas(ch.spriteId, 6);
+        var art = makeCharacterVisual(ch, equippedSkin, "menu-character-canvas", 6);
         art.style.width = "88px";
         art.style.height = "auto";
         replaceWithCanvas(this.dom.menuArt, art, "menu-character-canvas");
@@ -424,12 +586,11 @@
       }
       this.dom.knowledgeTitle.textContent = entry.title;
       this.dom.knowledgeText.textContent = entry.text;
-      overlay.classList.remove("hidden");
-      if (this.dom.knowledgeContinue) this.dom.knowledgeContinue.focus();
+      openDialog(overlay, "#knowledge-card-continue");
     },
 
     hideKnowledgeCard: function (notify) {
-      if (this.dom && this.dom.knowledgeOverlay) this.dom.knowledgeOverlay.classList.add("hidden");
+      if (this.dom && this.dom.knowledgeOverlay) closeDialog(this.dom.knowledgeOverlay);
       var cb = this._knowledgeContinue;
       this._knowledgeContinue = null;
       if (notify !== false && cb) cb();
@@ -508,29 +669,36 @@
 
     buildCharacters: function (selectedId) {
       var list = this.dom.characterList;
+      var detail = this.dom.characterDetail;
+      var previousScrollTop = list.scrollTop;
+      var previousScrollLeft = list.scrollLeft;
+      var focusedCharacterId = document.activeElement && document.activeElement.closest
+        ? (document.activeElement.closest("#character-list .guardian-list-card") || {}).dataset
+        : null;
+      focusedCharacterId = focusedCharacterId && focusedCharacterId.id;
       list.innerHTML = "";
+      detail.innerHTML = "";
       var chars = global.GameData.characters;
       var self = this;
+      var selected = global.GameData.getCharacter(selectedId) || chars[0];
       chars.forEach(function (ch) {
-        var card = el("div", "char-card");
+        var owned = global.Storage.isCharacterOwned(ch.id);
+        var progress = global.Storage.getCharacterProgress(ch.id);
+        var card = el("div", "char-card guardian-list-card" + (owned ? "" : " locked"));
         if (ch.id === selectedId) card.classList.add("selected");
         card.dataset.id = ch.id;
         card.setAttribute("role", "button");
         card.setAttribute("tabindex", "0");
         card.setAttribute("aria-pressed", ch.id === selectedId ? "true" : "false");
-        var portrait = global.Sprites.makeCanvas(ch.spriteId, 7);
-        portrait.className = "char-portrait";
+        card.setAttribute("aria-label", ch.name + "，" + (owned ? ch.role : "尚未解鎖，需從扭蛋取得") + (progress.availablePoints > 0 ? "，可用技能點 " + progress.availablePoints : ""));
+        var portrait = makeCharacterVisual(ch, global.Storage.getEquippedSkin(ch.id), "char-portrait", 4);
         card.appendChild(portrait);
-        card.appendChild(el("div", "char-name", ch.name));
-        card.appendChild(el("div", "char-role", "定位：" + ch.role));
-        var skill = global.GameData.getSkill(ch.startingSkill);
-        var l1 = el("div", "char-line");
-        l1.innerHTML = "初始技能：<span class='k'>" + (skill ? skill.name : ch.startingSkill) + "</span>";
-        card.appendChild(l1);
-        var l2 = el("div", "char-line");
-        l2.innerHTML = "被動：<span class='k'>" + ch.passiveText + "</span>";
-        card.appendChild(l2);
-        card.appendChild(el("div", "char-flavour", ch.flavour));
+        var brief = el("div", "guardian-list-copy");
+        brief.appendChild(el("div", "char-name", ch.name));
+        brief.appendChild(el("div", "char-role", owned ? ch.role : "🔒 扭蛋取得"));
+        card.appendChild(brief);
+        if (progress.availablePoints > 0) card.appendChild(el("span", "guardian-point-badge", String(progress.availablePoints)));
+        if (self.app.selectedCharacterId === ch.id) card.appendChild(el("span", "guardian-current-mark", "使用中"));
         card.addEventListener("click", function () { self.app.selectCharacter(ch.id); });
         card.addEventListener("keydown", function (e) {
           if (e.code === "Enter" || e.code === "Space") {
@@ -540,8 +708,262 @@
         });
         list.appendChild(card);
       });
+
+      var owned = global.Storage.isCharacterOwned(selected.id);
+      var skill = global.GameData.getSkill(selected.startingSkill);
+      var equippedSkinId = global.Storage.getEquippedSkin(selected.id);
+      var equippedSkin = global.GameData.getSkin(equippedSkinId);
+      var progress = global.Storage.getCharacterProgress(selected.id);
+      var pending = this.app.pendingCharacterStats || { attack: 0, speed: 0, hp: 0 };
+      var pendingTotal = pending.attack + pending.speed + pending.hp;
+      var pointsLeft = Math.max(0, progress.availablePoints - pendingTotal);
+
+      var showcase = el("div", "guardian-showcase");
+      var stateLabel = el("div", "guardian-state", owned ? (this.app.selectedCharacterId === selected.id ? "目前使用" : "已解鎖") : "🔒 尚未解鎖");
+      showcase.appendChild(stateLabel);
+      showcase.appendChild(makeCharacterVisual(selected, equippedSkinId, "guardian-main-portrait", 7));
+      showcase.appendChild(el("h3", "guardian-name", selected.name));
+      showcase.appendChild(el("div", "guardian-role", "定位：" + selected.role));
+      showcase.appendChild(el("div", "guardian-skill", "初始技能：" + (skill ? skill.name : selected.startingSkill)));
+      showcase.appendChild(el("div", "guardian-passive", "被動：" + selected.passiveText));
+      if (!owned) showcase.appendChild(el("div", "guardian-unlock-hint", "可從生態扭蛋解鎖；已抽到的 Skin 會先保留。"));
+      detail.appendChild(showcase);
+
+      var manage = el("div", "guardian-manage");
+      manage.appendChild(el("h3", "guardian-section-title", "造型 Skin"));
+      var skinGrid = el("div", "guardian-skins");
+      var defaultCard = el("button", "guardian-skin-card" + (!equippedSkinId ? " active" : ""));
+      defaultCard.type = "button";
+      defaultCard.setAttribute("aria-pressed", String(!equippedSkinId));
+      defaultCard.setAttribute("aria-label", "預設造型，無額外加成" + (!equippedSkinId ? "，目前裝備" : ""));
+      defaultCard.title = "預設造型｜無額外加成";
+      defaultCard.appendChild(makeCharacterVisual(selected, null, "guardian-skin-thumb", 3));
+      defaultCard.appendChild(el("span", "guardian-skin-name", "預設造型"));
+      defaultCard.appendChild(el("span", "guardian-skin-bonus", "無額外加成"));
+      defaultCard.disabled = !owned;
+      defaultCard.addEventListener("click", function () { self.app.equipCharacterSkin("default"); });
+      skinGrid.appendChild(defaultCard);
+
+      global.GameData.getCharacterSkins(selected.id).forEach(function (skin) {
+        var skinOwned = global.Storage.isSkinOwned(skin.id);
+        var active = equippedSkinId === skin.id;
+        var card = el("button", "guardian-skin-card" + (active ? " active" : "") + (skinOwned ? "" : " locked"));
+        card.type = "button";
+        card.setAttribute("aria-pressed", String(active));
+        card.setAttribute("aria-label", skin.name + "，" + skin.statName + "加成 10%，" + (active ? "目前裝備" : (skinOwned ? "已取得" : "尚未取得")));
+        card.title = skin.name + "｜" + skin.statName + " +10%";
+        card.disabled = !skinOwned || !owned;
+        if (skinOwned) card.appendChild(makeCharacterVisual(selected, skin.id, "guardian-skin-thumb", 3));
+        else card.appendChild(el("span", "guardian-skin-silhouette", "?"));
+        card.appendChild(el("span", "guardian-skin-name", skinOwned ? skin.name : "尚未取得"));
+        card.appendChild(el("span", "guardian-skin-bonus", skin.statName + " +10%"));
+        card.addEventListener("click", function () { self.app.equipCharacterSkin(skin.id); });
+        skinGrid.appendChild(card);
+      });
+      manage.appendChild(skinGrid);
+
+      var upgradeHeader = el("div", "guardian-upgrade-header");
+      upgradeHeader.appendChild(el("h3", "guardian-section-title", "能力強化"));
+      upgradeHeader.appendChild(el("div", "guardian-points", "可用技能點：" + pointsLeft));
+      manage.appendChild(upgradeHeader);
+
+      var statDefs = [
+        { id: "attack", label: "攻擊力", icon: "⚔" },
+        { id: "speed", label: "移動速度", icon: "➤" },
+        { id: "hp", label: "最大生命", icon: "♥" }
+      ];
+      var stats = el("div", "guardian-stats");
+      statDefs.forEach(function (def) {
+        var row = el("div", "guardian-stat-row");
+        row.appendChild(el("span", "guardian-stat-icon", def.icon));
+        var copy = el("div", "guardian-stat-copy");
+        copy.appendChild(el("span", "guardian-stat-name", def.label));
+        var skinExtra = equippedSkin && equippedSkin.stat === def.id ? 10 : 0;
+        var totalPercent = (progress.stats[def.id] + pending[def.id]) * 5 + skinExtra;
+        copy.appendChild(el("span", "guardian-stat-value", "Lv." + progress.stats[def.id] + (pending[def.id] ? " → " + (progress.stats[def.id] + pending[def.id]) : "") + "　總加成 +" + totalPercent + "%"));
+        row.appendChild(copy);
+        var minus = el("button", "guardian-stat-button", "−");
+        minus.type = "button";
+        minus.setAttribute("aria-label", "減少" + def.label + "的待分配技能點");
+        minus.title = "減少" + def.label;
+        minus.disabled = pending[def.id] <= 0;
+        minus.addEventListener("click", function () { self.app.changePendingCharacterStat(def.id, -1); });
+        row.appendChild(minus);
+        var plus = el("button", "guardian-stat-button", "+");
+        plus.type = "button";
+        plus.setAttribute("aria-label", "增加" + def.label + " 5% 的待分配技能點");
+        plus.title = "增加" + def.label + " 5%";
+        plus.disabled = !owned || pointsLeft <= 0;
+        plus.addEventListener("click", function () { self.app.changePendingCharacterStat(def.id, 1); });
+        row.appendChild(plus);
+        stats.appendChild(row);
+      });
+      manage.appendChild(stats);
+      var apply = el("button", "btn btn-primary guardian-apply", "確認分配" + (pendingTotal ? "（" + pendingTotal + "）" : ""));
+      apply.type = "button";
+      apply.disabled = !owned || pendingTotal <= 0;
+      apply.addEventListener("click", function () { self.app.confirmCharacterStats(); });
+      manage.appendChild(apply);
+      detail.appendChild(manage);
+
       var confirm = $("confirm-character");
-      if (confirm) confirm.disabled = !global.GameData.getCharacter(selectedId);
+      if (confirm) confirm.disabled = !owned;
+      this.normalizeActionButtons();
+      this.applyUiAssets();
+
+      // 清單每次重建都保留原本的捲動與鍵盤焦點；若從其他頁面直接選到後段角色，
+      // 再把選取卡片移到清單可視範圍內，不讓整個角色詳情頁跟著跳動。
+      global.requestAnimationFrame(function () {
+        list.scrollTop = previousScrollTop;
+        list.scrollLeft = previousScrollLeft;
+        var selectedCard = list.querySelector(".guardian-list-card.selected");
+        if (selectedCard) {
+          var listRect = list.getBoundingClientRect();
+          var cardRect = selectedCard.getBoundingClientRect();
+          if (cardRect.top < listRect.top) list.scrollTop -= listRect.top - cardRect.top + 4;
+          else if (cardRect.bottom > listRect.bottom) list.scrollTop += cardRect.bottom - listRect.bottom + 4;
+          if (cardRect.left < listRect.left) list.scrollLeft -= listRect.left - cardRect.left + 4;
+          else if (cardRect.right > listRect.right) list.scrollLeft += cardRect.right - listRect.right + 4;
+        }
+        if (focusedCharacterId) {
+          var focusCards = list.querySelectorAll(".guardian-list-card");
+          for (var i = 0; i < focusCards.length; i++) {
+            if (focusCards[i].dataset.id === focusedCharacterId) {
+              try { focusCards[i].focus({ preventScroll: true }); }
+              catch (e) { focusCards[i].focus(); }
+              break;
+            }
+          }
+        }
+      });
+    },
+
+    showGachaResult: function (result) {
+      var d = this.dom;
+      if (!result || !result.ok || !d.gachaRewardOverlay) return false;
+      var character = result.character || (result.skin && global.GameData.getCharacter(result.skin.characterId));
+      var skinId = result.kind === "new-skin" && result.skin ? result.skin.id : null;
+      var eyebrow = "扭蛋結果";
+      var title = result.item && result.item.name ? result.item.name : "獲得物品";
+      var desc = "獎勵已加入收藏。";
+      var bonus = "";
+      var accent = "#78d66b";
+
+      if (result.kind === "new-character") {
+        eyebrow = "新角色解鎖";
+        title = result.character.name;
+        desc = "已永久解鎖，可前往角色選擇使用。";
+        bonus = "角色已加入隊伍";
+      } else if (result.kind === "duplicate-character") {
+        eyebrow = "重複角色轉換";
+        title = result.character.name;
+        desc = "已自動轉換為該角色的專用技能點。";
+        bonus = result.character.name + " 技能點 +" + (result.points || 1);
+        accent = "#ffd84a";
+      } else if (result.kind === "new-skin") {
+        eyebrow = "新造型獲得";
+        title = result.skin.name;
+        desc = "造型已永久加入收藏，並從扭蛋獎池移除。";
+        bonus = result.skin.statName + " +10%";
+        accent = result.skin.accent || "#4dd0c4";
+      }
+
+      if (d.gachaRewardPanel) {
+        d.gachaRewardPanel.classList.remove("new-character", "duplicate-character", "new-skin");
+        if (result.kind) d.gachaRewardPanel.classList.add(result.kind);
+        d.gachaRewardPanel.style.setProperty("--reward-accent", accent);
+      }
+      if (d.gachaRewardEyebrow) d.gachaRewardEyebrow.textContent = eyebrow;
+      if (d.gachaRewardTitle) d.gachaRewardTitle.textContent = title;
+      if (d.gachaRewardDesc) d.gachaRewardDesc.textContent = desc;
+      if (d.gachaRewardBonus) d.gachaRewardBonus.textContent = bonus;
+      if (d.gachaRewardVisual) {
+        d.gachaRewardVisual.innerHTML = "";
+        if (character) {
+          d.gachaRewardVisual.appendChild(makeCharacterVisual(
+            character,
+            skinId,
+            "gacha-reward-image",
+            6
+          ));
+        }
+      }
+      this.normalizeActionButtons();
+      this.applyUiAssets();
+      openDialog(d.gachaRewardOverlay, '[data-action="gacha-result-confirm"]');
+      return true;
+    },
+
+    hideGachaResult: function () {
+      if (this.dom && this.dom.gachaRewardOverlay) closeDialog(this.dom.gachaRewardOverlay);
+    },
+
+    isGachaResultVisible: function () {
+      return !!(this.dom && this.dom.gachaRewardOverlay && !this.dom.gachaRewardOverlay.classList.contains("hidden"));
+    },
+
+    setGachaDrawing: function (drawing) {
+      if (this.dom.gachaMachine) this.dom.gachaMachine.classList.toggle("drawing", !!drawing);
+      if (this.dom.gachaPull) this.dom.gachaPull.disabled = !!drawing;
+      if (drawing && this.dom.gachaResult) this.dom.gachaResult.textContent = "扭蛋轉動中…";
+    },
+
+    buildGacha: function (result) {
+      if (!this.dom.gachaPool) return;
+      var pool = global.Gacha.getPool();
+      var chance = pool.length ? 100 / pool.length : 0;
+      var ownedSkins = global.Storage.data.ownedSkins.length;
+      var ownedCharacters = global.GameData.characters.filter(function (ch) { return global.Storage.isCharacterOwned(ch.id); }).length;
+      this.dom.gachaCollection.innerHTML = "<span>角色 " + ownedCharacters + "/" + global.GameData.characters.length + "</span><span>Skin " + ownedSkins + "/" + global.GameData.skins.length + "</span><span>獎池 " + pool.length + " 項</span>";
+      this.dom.gachaPool.innerHTML = "";
+      pool.forEach(function (item) {
+        var row = el("div", "gacha-pool-item " + item.type);
+        var visualCharacter = item.type === "character"
+          ? item.character
+          : global.GameData.getCharacter(item.skin.characterId);
+        var visual = el("span", "gacha-pool-thumb");
+        row.setAttribute("role", "listitem");
+        if (item.skin && item.skin.accent) row.style.setProperty("--gacha-item-accent", item.skin.accent);
+        visual.setAttribute("aria-hidden", "true");
+        if (visualCharacter) {
+          visual.appendChild(makeCharacterVisual(
+            visualCharacter,
+            item.type === "skin" ? item.id : null,
+            "gacha-pool-thumb-image",
+            4
+          ));
+        }
+        row.appendChild(visual);
+        row.appendChild(el("span", "gacha-pool-kind", item.type === "character" ? "角色" : "Skin"));
+        row.appendChild(el("span", "gacha-pool-name", item.name));
+        row.appendChild(el("span", "gacha-pool-chance", chance.toFixed(chance < 10 ? 2 : 1) + "%"));
+        global.UI.dom.gachaPool.appendChild(row);
+      });
+
+      if (result && result.ok) {
+        var title = "";
+        var desc = "";
+        if (result.kind === "new-character") {
+          title = "新角色解鎖：" + result.character.name;
+          desc = "現在可以前往角色選擇使用。";
+        } else if (result.kind === "duplicate-character") {
+          title = "重複角色：" + result.character.name;
+          desc = "已轉換為該角色技能點 +1。";
+        } else {
+          title = "新 Skin：" + result.skin.name;
+          desc = result.skin.statName + " +10%，已永久移出獎池。";
+        }
+        this.dom.gachaResult.innerHTML = "<strong>" + title + "</strong><span>" + desc + "</span>";
+        this.dom.gachaMachine.classList.add("revealed");
+        global.setTimeout(function () {
+          if (global.UI && global.UI.dom.gachaMachine) global.UI.dom.gachaMachine.classList.remove("revealed");
+        }, 900);
+      } else if (!this.dom.gachaResult.textContent) {
+        this.dom.gachaResult.textContent = "準備好後轉動扭蛋機！";
+      }
+      this.dom.gachaPull.textContent = "抽取一次　♻ " + global.Gacha.getCost().toLocaleString("zh-TW");
+      this.dom.gachaPull.disabled = global.Storage.getCoins() < global.Gacha.getCost();
+      this.updateCoinLabels();
       this.normalizeActionButtons();
       this.applyUiAssets();
     },
@@ -587,6 +1009,7 @@
           var price = item.prices[lvl];
           buy.appendChild(el("div", "shop-price", "♻ " + price));
           var btn = el("button", "btn btn-primary", "升級");
+          btn.setAttribute("aria-label", "升級" + item.name + "，花費 " + price + " 枚循環幣");
           if (!global.Storage.canBuy(item)) btn.disabled = true;
           btn.addEventListener("click", function () { self.app.buyUpgrade(item.id); });
           buy.appendChild(btn);
@@ -627,6 +1050,153 @@
       }, 100);
     },
 
+    setAchievementGroup: function (group) {
+      if (group !== "guardian" && group !== "challenge") group = "all";
+      this._achievementGroup = group;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-achievement-group]"), function (tab) {
+        var active = tab.dataset.achievementGroup === group;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+      if (this.dom.achievementList) {
+        this.dom.achievementList.setAttribute("aria-labelledby", "achievement-tab-" + group);
+      }
+      this.buildAchievements();
+    },
+
+    updateAchievementMenuBadge: function () {
+      if (!this.dom || !global.Achievements) return;
+      var summary = global.Achievements.getSummary();
+      var count = summary.claimable || 0;
+      var label = count > 99 ? "99+" : String(count);
+      var badges = [this.dom.achievementMenuBadge, this.dom.achievementCodexBadge];
+      badges.forEach(function (badge) {
+        if (!badge) return;
+        badge.textContent = label;
+        badge.classList.toggle("hidden", count <= 0);
+        badge.setAttribute("aria-hidden", String(count <= 0));
+      });
+      var menuButton = this.dom.achievementMenuBadge && this.dom.achievementMenuBadge.closest("button");
+      if (menuButton) menuButton.setAttribute("aria-label", count ? ("圖鑑/成就，有 " + count + " 項獎勵可領取") : "圖鑑/成就");
+      var codexButton = this.dom.achievementCodexBadge && this.dom.achievementCodexBadge.closest("button");
+      if (codexButton) codexButton.setAttribute("aria-label", count ? ("切換至成就，有 " + count + " 項獎勵可領取") : "切換至成就");
+    },
+
+    updateAchievementSummary: function () {
+      if (!global.Achievements) return;
+      var summary = global.Achievements.getSummary();
+      if (this.dom.achievementCompleteCount) this.dom.achievementCompleteCount.textContent = summary.completed;
+      if (this.dom.achievementTotalCount) this.dom.achievementTotalCount.textContent = summary.total;
+      if (this.dom.achievementClaimableCount) this.dom.achievementClaimableCount.textContent = summary.claimable;
+      if (this.dom.achievementClaimAll) this.dom.achievementClaimAll.disabled = summary.claimable <= 0;
+      this.updateAchievementMenuBadge();
+    },
+
+    buildAchievements: function () {
+      var list = this.dom && this.dom.achievementList;
+      if (!list || !global.Achievements) return;
+      var group = this._achievementGroup || "all";
+      var filter = group === "all" ? null : { group: group };
+      var tierNames = { bronze: "標準", silver: "進階", gold: "菁英" };
+      var self = this;
+      var items = global.Achievements.getAll(filter);
+
+      function available(item) {
+        if (item.unlocked) return true;
+        if (item.characterId && global.Storage.isCharacterOwned && !global.Storage.isCharacterOwned(item.characterId)) return false;
+        if (item.stageId && global.Storage.isStageUnlocked && !global.Storage.isStageUnlocked(item.stageId)) return false;
+        return true;
+      }
+
+      function stateRank(item) {
+        if (item.claimable) return 0;
+        if (!item.claimed && available(item)) return 1;
+        if (!item.claimed) return 2;
+        return 3;
+      }
+
+      items.sort(function (a, b) {
+        var rank = stateRank(a) - stateRank(b);
+        return rank || a.order - b.order;
+      });
+      list.innerHTML = "";
+
+      items.forEach(function (item) {
+        var isAvailable = available(item);
+        var stateClass = item.claimed ? "is-claimed" : (item.claimable ? "is-claimable" : (isAvailable ? "is-progressing" : "is-locked"));
+        var statusText = item.claimed ? "已領取" : (item.claimable ? "可領取" : (isAvailable ? "進行中" : "尚未開放"));
+        var current = item.unlocked ? item.target : Math.min(item.target, Math.max(0, item.progress || 0));
+        var percent = item.target > 0 ? Math.min(100, current / item.target * 100) : 0;
+        var titleId = "achievement-title-" + item.id;
+
+        var card = el("article", "achievement-card " + stateClass);
+        card.dataset.achievementId = item.id;
+        card.setAttribute("role", "listitem");
+        card.setAttribute("aria-labelledby", titleId);
+
+        var iconFrame = el("div", "achievement-icon-frame");
+        var icon = document.createElement("img");
+        icon.className = "achievement-icon";
+        icon.src = item.icon;
+        icon.alt = "";
+        icon.loading = "lazy";
+        icon.decoding = "async";
+        iconFrame.appendChild(icon);
+        iconFrame.appendChild(el("span", "achievement-tier " + item.tier, tierNames[item.tier] || item.tier));
+        card.appendChild(iconFrame);
+
+        var copy = el("div", "achievement-copy");
+        var titleRow = el("div", "achievement-title-row");
+        var title = el("h3", "achievement-name", item.title);
+        title.id = titleId;
+        titleRow.appendChild(title);
+        titleRow.appendChild(el("span", "achievement-status", statusText));
+        copy.appendChild(titleRow);
+        copy.appendChild(el("p", "achievement-desc", item.description));
+
+        var progressRow = el("div", "achievement-progress-row");
+        var progress = el("div", "achievement-progress");
+        progress.setAttribute("role", "progressbar");
+        progress.setAttribute("aria-label", item.title + "進度");
+        progress.setAttribute("aria-valuemin", "0");
+        progress.setAttribute("aria-valuemax", String(item.target));
+        progress.setAttribute("aria-valuenow", String(current));
+        progress.setAttribute("aria-valuetext", current.toLocaleString("zh-TW") + " / " + item.target.toLocaleString("zh-TW") + " " + item.unit);
+        var fill = el("span");
+        fill.style.width = percent + "%";
+        progress.appendChild(fill);
+        progressRow.appendChild(progress);
+        var output = el("output", "achievement-progress-value", current.toLocaleString("zh-TW") + " / " + item.target.toLocaleString("zh-TW") + " " + item.unit);
+        progressRow.appendChild(output);
+        copy.appendChild(progressRow);
+        card.appendChild(copy);
+
+        var reward = el("div", "achievement-reward");
+        reward.appendChild(el("span", "achievement-reward-label", "獎勵"));
+        reward.appendChild(el("strong", "achievement-reward-value", item.rewardLabel));
+        var button = el("button", "btn btn-primary achievement-claim", item.claimed ? "已領取" : (item.claimable ? "領取" : (isAvailable ? "進行中" : "未解鎖")));
+        button.type = "button";
+        button.disabled = !item.claimable;
+        button.setAttribute("aria-label", (item.claimable ? "領取" : statusText) + "：" + item.title);
+        if (item.claimable) {
+          button.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            self.app.claimAchievement(item.id);
+          });
+        }
+        reward.appendChild(button);
+        card.appendChild(reward);
+        list.appendChild(card);
+      });
+
+      if (!items.length) list.appendChild(el("p", "achievement-empty", "這個分類目前沒有成就。"));
+      this.updateAchievementSummary();
+      this.normalizeActionButtons();
+      this.applyUiAssets();
+    },
+
     setCodexView: function (view) {
       if (view !== "knowledge") view = "enemies";
       this._codexView = view;
@@ -642,6 +1212,7 @@
     buildCodex: function () {
       var list = this.dom.codexList;
       if (!list) return;
+      this.updateAchievementMenuBadge();
       var view = this._codexView === "knowledge" ? "knowledge" : "enemies";
       list.innerHTML = "";
       list.className = "codex-list " + (view === "knowledge" ? "codex-knowledge-list" : "codex-enemy-list");
@@ -857,7 +1428,8 @@
             var current = w.stats();
             var keys = SKILL_STAT_KEYS[w.skill.type] || Object.keys(current);
             var stats = keys.filter(function (key) { return current[key] != null && SKILL_STAT_LABELS[key]; }).map(function (key) {
-              return { label: SKILL_STAT_LABELS[key], value: formatSkillStat(key, current[key], p) };
+              var label = key === "damage" && w.skill.damageMode === "volley" ? "每輪總傷害" : SKILL_STAT_LABELS[key];
+              return { label: label, value: formatSkillStat(key, current[key], p, w.skill) };
             });
             detailUi.showHudSkillDetail(chip, {
               side: "skill", type: "攻擊技能", name: w.skill.name,
@@ -926,6 +1498,8 @@
       function pick(opt) { self.hideLevelUp(); onPick(opt); }
       options.forEach(function (opt, i) {
         var card = el("div", "levelup-card");
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
         var icon = global.Sprites.makeIconCanvas(opt.icon, 56);
         icon.className = "levelup-icon";
         card.appendChild(icon);
@@ -935,6 +1509,9 @@
         card.appendChild(el("div", "levelup-edu", "永續知識：" + opt.edu));
         card.appendChild(el("div", "levelup-key", "按 " + (i + 1) + " 或點擊選擇"));
         card.addEventListener("click", function () { pick(opt); });
+        card.addEventListener("keydown", function (e) {
+          if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); pick(opt); }
+        });
         box.appendChild(card);
       });
       this._keyHandler = function (e) {
@@ -945,7 +1522,7 @@
         if (n >= 0 && options[n]) { e.preventDefault(); pick(options[n]); }
       };
       global.addEventListener("keydown", this._keyHandler);
-      this.dom.levelupOverlay.classList.remove("hidden");
+      openDialog(this.dom.levelupOverlay, ".levelup-card");
     },
 
     showSustainabilityQuiz: function (question, onAnswer) {
@@ -1015,11 +1592,11 @@
         if (n >= 0 && question.options[n]) { e.preventDefault(); choose(n); }
       };
       global.addEventListener("keydown", this._keyHandler);
-      this.dom.levelupOverlay.classList.remove("hidden");
+      openDialog(this.dom.levelupOverlay, ".quiz-card");
     },
 
     hideLevelUp: function () {
-      this.dom.levelupOverlay.classList.add("hidden");
+      closeDialog(this.dom.levelupOverlay);
       if (this.dom.levelupOptions) this.dom.levelupOptions.classList.remove("quiz-options");
       if (this.dom.levelupFeedback) this.dom.levelupFeedback.classList.add("hidden");
       if (this._keyHandler) { global.removeEventListener("keydown", this._keyHandler); this._keyHandler = null; }
@@ -1029,16 +1606,25 @@
       return this.dom.levelupOverlay && !this.dom.levelupOverlay.classList.contains("hidden");
     },
 
+    focusVisiblePageSwitch: function () {
+      global.requestAnimationFrame(function () {
+        var target = document.querySelector(".screen:not(.hidden) .btn-page-switch");
+        if (target) focusWithoutScroll(target);
+      });
+    },
+
     /* ---------------- 暫停選單 ---------------- */
     showPause: function (show) {
       if (show) { this.normalizeActionButtons(); this.applyUiAssets(); }
-      if (this.dom.overlayPause) this.dom.overlayPause.classList.toggle("hidden", !show);
+      if (show) openDialog(this.dom.overlayPause, '[data-action="resume"]');
+      else closeDialog(this.dom.overlayPause);
     },
 
     /* ---------------- 確認視窗 ---------------- */
     showConfirm: function (show) {
       if (show) { this.normalizeActionButtons(); this.applyUiAssets(); }
-      if (this.dom.overlayConfirm) this.dom.overlayConfirm.classList.toggle("hidden", !show);
+      if (show) openDialog(this.dom.overlayConfirm, '[data-action="confirm-cancel"]');
+      else closeDialog(this.dom.overlayConfirm);
     },
     setConfirm: function (title, desc, okLabel) {
       if (this.dom.confirmTitle) this.dom.confirmTitle.textContent = title;
@@ -1158,6 +1744,10 @@
       var panel = layout.panel;
       var inner = layout.inner;
       var back = layout.backButton;
+      var root = document.documentElement;
+      var responsiveGrid = root.classList.contains("compact-visible") ||
+        (root.classList.contains("is-mobile") &&
+          (root.classList.contains("short-visible") || root.classList.contains("mobile-low-scale")));
       var stage = rectInfo($("stage")) || { x: 0, y: 0, right: global.innerWidth, bottom: global.innerHeight };
       var sliderXs = [];
       var sliderRights = [];
@@ -1166,8 +1756,15 @@
       if (!panel) errors.push("missing settings panel");
       if (!inner) errors.push("missing settings inner area");
       if (panel && inner) {
-        if (inner.x < panel.x + 60) errors.push("inner area is too close to the panel left edge");
-        if (inner.right > panel.right - 30) errors.push("inner area exceeds the panel readable right edge");
+        if (responsiveGrid) {
+          if (inner.x < panel.x - 1 || inner.right > panel.right + 1 ||
+              inner.y < panel.y - 1 || inner.bottom > panel.bottom + 1) {
+            errors.push("responsive settings area exceeds the panel");
+          }
+        } else {
+          if (inner.x < panel.x + 60) errors.push("inner area is too close to the panel left edge");
+          if (inner.right > panel.right - 30) errors.push("inner area exceeds the panel readable right edge");
+        }
       }
 
       layout.rowOrder.forEach(function (key) {
@@ -1176,27 +1773,38 @@
           errors.push(key + " row is missing a required visual part");
           return;
         }
-        if (panel && r.label.x <= panel.x + 60) errors.push(key + " label is too far left");
-        if (panel && r.icon.x <= panel.x + 40) errors.push(key + " icon is too far left");
-        if (panel && r.row.right >= panel.right - 24) errors.push(key + " row exceeds panel readable right edge");
+        if (panel && responsiveGrid) {
+          if (r.row.x < panel.x - 1 || r.row.right > panel.right + 1 ||
+              r.row.y < panel.y - 1 || r.row.bottom > panel.bottom + 1) {
+            errors.push(key + " row is outside the responsive panel");
+          }
+        } else if (panel) {
+          if (r.label.x <= panel.x + 60) errors.push(key + " label is too far left");
+          if (r.icon.x <= panel.x + 40) errors.push(key + " icon is too far left");
+          if (r.row.right >= panel.right - 24) errors.push(key + " row exceeds panel readable right edge");
+        }
 
         if (r.slider) {
           sliderXs.push(r.slider.x);
           sliderRights.push(r.slider.right);
           if (panel && (r.slider.x < panel.x || r.slider.right > panel.right)) errors.push(key + " slider is outside panel");
-          if (Math.abs(r.slider.centerY - r.row.centerY) > 3) errors.push(key + " slider center is not aligned with row");
+          if (!responsiveGrid && Math.abs(r.slider.centerY - r.row.centerY) > 3) errors.push(key + " slider center is not aligned with row");
+          if (root.classList.contains("is-mobile") && r.slider.height < 44) errors.push(key + " slider touch area is below 44px");
         }
         if (r.value) {
           valueRights.push(r.value.right);
-          if (panel && r.value.right >= panel.right - 30) errors.push(key + " value is too close to the right edge");
-          if (Math.abs(r.value.centerY - r.row.centerY) > 3) errors.push(key + " value is not aligned with row");
+          if (!responsiveGrid && panel && r.value.right >= panel.right - 30) errors.push(key + " value is too close to the right edge");
+          if (!responsiveGrid && Math.abs(r.value.centerY - r.row.centerY) > 3) errors.push(key + " value is not aligned with row");
+        }
+        if (r.toggle && root.classList.contains("is-mobile") && r.toggle.height < 44) {
+          errors.push(key + " toggle touch area is below 44px");
         }
       });
 
-      if (!aligned(sliderXs, 1)) errors.push("volume slider left edges are not aligned");
-      if (!aligned(sliderRights, 1)) errors.push("volume slider right edges are not aligned");
-      if (!aligned(valueRights, 1)) errors.push("volume values are not right aligned");
-      if (layout.rows.mute && layout.rows.master && layout.rows.mute.label && layout.rows.master.label) {
+      if (!responsiveGrid && !aligned(sliderXs, 1)) errors.push("volume slider left edges are not aligned");
+      if (!responsiveGrid && !aligned(sliderRights, 1)) errors.push("volume slider right edges are not aligned");
+      if (!responsiveGrid && !aligned(valueRights, 1)) errors.push("volume values are not right aligned");
+      if (!responsiveGrid && layout.rows.mute && layout.rows.master && layout.rows.mute.label && layout.rows.master.label) {
         if (Math.abs(layout.rows.mute.label.x - layout.rows.master.label.x) > 1) errors.push("mute row is not aligned with the volume labels");
       }
 
@@ -1207,6 +1815,9 @@
         }
         if (panel && Math.abs((back.x + back.width / 2) - (panel.x + panel.width / 2)) > 2) {
           errors.push("settings back button is not centered with the panel");
+        }
+        if (root.classList.contains("is-mobile") && back.height < 44) {
+          errors.push("settings back button touch area is below 44px");
         }
       }
 
@@ -1318,7 +1929,8 @@
       var layout = this.getCharacterLayout();
       var errors = [];
       var cards = layout.cards || [];
-      if (cards.length !== 3) errors.push("character select should show three cards");
+      var expectedCards = (global.GameData && global.GameData.characters ? global.GameData.characters.length : 0);
+      if (cards.length !== expectedCards) errors.push("character select should show " + expectedCards + " cards");
       if (cards.length) {
         var widths = cards.map(function (c) { return c.card ? c.card.width : 0; });
         if (!aligned(widths, 1)) errors.push("character cards are not equal width");
@@ -1327,11 +1939,8 @@
             errors.push("character card " + i + " is missing required content");
             return;
           }
-          if (Math.abs((c.portrait.x + c.portrait.width / 2) - (c.card.x + c.card.width / 2)) > 2) {
-            errors.push("character portrait " + i + " is not centered");
-          }
-          if (c.name.y < c.portrait.bottom) {
-            errors.push("character card " + i + " name overlaps portrait");
+          if (c.portrait.x < c.card.x || c.portrait.right > c.card.right || c.name.x < c.card.x || c.name.right > c.card.right) {
+            errors.push("character card " + i + " content escapes its bounds");
           }
         });
       }
@@ -1391,6 +2000,7 @@
       if (d.btnMute) {
         d.btnMute.textContent = s.mute ? "已靜音" : "未靜音";
         d.btnMute.classList.toggle("on", !!s.mute);
+        d.btnMute.setAttribute("aria-pressed", String(!!s.mute));
       }
     },
 
@@ -1467,6 +2077,8 @@
       box.appendChild(row("存活時間", fmtTime(stats.survived)));
       box.appendChild(row("淨化污染物", stats.purified + " 個"));
       box.appendChild(row("清理地圖物件", (stats.mapCleaned || 0) + " 個"));
+      box.appendChild(row("本局有效傷害", Math.round(stats.damageDealt || 0).toLocaleString("zh-TW")));
+      box.appendChild(row("本局承受傷害", stats.noDamage ? "0（無傷）" : Math.round(stats.damageTaken || 0).toLocaleString("zh-TW")));
       box.appendChild(row("永續問答", (stats.quizCorrect || 0) + " 對 / " + (stats.quizIncorrect || 0) + " 錯"));
       box.appendChild(row("最佳答題連勝", (stats.bestQuizStreak || 0) + " 題"));
       box.appendChild(row("達到等級", "Lv." + stats.level));
@@ -1475,6 +2087,9 @@
       box.appendChild(row("存活時間獎勵", "♻ " + stats.timeBonus));
       if (stats.winBonus > 0) box.appendChild(row("通關獎勵", "♻ " + stats.winBonus));
       if (stats.unlockedStage) box.appendChild(row("新關卡解鎖", stats.unlockedStage.name));
+      if (stats.newAchievements && stats.newAchievements.length) {
+        box.appendChild(row("本局完成成就", stats.newAchievements.length + " 項（可至成就頁領取）"));
+      }
       if (stats.multiplier > 1) box.appendChild(row("回收分類加成", "×" + stats.multiplier.toFixed(2)));
       var total = el("div", "row total");
       total.appendChild(el("span", "k", "本局獲得"));

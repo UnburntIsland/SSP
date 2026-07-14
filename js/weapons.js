@@ -2,7 +2,7 @@
    weapons.js  —  自動攻擊的武器/技能行為 + 投射物 / 區域 / 脈衝
    每個 Weapon 包一個 skill；依 skill.type 表現不同行為：
      projectile 種子飛刃 / aura 回收磁網 / pulse 太陽能脈衝
-     orbit 風力葉片 / zone 堆肥孢子 / deployable 回收哨兵
+     orbit 風力葉片 / zone 堆肥孢子 / deployable 回收哨兵 / trail 淨化藥跡
    update(dt, ctx) 會把效果放進 ctx 的 projectiles / zones / pulses / deployables。
    ============================================================ */
 (function (global) {
@@ -127,6 +127,7 @@
   };
 
   RecycleSentry.prototype.update = function (dt, ctx) {
+    if (this.dead) return;
     this.age += dt;
     this.life -= dt;
     this.fireTimer -= dt;
@@ -248,6 +249,7 @@
     this.pulse = Math.random() * Math.PI * 2;
   }
   Zone.prototype.update = function (dt, ctx) {
+    if (this.dead) return;
     this.life -= dt;
     this.pulse += dt * 5;
     if (this.follow) { this.x = this.follow.x; this.y = this.follow.y; }
@@ -261,7 +263,10 @@
       var dx = e.x - this.x, dy = e.y - this.y;
       if (dx * dx + dy * dy <= (this.radius + e.radius) * (this.radius + e.radius)) {
         var zoneDamage = this.dps * dt * (e.isElite ? this.eliteMult : 1);
-        if (e.takeDamage(zoneDamage, { continuous: true })) ctx.onPurified(e);
+        var zoneKilled = ctx.damageEnemy
+          ? ctx.damageEnemy(e, zoneDamage, { continuous: true })
+          : e.takeDamage(zoneDamage, { continuous: true });
+        if (zoneKilled) ctx.onPurified(e);
       }
     }
 
@@ -327,6 +332,144 @@
     ctx.restore();
   };
 
+  /* ---------------- 淨化藥跡（生態藥劑師專屬） ----------------
+     一個實體管理整條路徑與每隻敵人的計時，避免相鄰路徑點重疊時重複扣血。 */
+  function PurifyingTrail(owner, opt) {
+    this.owner = owner;
+    this.points = [];
+    this.hitCooldowns = new WeakMap();
+    this.dead = false;
+    this.phase = 0;
+    this.x = owner.x;
+    this.y = owner.y;
+    this.lastX = owner.x;
+    this.lastY = owner.y;
+    this.configure(opt);
+    this.addPoint(owner.x, owner.y);
+  }
+
+  PurifyingTrail.prototype.configure = function (opt) {
+    opt = opt || {};
+    this.damage = Math.max(0, Number(opt.damage) || 0);
+    this.tickCooldown = Math.max(0.05, Number(opt.tickCooldown) || 0.6);
+    this.radius = Math.max(4, Number(opt.radius) || 24);
+    this.duration = Math.max(0.2, Number(opt.duration) || 4);
+    this.spacing = Math.max(4, Number(opt.spacing) || 20);
+    this.eliteMult = Math.max(1, Number(opt.eliteMult) || 1);
+  };
+
+  PurifyingTrail.prototype.addPoint = function (x, y) {
+    this.points.push({ x: x, y: y, life: this.duration });
+    if (this.points.length > 240) this.points.splice(0, this.points.length - 240);
+  };
+
+  PurifyingTrail.prototype.update = function (dt, ctx) {
+    if (!this.owner || this.owner.hp <= 0) { this.dead = true; return; }
+    this.phase += dt * 4.2;
+    this.x = this.owner.x;
+    this.y = this.owner.y;
+
+    for (var p = this.points.length - 1; p >= 0; p--) {
+      this.points[p].life -= dt;
+      if (this.points[p].life <= 0) this.points.splice(p, 1);
+    }
+
+    var dx = this.owner.x - this.lastX;
+    var dy = this.owner.y - this.lastY;
+    var distance = Math.sqrt(dx * dx + dy * dy);
+    if (!this.points.length) {
+      this.addPoint(this.owner.x, this.owner.y);
+      this.lastX = this.owner.x;
+      this.lastY = this.owner.y;
+    } else if (distance >= this.spacing) {
+      // 低 FPS 或衝刺也逐段內插，確保路徑中央不會出現無法命中的缺口。
+      var steps = Math.max(1, Math.ceil(distance / this.spacing));
+      for (var step = 1; step <= steps; step++) {
+        var ratio = step / steps;
+        this.addPoint(this.lastX + dx * ratio, this.lastY + dy * ratio);
+      }
+      this.lastX = this.owner.x;
+      this.lastY = this.owner.y;
+    } else {
+      // 停留時只刷新腳下最後一點，不持續堆疊重複區塊。
+      this.points[this.points.length - 1].life = this.duration;
+    }
+
+    var enemies = ctx.enemies || [];
+    for (var i = 0; i < enemies.length; i++) {
+      var enemy = enemies[i];
+      if (!enemy || enemy.dead) continue;
+      var remaining = Math.max(0, (this.hitCooldowns.get(enemy) || 0) - dt);
+      var inside = false;
+      var hitRadius = this.radius + (enemy.radius || 0);
+      var hitRadiusSquared = hitRadius * hitRadius;
+      for (var j = 0; j < this.points.length; j++) {
+        var point = this.points[j];
+        var ex = enemy.x - point.x;
+        var ey = enemy.y - point.y;
+        if (ex * ex + ey * ey <= hitRadiusSquared) { inside = true; break; }
+      }
+
+      if (inside && remaining <= 0.000001) {
+        var amount = this.damage * (enemy.isElite ? this.eliteMult : 1);
+        var killed = ctx.damageEnemy
+          ? ctx.damageEnemy(enemy, amount, { continuous: true })
+          : enemy.takeDamage(amount, { continuous: true });
+        this.hitCooldowns.set(enemy, this.tickCooldown);
+        if (killed && ctx.onPurified) ctx.onPurified(enemy);
+      } else if (remaining > 0) {
+        // 離開再踏入仍沿用同一扣血間隔，避免在邊界反覆進出洗傷害。
+        this.hitCooldowns.set(enemy, remaining);
+      }
+    }
+  };
+
+  PurifyingTrail.prototype.draw = function (ctx) {
+    if (!this.points.length) return;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (var i = 1; i < this.points.length; i++) {
+      var previous = this.points[i - 1];
+      var point = this.points[i];
+      var sx = point.x - previous.x;
+      var sy = point.y - previous.y;
+      if (sx * sx + sy * sy > this.spacing * this.spacing * 3.2) continue;
+      var alpha = Math.min(1, Math.min(previous.life, point.life) / 0.65);
+      ctx.globalAlpha = alpha * 0.23;
+      ctx.strokeStyle = "#0b6b69";
+      ctx.lineWidth = this.radius * 1.65;
+      ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(point.x, point.y); ctx.stroke();
+      ctx.globalAlpha = alpha * 0.52;
+      ctx.strokeStyle = "#60ddbd";
+      ctx.lineWidth = this.radius * 0.78;
+      ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(point.x, point.y); ctx.stroke();
+    }
+
+    for (var k = 0; k < this.points.length; k++) {
+      var trailPoint = this.points[k];
+      var pointAlpha = Math.min(1, trailPoint.life / 0.65);
+      ctx.globalAlpha = pointAlpha * 0.26;
+      ctx.fillStyle = "#0b6b69";
+      ctx.beginPath(); ctx.arc(trailPoint.x, trailPoint.y, this.radius * 0.82, 0, Math.PI * 2); ctx.fill();
+      if (k % 3 === 0) {
+        var bubbleAngle = this.phase + k * 2.1;
+        ctx.globalAlpha = pointAlpha * 0.72;
+        ctx.fillStyle = "#d9fff1";
+        ctx.beginPath();
+        ctx.arc(
+          trailPoint.x + Math.cos(bubbleAngle) * this.radius * 0.45,
+          trailPoint.y + Math.sin(bubbleAngle) * this.radius * 0.32,
+          1.7 + (k % 2),
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  };
+
   /* ---------------- 脈衝（太陽能脈衝，純視覺；傷害於生成瞬間結算） ---------------- */
   function Pulse(x, y, radius) {
     this.x = x; this.y = y;
@@ -367,16 +510,22 @@
     this.skill = skill;
     this.player = player;
     this.level = 1;
-    this.timer = skill.type === "deployable" ? skill.levels[0].cooldown : 0.4;
+    this.timer = skill.type === "deployable" ? this.cd(skill.levels[0].cooldown) : 0.4;
     this.angle = Math.random() * Math.PI * 2; // 給 orbit 用
     this.blades = [];
     this.deployCount = 0;
+    this.trailField = null;
   }
 
   Weapon.prototype.stats = function () { return this.skill.levels[this.level - 1]; };
   Weapon.prototype.isMax = function () { return this.level >= this.skill.maxLevel; };
   Weapon.prototype.levelUp = function () { if (!this.isMax()) this.level += 1; };
-  Weapon.prototype.cd = function (base) { return base * this.player.cooldownMult; };
+  Weapon.prototype.cd = function (base) {
+    var raw = Number(this.player.cooldownMult);
+    if (!isFinite(raw)) raw = 1;
+    var mult = Math.max(this.player.minCooldownMult || 0.60, raw);
+    return Math.max(this.skill.minCooldown || 0.45, base * mult);
+  };
 
   Weapon.prototype.update = function (dt, ctx) {
     var s = this.stats();
@@ -389,6 +538,8 @@
           if (target) {
             var baseAng = Math.atan2(target.y - this.player.y, target.x - this.player.x);
             var count = s.count;
+            var volleyDamage = s.damage * (this.player.damageMult || 1);
+            var projectileDamage = this.skill.damageMode === "volley" ? volleyDamage / Math.max(1, count) : volleyDamage;
             var spread = 0.16;
             for (var i = 0; i < count; i++) {
               var off = (count === 1) ? 0 : (i - (count - 1) / 2) * spread;
@@ -396,7 +547,7 @@
               ctx.projectiles.push(new Projectile(
                 this.player.x, this.player.y,
                 Math.cos(ang) * s.speed, Math.sin(ang) * s.speed,
-                s.damage, s.pierce, 6,
+                projectileDamage, s.pierce, 6,
                 (s.eliteMult || 1) * (this.player.eliteDamageMult || 1)
               ));
             }
@@ -412,7 +563,7 @@
         this.timer -= dt;
         if (this.timer <= 0) {
           ctx.zones.push(new Zone(this.player.x, this.player.y, {
-            radius: s.radius, dps: s.dps, duration: s.duration,
+            radius: s.radius, dps: s.dps * (this.player.damageMult || 1), duration: s.duration,
             follow: this.player, pullXP: true, pull: s.pull, style: "net",
             eliteMult: this.player.eliteDamageMult || 1
           }));
@@ -425,7 +576,7 @@
         this.timer -= dt;
         if (this.timer <= 0) {
           ctx.zones.push(new Zone(this.player.x, this.player.y, {
-            radius: s.radius, dps: s.dps, duration: s.duration,
+            radius: s.radius, dps: s.dps * (this.player.damageMult || 1), duration: s.duration,
             follow: null, pullXP: false, style: "compost",
             eliteMult: this.player.eliteDamageMult || 1
           }));
@@ -444,8 +595,9 @@
             if (e.dead) continue;
             var dx = e.x - this.player.x, dy = e.y - this.player.y;
             if (dx * dx + dy * dy <= (s.radius + e.radius) * (s.radius + e.radius)) {
-              var pulseDamage = s.damage * (e.isElite ? (this.player.eliteDamageMult || 1) : 1);
-              if (e.takeDamage(pulseDamage)) ctx.onPurified(e);
+              var pulseDamage = s.damage * (this.player.damageMult || 1) * (e.isElite ? (this.player.eliteDamageMult || 1) : 1);
+              var pulseKilled = ctx.damageEnemy ? ctx.damageEnemy(e, pulseDamage) : e.takeDamage(pulseDamage);
+              if (pulseKilled) ctx.onPurified(e);
             }
           }
           this.timer = this.cd(s.cooldown);
@@ -469,8 +621,11 @@
             var bdx = ee.x - bx, bdy = ee.y - by;
             var rr2 = ((s.hitRadius || 12) + ee.radius);
             if (bdx * bdx + bdy * bdy <= rr2 * rr2) {
-              var orbitDamage = s.dps * dt * (ee.isElite ? (this.player.eliteDamageMult || 1) : 1);
-              if (ee.takeDamage(orbitDamage, { continuous: true })) {
+              var orbitDamage = s.dps * (this.player.damageMult || 1) * dt * (ee.isElite ? (this.player.eliteDamageMult || 1) : 1);
+              var orbitKilled = ctx.damageEnemy
+                ? ctx.damageEnemy(ee, orbitDamage, { continuous: true })
+                : ee.takeDamage(orbitDamage, { continuous: true });
+              if (orbitKilled) {
                 ctx.onPurified(ee);
               } else if (s.knockback) {
                 var pushDist = Math.sqrt(bdx * bdx + bdy * bdy) || 1;
@@ -500,16 +655,36 @@
             tx = Math.max(24, Math.min(ctx.world.w - 24, tx));
             ty = Math.max(24, Math.min(ctx.world.h - 24, ty));
           }
-          ctx.deployables.push(new RecycleSentry(tx, ty, {
+          var sentry = new RecycleSentry(tx, ty, {
             owner: this.player,
             direction: facing,
             duration: s.duration,
-            damage: s.damage,
+            damage: s.damage * (this.player.damageMult || 1),
             fireCooldown: s.fireCooldown,
             range: s.range,
             speed: s.speed
-          }));
-          this.timer = s.cooldown;
+          });
+          ctx.deployables.push(sentry);
+          this.timer = this.cd(s.cooldown);
+        }
+        break;
+      }
+
+      case "trail": {
+        var trailOptions = {
+          damage: s.damage * (this.player.damageMult || 1),
+          tickCooldown: s.tickCooldown,
+          radius: s.radius,
+          duration: s.duration,
+          spacing: s.spacing,
+          eliteMult: this.player.eliteDamageMult || 1
+        };
+        if (!this.trailField || this.trailField.dead) {
+          this.trailField = new PurifyingTrail(this.player, trailOptions);
+          ctx.zones.push(this.trailField);
+        } else {
+          this.trailField.configure(trailOptions);
+          if (ctx.zones.indexOf(this.trailField) === -1) ctx.zones.push(this.trailField);
         }
         break;
       }
@@ -551,4 +726,5 @@
   global.Pulse = Pulse;
   global.RecycleSentry = RecycleSentry;
   global.TurretProjectile = TurretProjectile;
+  global.PurifyingTrail = PurifyingTrail;
 })(window);

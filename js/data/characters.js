@@ -54,9 +54,26 @@
       role: "部署型",
       spriteId: "char_mechanic",
       startingSkill: "recycle_sentry",
-      passive: {},
-      passiveText: "裝置專精：開局攜帶回收哨兵",
+      passive: {
+        // 部署型：以固定攻擊倍率強化專屬哨兵與後續取得的攻擊技能。
+        damageMult: 1.1
+      },
+      passiveText: "攻擊力 +10%",
       flavour: "把回收零件組成自動哨兵，讓循環科技在污染潮中守住陣地。"
+    },
+    {
+      id: "chemist",
+      name: "生態藥劑師",
+      role: "路徑控場",
+      spriteId: "char_chemist",
+      startingSkill: "purifying_trail",
+      passive: {
+        // 高機動生存型：利用速度主動鋪設路徑，額外生命提高近身引怪的容錯。
+        maxHpMult: 1.1,
+        speedMult: 1.2
+      },
+      passiveText: "最大生命值 +10%、移動速度 +20%",
+      flavour: "把微生物與淨水藥劑調成活性配方，走過之處都會留下能分解污染的淨化藥跡。"
     }
   ];
 
@@ -66,7 +83,13 @@
       ranger: "ranger",
       beachcomber: "beachcomber",
       solar: "solar_engineer",
-      mechanic: "circular_mechanic"
+      mechanic: "circular_mechanic",
+      chemist: "eco_chemist"
+    };
+    var CANONICAL = {
+      solar: "solar_engineer",
+      mechanic: "circular_mechanic",
+      chemist: "eco_chemist"
     };
     var D = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     // 8 方向 idle / walk 全部列出，不在資料層假設哪些 walk 存在。
@@ -83,10 +106,10 @@
     }
     global.GameData.characters.forEach(function (ch) {
       var folder = FOLDER[ch.id] || ch.id;
-      ch.canonicalId = ch.id === "solar" ? "solar_engineer" : (ch.id === "mechanic" ? "circular_mechanic" : ch.id);
+      ch.canonicalId = CANONICAL[ch.id] || ch.id;
       ch.animationId = ch.canonicalId;
       ch.spriteBasePath = "assets/images/characters/" + folder + "/";
-      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : (ch.id === "mechanic" ? "mechanic_1" : ""));
+      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : (ch.id === "mechanic" ? "mechanic_1" : (ch.id === "chemist" ? "chemist_1" : "")));
       ch.animationSet = buildAnimSet();
     });
   })();
@@ -101,7 +124,10 @@
     solar_engineer: "solar",
     mechanic: "mechanic",
     circular_mechanic: "mechanic",
-    recycling_mechanic: "mechanic"
+    recycling_mechanic: "mechanic",
+    chemist: "chemist",
+    eco_chemist: "chemist",
+    ecological_chemist: "chemist"
   };
 
   global.GameData.resolveCharacterId = function (id) {

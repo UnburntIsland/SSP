@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=mobile-comfort-20260713b" />
+  <link rel="stylesheet" href="css/style.css?v=gacha-result-20260714a" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
   <div id="rotate-hint" class="hidden" role="dialog" aria-modal="true" aria-label="建議旋轉裝置" aria-hidden="true">
     <div class="rotate-hint-inner">
       <div class="rotate-hint-icon">⟳</div>
-      <div class="rotate-hint-text">請將手機轉為橫向以獲得最佳體驗</div>
+      <div class="rotate-hint-text">請將裝置轉為橫向以獲得最佳體驗</div>
     </div>
   </div>
   <div id="game-root">
@@ -135,8 +135,11 @@
           </div>
           <div class="menu-buttons">
             <button class="btn" data-action="characters">角色選擇</button>
-            <button class="btn" data-action="shop">商店</button>
-            <button class="btn" data-action="codex">圖鑑 / 永續知識</button>
+            <button class="btn" type="button" data-action="commerce-hub">商店/扭蛋</button>
+            <button class="btn achievement-menu-button" type="button" data-action="records-hub" aria-label="圖鑑/成就">
+              <span class="btn-label">圖鑑/成就</span>
+              <span id="achievement-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+            </button>
             <button class="btn" data-action="settings-home">設定</button>
           </div>
           <div class="coin-display">目前持有：<span class="coin-amount" id="menu-coins">0</span> 枚循環幣 ♻</div>
@@ -149,35 +152,119 @@
     <!-- ===== Character Select ===== -->
     <section id="screen-characters" class="screen hidden">
       <h2 class="screen-title">選擇守護者</h2>
-      <div id="character-list" class="card-grid"></div>
+      <div class="guardian-summary">角色、造型與能力強化 <span>♻ <b id="character-coins">0</b></span></div>
+      <div class="guardian-layout">
+        <div id="character-list" class="guardian-list" aria-label="角色清單"></div>
+        <div id="character-detail" class="guardian-detail"></div>
+      </div>
       <div class="screen-footer">
         <button class="btn" data-action="back">返回</button>
         <button class="btn btn-primary" id="confirm-character" data-action="confirm-character">確定</button>
       </div>
     </section>
 
+    <!-- ===== Eco Gacha ===== -->
+    <section id="screen-gacha" class="screen hidden">
+      <div class="gacha-header">
+        <div class="paired-page-heading">
+          <h2 class="screen-title">生態扭蛋</h2>
+          <p class="screen-desc">每項機率相同；取得 Skin 後會永久移出獎池。</p>
+        </div>
+        <div class="paired-page-tools">
+          <div class="gacha-wallet">♻ <span id="gacha-coins">0</span></div>
+        </div>
+      </div>
+      <div class="gacha-layout">
+        <div class="gacha-machine-panel">
+          <div id="gacha-collection" class="gacha-collection"></div>
+          <div id="gacha-machine" class="gacha-machine" aria-live="polite">
+            <div class="gacha-capsule"><span>?</span></div>
+            <div id="gacha-result" class="gacha-result">準備好後轉動扭蛋機！</div>
+          </div>
+          <button id="gacha-pull" class="btn btn-primary gacha-pull" data-action="gacha-pull">抽取一次　♻ 1,000</button>
+        </div>
+        <div class="gacha-pool-panel">
+          <div class="gacha-pool-title">目前獎池與即時機率</div>
+          <div id="gacha-pool" class="gacha-pool" role="list" tabindex="0" aria-label="目前扭蛋獎池，使用滑動、滾輪或方向鍵查看更多"></div>
+        </div>
+      </div>
+      <div class="screen-footer paired-page-footer">
+        <button class="btn btn-page-switch" type="button" data-action="shop" aria-label="切換至商店">商店</button>
+        <button class="btn" type="button" data-action="back">返回</button>
+      </div>
+    </section>
+
     <!-- ===== Shop ===== -->
     <section id="screen-shop" class="screen hidden">
-      <h2 class="screen-title">循環商店</h2>
-      <p class="screen-desc">用「循環幣」投資永久升級，讓每一次行動都更有力。</p>
-      <div class="coin-display">可用循環幣：<span class="coin-amount" id="shop-coins">0</span> ♻</div>
+      <header class="paired-page-header shop-header">
+        <div class="paired-page-heading">
+          <h2 class="screen-title">循環商店</h2>
+          <p class="screen-desc">用「循環幣」投資永久升級，讓每一次行動都更有力。</p>
+        </div>
+        <div class="paired-page-tools">
+          <div class="coin-display">可用循環幣：<span class="coin-amount" id="shop-coins">0</span> ♻</div>
+        </div>
+      </header>
       <div id="shop-list" class="shop-list"></div>
-      <div class="screen-footer">
-        <button class="btn" data-action="back">返回</button>
+      <div class="screen-footer paired-page-footer">
+        <button class="btn btn-page-switch" type="button" data-action="gacha" aria-label="切換至生態扭蛋">扭蛋</button>
+        <button class="btn" type="button" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Achievements ===== -->
+    <section id="screen-achievements" class="screen hidden">
+      <header class="achievement-header">
+        <div class="achievement-heading">
+          <h2 class="screen-title">成就</h2>
+          <p class="screen-desc">完成守護者足跡與挑戰紀錄，領取循環幣或角色加成點數。</p>
+        </div>
+        <div class="achievement-summary" aria-live="polite" aria-atomic="true">
+          <span class="achievement-summary-item">
+            <span class="achievement-summary-label">已完成</span>
+            <strong><span id="achievement-complete-count">0</span> / <span id="achievement-total-count">0</span></strong>
+          </span>
+          <span class="achievement-summary-item claimable">
+            <span class="achievement-summary-label">可領取</span>
+            <strong id="achievement-claimable-count">0</strong>
+          </span>
+        </div>
+      </header>
+
+      <div class="achievement-tabs" role="tablist" aria-label="成就分類">
+        <button id="achievement-tab-all" class="achievement-tab active" type="button" role="tab" aria-selected="true" aria-controls="achievement-list" tabindex="0" data-achievement-group="all">全部</button>
+        <button id="achievement-tab-guardian" class="achievement-tab" type="button" role="tab" aria-selected="false" aria-controls="achievement-list" tabindex="-1" data-achievement-group="guardian">守護足跡</button>
+        <button id="achievement-tab-challenge" class="achievement-tab" type="button" role="tab" aria-selected="false" aria-controls="achievement-list" tabindex="-1" data-achievement-group="challenge">挑戰紀錄</button>
+      </div>
+
+      <div id="achievement-list" class="achievement-list" role="tabpanel" aria-labelledby="achievement-tab-all" aria-live="polite"></div>
+
+      <div class="screen-footer paired-page-footer achievement-footer">
+        <button class="btn btn-page-switch" type="button" data-action="codex" aria-label="切換至圖鑑">圖鑑</button>
+        <button class="btn" type="button" data-action="back">返回</button>
+        <button id="achievement-claim-all" class="btn btn-primary" type="button" data-action="achievement-claim-all" disabled>全部領取</button>
       </div>
     </section>
 
     <!-- ===== Codex / Knowledge ===== -->
     <section id="screen-codex" class="screen hidden">
-      <h2 class="screen-title">永續圖鑑</h2>
-      <p id="codex-view-desc" class="screen-desc">查看各關卡出現的污染物與行動特性。</p>
+      <header class="paired-page-header codex-header">
+        <div class="paired-page-heading">
+          <h2 class="screen-title">永續圖鑑</h2>
+          <p id="codex-view-desc" class="screen-desc">查看各關卡出現的污染物與行動特性。</p>
+        </div>
+      </header>
       <div class="codex-tabs" role="tablist" aria-label="圖鑑分類">
         <button id="codex-tab-enemies" class="codex-tab active" type="button" role="tab" aria-selected="true" aria-controls="codex-list" data-codex-view="enemies">污染物圖鑑</button>
         <button id="codex-tab-knowledge" class="codex-tab" type="button" role="tab" aria-selected="false" aria-controls="codex-list" data-codex-view="knowledge">永續知識</button>
       </div>
       <div id="codex-list" class="codex-list codex-enemy-list" role="tabpanel" aria-live="polite"></div>
-      <div class="screen-footer">
-        <button class="btn" data-action="back">返回</button>
+      <div class="screen-footer paired-page-footer">
+        <button class="btn btn-page-switch achievement-menu-button" type="button" data-action="achievements" aria-label="切換至成就">
+          <span class="btn-label">成就</span>
+          <span id="achievement-codex-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+        </button>
+        <button class="btn" type="button" data-action="back">返回</button>
       </div>
     </section>
 
@@ -232,16 +319,28 @@
     </section>
 
     <!-- ===== Level-up overlay ===== -->
-    <div id="overlay-levelup" class="overlay hidden">
-      <div class="overlay-inner">
+    <div id="overlay-levelup" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="levelup-title" aria-hidden="true">
+      <div class="overlay-inner" tabindex="-1">
         <h2 class="levelup-title" id="levelup-title">升級！選擇你的成長</h2>
         <div id="levelup-feedback" class="levelup-feedback hidden" aria-live="polite"></div>
         <div id="levelup-options" class="levelup-options"></div>
       </div>
     </div>
 
+    <!-- ===== Gacha reward reveal ===== -->
+    <div id="overlay-gacha-result" class="overlay gacha-reward-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gacha-reward-title" aria-describedby="gacha-reward-desc" aria-hidden="true">
+      <div id="gacha-reward-panel" class="overlay-inner gacha-reward-panel" tabindex="-1">
+        <div id="gacha-reward-eyebrow" class="gacha-reward-eyebrow">扭蛋結果</div>
+        <div id="gacha-reward-visual" class="gacha-reward-visual" aria-hidden="true"></div>
+        <h2 id="gacha-reward-title" class="gacha-reward-title">獲得物品</h2>
+        <p id="gacha-reward-desc" class="gacha-reward-desc"></p>
+        <div id="gacha-reward-bonus" class="gacha-reward-bonus"></div>
+        <button class="btn btn-primary gacha-reward-confirm" type="button" data-action="gacha-result-confirm">確認</button>
+      </div>
+    </div>
+
     <!-- ===== Knowledge card reading pause ===== -->
-    <div id="overlay-knowledge" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="knowledge-card-title">
+    <div id="overlay-knowledge" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="knowledge-card-title" aria-hidden="true">
       <div class="overlay-inner knowledge-card-panel">
         <div class="knowledge-card-eyebrow">永續圖鑑 +1</div>
         <div id="knowledge-card-icon" class="knowledge-card-icon" aria-hidden="true"></div>
@@ -253,9 +352,9 @@
     </div>
 
     <!-- ===== Pause overlay ===== -->
-    <div id="overlay-pause" class="overlay hidden">
-      <div class="overlay-inner pause-panel" id="pause-panel">
-        <h2 class="pause-title">遊戲暫停</h2>
+    <div id="overlay-pause" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title" aria-hidden="true">
+      <div class="overlay-inner pause-panel" id="pause-panel" tabindex="-1">
+        <h2 class="pause-title" id="pause-title">遊戲暫停</h2>
         <div class="pause-buttons">
           <button class="btn btn-primary" data-action="resume">繼續遊戲</button>
           <button class="btn" data-action="settings-pause"><span class="btn-icon" id="ic-presettings"></span>設定</button>
@@ -266,8 +365,8 @@
     </div>
 
     <!-- ===== Confirm dialog (home / restart) ===== -->
-    <div id="overlay-confirm" class="overlay hidden">
-      <div class="overlay-inner confirm-panel" id="confirm-panel">
+    <div id="overlay-confirm" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-desc" aria-hidden="true">
+      <div class="overlay-inner confirm-panel" id="confirm-panel" tabindex="-1">
         <h2 class="confirm-title" id="confirm-title">確定要回到首頁嗎？</h2>
         <p class="confirm-desc" id="confirm-desc">目前這局進度將不會保存。</p>
         <div class="confirm-buttons">
@@ -305,32 +404,36 @@
 
   <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
   <!-- Data layer -->
-  <script src="js/data/characters.js?v=circular-mechanic-20260711b"></script>
-  <script src="js/data/skills.js?v=boss-attack-20260711a"></script>
+  <script src="js/data/characters.js?v=chemist-20260714a"></script>
+  <script src="js/data/skins.js?v=gacha-result-20260714a"></script>
+  <script src="js/data/skills.js?v=balance-20260714a"></script>
   <script src="js/data/enemies.js?v=enemy-8dir-20260711a"></script>
-  <script src="js/data/shop.js"></script>
+  <script src="js/data/shop.js?v=balance-20260714a"></script>
   <script src="js/data/stages.js?v=stage-carousel-20260711a"></script>
+  <script src="js/data/achievements.js?v=chemist-20260714a"></script>
   <script src="js/data/knowledge.js?v=codex-icons-20260712a"></script>
   <!-- Engine -->
   <script src="js/config.js?v=circular-mechanic-20260711b"></script>
   <script src="js/uiTheme.js"></script>
-  <script src="js/mobile.js?v=mobile-comfort-20260713b"></script>
+  <script src="js/mobile.js?v=mobile-comfort-20260714c"></script>
   <script src="js/stageRenderer.js?v=stage-carousel-20260711a"></script>
-  <script src="js/storage.js?v=stage-carousel-20260711a"></script>
+  <script src="js/storage.js?v=chemist-20260714a"></script>
+  <script src="js/achievements.js?v=chemist-20260714a"></script>
+  <script src="js/gacha.js?v=chemist-20260714a"></script>
   <script src="js/audioManager.js"></script>
-  <script src="js/assets.js?v=codex-icons-20260712a"></script>
+  <script src="js/assets.js?v=chemist-20260714a"></script>
   <script src="js/effects.js"></script>
-  <script src="js/sprites.js?v=stage-carousel-20260711a"></script>
+  <script src="js/sprites.js?v=chemist-20260714a"></script>
   <script src="js/animation.js"></script>
   <script src="js/input.js?v=mobile-comfort-20260713b"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
-  <script src="js/player.js?v=damage-feedback-20260711a"></script>
-  <script src="js/enemy.js?v=enemy-intro-20260711a"></script>
-  <script src="js/weapons.js?v=damage-feedback-20260711a"></script>
-  <script src="js/ui.js?v=codex-icons-20260712a"></script>
-  <script src="js/game.js?v=stage-carousel-20260711a"></script>
+  <script src="js/player.js?v=balance-20260714a"></script>
+  <script src="js/enemy.js?v=balance-20260714a"></script>
+  <script src="js/weapons.js?v=balance-20260714a"></script>
+  <script src="js/ui.js?v=gacha-result-20260714a"></script>
+  <script src="js/game.js?v=balance-20260714a"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=enemy-8dir-20260711a"></script>
-  <script src="js/main.js?v=lobby-layout-20260711b"></script>
+  <script src="js/test_mode.js?v=mechanic-balance-20260714a"></script>
+  <script src="js/main.js?v=gacha-result-20260714a"></script>
 </body>
 </html>

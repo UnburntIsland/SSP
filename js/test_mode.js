@@ -11,7 +11,8 @@
     enabled: enabled,
     seed: Number(params.get("seed")) || 424242,
     stageId: params.get("stage") || "tidal_flat",
-    unlockStages: params.get("qaUnlockStages") === "1"
+    unlockStages: params.get("qaUnlockStages") === "1",
+    achievementPersistence: params.get("qaAchievements") === "1"
   };
 
   global.TestMode = TestMode;
@@ -92,7 +93,9 @@
     var ids = {
       menu: "screen-menu",
       characters: "screen-characters",
+      gacha: "screen-gacha",
       shop: "screen-shop",
+      achievements: "screen-achievements",
       codex: "screen-codex",
       help: "screen-help",
       victory: "screen-victory",
@@ -140,6 +143,9 @@
            quizIncorrect: g.quizIncorrect || 0,
            quizStreak: g.quizStreak || 0,
            bestQuizStreak: g.bestQuizStreak || 0,
+           damageDealt: g.damageDealt || 0,
+           damageTaken: g.damageTaken || 0,
+           hitCount: g.hitCount || 0,
            eliteRewardLevel: g.eliteRewardLevel || 0,
            mapCleaned: g.mapCleanedCount || 0,
            mapObjects: global.StageRenderer && global.StageRenderer.props ? global.StageRenderer.props.map(function (prop) {
@@ -210,7 +216,7 @@
        setSkillLevel: function (id, level) {
          if (!global.Game || !global.Game.player) return false;
          var player = global.Game.player;
-         if (!player.hasSkill(id)) player.addSkill(id);
+         if (!player.hasSkill(id)) player.addSkill(id, { allowTestOverride: true });
          var weapon = player.getWeapon(id);
          if (!weapon) return false;
          var target = Math.max(1, Math.min(weapon.skill.maxLevel, Number(level) || 1));
@@ -385,10 +391,10 @@
           flashEnemy.ranged = null;
           flashEnemy.maxHp = 9999;
           flashEnemy.hp = flashEnemy.maxHp;
-          flashEnemy.takeDamage(1);
+          global.Game.damageEnemy(flashEnemy, 1);
           flashEnemy.hitFlash = 1.5;
           flashEnemy.damageInvulnTimer = 1.5;
-          flashPlayer.takeDamage(2);
+          global.Game.damagePlayer(2);
           flashPlayer.hitFlash = 1.5;
           flashPlayer.invulnTimer = Math.max(flashPlayer.invulnTimer, 1.5);
           global.Game.enemies.push(flashEnemy);
@@ -418,8 +424,11 @@
           global.Game.enemyProjectiles = [];
           global.Game.projectiles = [];
           var turretLevel = Math.max(1, Math.min(5, Number(params.get("qaTurretLevel")) || 1));
-          if (!global.Game.player.hasSkill("recycle_sentry")) global.Game.player.addSkill("recycle_sentry");
+          if (!global.Game.player.hasSkill("recycle_sentry")) {
+            global.Game.player.addSkill("recycle_sentry", { allowTestOverride: true });
+          }
           var turretWeapon = global.Game.player.getWeapon("recycle_sentry");
+          if (!turretWeapon) return;
           turretWeapon.level = turretLevel;
           turretWeapon.timer = 0.05;
           var turretDir = (params.get("qaTurretDir") || "E").toUpperCase();

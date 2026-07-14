@@ -80,6 +80,7 @@
     // 而在 transform 後發生二次縮小或直向裁切。
     document.documentElement.classList.toggle("narrow-visible", visW < 520);
     document.documentElement.classList.toggle("compact-visible", visW < COMPACT_VISIBLE_WIDTH);
+    document.documentElement.classList.toggle("short-visible", visH < 650);
     document.documentElement.classList.toggle("mobile-low-scale", mobile && scale < 0.82);
     // 輸出給 CSS：邊緣內縮 = 裁切量 + safe-area（換算成 stage px）
     var s = stage.style;
@@ -126,7 +127,7 @@
     var hint = document.getElementById("rotate-hint");
     if (!hint) return;
     var portrait = global.innerHeight > global.innerWidth;
-    var show = portrait && !hintDismissed;
+    var show = portrait && !hintDismissed && hint.dataset.dismissed !== "true";
     hint.classList.toggle("hidden", !show);
     hint.setAttribute("aria-hidden", String(!show));
   }
@@ -135,6 +136,7 @@
     if (!hint) return;
     function dismiss() {
       hintDismissed = true;
+      hint.dataset.dismissed = "true";
       hint.classList.add("hidden");
       hint.setAttribute("aria-hidden", "true");
     }
@@ -176,6 +178,7 @@
     var btn = document.createElement("button");
     btn.id = "mobile-fullscreen-btn";
     btn.type = "button";
+    btn.setAttribute("aria-label", "切換全螢幕");
     btn.innerHTML = "⛶ 全螢幕";
     btn.addEventListener("click", function (e) { e.stopPropagation(); enterFullscreen(); });
     menu.appendChild(btn);
@@ -264,11 +267,13 @@
       var chars = (global.GameData && global.GameData.characters) || [];
       list.innerHTML = "";
       chars.forEach(function (ch) {
+        var owned = !global.Storage || !global.Storage.isCharacterOwned || global.Storage.isCharacterOwned(ch.id);
         var item = document.createElement("button");
         item.type = "button";
-        item.className = "mobile-char-item";
+        item.className = "mobile-char-item" + (owned ? "" : " locked");
         item.dataset.charId = ch.id;
         item.setAttribute("role", "option");
+        item.setAttribute("aria-disabled", String(!owned));
         if (global.Sprites && global.Sprites.makeCanvas) {
           var icon = global.Sprites.makeCanvas(ch.spriteId, 3);
           icon.className = "mobile-char-item-icon";
@@ -282,7 +287,7 @@
         name.textContent = ch.name;
         var role = document.createElement("span");
         role.className = "mobile-char-item-role";
-        role.textContent = ch.role;
+        role.textContent = owned ? ch.role : "🔒 生態扭蛋取得";
         text.appendChild(name);
         text.appendChild(role);
         item.appendChild(text);
@@ -295,6 +300,10 @@
 
         item.addEventListener("click", function (e) {
           e.stopPropagation();
+          if (!owned) {
+            if (global.UI && global.UI.showToast) global.UI.showToast("角色尚未解鎖", "請從生態扭蛋取得這名守護者。");
+            return;
+          }
           var app = global.App;
           if (app && app.saveSelectedCharacter) app.saveSelectedCharacter(ch.id);
           refreshList();
@@ -326,6 +335,7 @@
 
     // App.boot 讀完存檔後再建立清單，確保 active 角色正確。
     setTimeout(buildList, 400);
+    global.addEventListener("gacha-progress", buildList);
 
     var chip = document.createElement("div");
     chip.id = "mobile-coin-chip";

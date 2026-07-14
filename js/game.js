@@ -21,9 +21,10 @@
     { id: "sense", name: "敏銳感知", icon: "passive_sense", effect: "拾取範圍 +20%",
       edu: "多留心周遭，就能發現更多可回收的資源。",
       apply: function (p) { p.pickupRange *= 1.2; } },
-    { id: "efficiency", name: "高效節能", icon: "passive_efficiency", effect: "所有技能冷卻 -6%",
+    { id: "efficiency", name: "高效節能", icon: "passive_efficiency", effect: "所有技能冷卻 -6%（最多 4 級；最低為原始 60%）", maxLevel: 4,
       edu: "提升效率，用更少的能源做更多的事。",
-      apply: function (p) { p.cooldownMult *= 0.94; } },
+      isMaxed: function (p) { return p.cooldownMult <= (p.minCooldownMult || 0.60) + 0.0001; },
+      apply: function (p) { p.cooldownMult = Math.max(p.minCooldownMult || 0.60, p.cooldownMult * 0.94); } },
     { id: "mend", name: "淨水補給", icon: "passive_mend", effect: "立即回復 35 生命",
       edu: "潔淨的水，是所有生命賴以維繫的根本。",
       apply: function (p) { p.heal(35); } },
@@ -37,6 +38,18 @@
       edu: "適量補充體力，才能穩定完成長時間的環境行動。", oneShot: true,
       apply: function (p) { p.maxHp += 8; p.heal(8); } }
   ];
+
+  function passiveUpgradeLevel(player, id) {
+    var state = player && player.passiveUpgrades && player.passiveUpgrades[id];
+    return state ? (state.level || 0) : 0;
+  }
+
+  function statUpgradeMaxed(upgrade, player) {
+    if (!upgrade || !player) return true;
+    if (upgrade.oneShot && player.oneShotUpgrades && player.oneShotUpgrades[upgrade.id]) return true;
+    if (upgrade.maxLevel && passiveUpgradeLevel(player, upgrade.id) >= upgrade.maxLevel) return true;
+    return !!(upgrade.isMaxed && upgrade.isMaxed(player));
+  }
 
   function mulberry32(a) {
     return function () {
@@ -109,6 +122,9 @@
       this.quizIncorrect = 0;
       this.quizStreak = 0;
       this.bestQuizStreak = 0;
+      this.damageDealt = 0;
+      this.damageTaken = 0;
+      this.hitCount = 0;
       this.bossDefeated = false;
       this.bossSpawned = false;
       this.eliteRewardLevel = 0;
@@ -327,7 +343,7 @@
         this.collideEnemyProjectile(enemyProjectile);
       }
 
-      // 區域（磁網 / 孢子）
+      // 地面區域（磁網 / 孢子 / 淨化藥跡）
       for (var z = 0; z < this.zones.length; z++) this.zones[z].update(dt, ctx);
 
       // 脈衝視覺
@@ -342,7 +358,7 @@
         var dx = en.x - this.player.x, dy = en.y - this.player.y;
         var rr = en.radius + this.player.radius;
         if ((!en.isSpawning || !en.isSpawning()) && dx * dx + dy * dy <= rr * rr) {
-          this.player.takeDamage(en.contact);
+          this.damagePlayer(en.contact);
         }
       }
 
@@ -396,8 +412,32 @@
         effects: this.effects,
         world: this.world,
         findNearestEnemy: function (x, y) { return self.findNearestEnemy(x, y); },
+        damageEnemy: function (enemy, amount, options) { return self.damageEnemy(enemy, amount, options); },
         onPurified: function (en) { self.onPurified(en); }
       };
+    },
+
+    damageEnemy: function (enemy, amount, options) {
+      if (!enemy || enemy.dead || typeof enemy.takeDamage !== "function") return false;
+      var before = Math.max(0, Number(enemy.hp) || 0);
+      var killed = enemy.takeDamage(amount, options);
+      var after = Math.max(0, Number(enemy.hp) || 0);
+      var dealt = Math.max(0, before - after);
+      if (dealt > 0) this.damageDealt += dealt;
+      return killed;
+    },
+
+    damagePlayer: function (amount) {
+      if (!this.player || typeof this.player.takeDamage !== "function") return false;
+      var before = Math.max(0, Number(this.player.hp) || 0);
+      var damaged = this.player.takeDamage(amount);
+      var after = Math.max(0, Number(this.player.hp) || 0);
+      var taken = Math.max(0, before - after);
+      if (taken > 0) {
+        this.damageTaken += taken;
+        this.hitCount += 1;
+      }
+      return damaged;
     },
 
     makeContaminationState: function () {
@@ -485,7 +525,7 @@
       this.zoneDamageTimer -= dt;
       if (this.zoneDamageTimer <= 0) {
         this.zoneDamageTimer = zone.def.tickInterval || 1;
-        if (this.player.takeDamage(zone.def.damagePerTick || 2)) {
+        if (this.damagePlayer(zone.def.damagePerTick || 2)) {
           this.floaters.push({
             x: this.player.x,
             y: this.player.y - 24,
@@ -612,7 +652,7 @@
       var rr = projectile.radius + this.player.radius;
       if (dx * dx + dy * dy > rr * rr) return;
       projectile.dead = true;
-      this.player.takeDamage(projectile.damage);
+      this.damagePlayer(projectile.damage);
       this.puffs.push({ x: projectile.x, y: projectile.y, age: 0, life: 0.24, r: projectile.radius, color: projectile.color });
     },
 
@@ -644,7 +684,7 @@
         if (dx * dx + dy * dy <= rr * rr) {
           pr.hitSet.push(e);
           var projectileDamage = pr.damage * (e.isElite ? (pr.eliteMult || 1) : 1);
-          var killed = e.takeDamage(projectileDamage);
+          var killed = this.damageEnemy(e, projectileDamage);
           this.spawnEffect(pr.hitEffectId || "seed_blade", pr.hitEffectGroup || "hit", pr.x, pr.y, {
             life: 0.22,
             size: (global.Config ? 42 / global.Config.CAMERA_ZOOM : 24),
@@ -940,7 +980,13 @@
         this.quizIncorrect += 1;
         this.quizStreak = 0;
         var penalty = Math.max(4, Math.round(this.player.maxHp * 0.05));
+        var hpBeforePenalty = this.player.hp;
         this.player.hp = Math.max(1, this.player.hp - penalty);
+        var quizDamage = Math.max(0, hpBeforePenalty - this.player.hp);
+        if (quizDamage > 0) {
+          this.damageTaken += quizDamage;
+          this.hitCount += 1;
+        }
         this.player.hitFlash = 0.18;
         this.floaters.push({ x: this.player.x, y: this.player.y - 30, age: 0, life: 0.9, text: "答錯：污染壓力 -" + penalty + " HP", color: "#ff9a9a" });
       }
@@ -949,11 +995,14 @@
     generateLevelUpOptions: function () {
       var pool = [];
       var p = this.player;
+      var canUseSkill = function (skill) {
+        return !global.GameData.canCharacterUseSkill || global.GameData.canCharacterUseSkill(skill, p.character);
+      };
       p.oneShotUpgrades = p.oneShotUpgrades || {};
       // 已有技能可強化
       for (var i = 0; i < p.weapons.length; i++) {
         var w = p.weapons[i];
-        if (!w.isMax()) {
+        if (canUseSkill(w.skill) && !w.isMax()) {
           var next = w.skill.levels[w.level]; // 升一級後的數值（含 up 文字）
           pool.push({
             kind: "skill_up", id: w.skill.id, icon: w.skill.iconId,
@@ -966,7 +1015,7 @@
       if (p.weapons.length < MAX_WEAPONS) {
         var skills = global.GameData.skills;
         for (var s = 0; s < skills.length; s++) {
-          if (!p.hasSkill(skills[s].id)) {
+          if (canUseSkill(skills[s]) && !p.hasSkill(skills[s].id)) {
             pool.push({
               kind: "skill_new", id: skills[s].id, icon: skills[s].iconId,
               name: skills[s].name, tag: "新技能",
@@ -978,11 +1027,14 @@
       // 通用能力（隨機若干，保證選項充足）
       var stats = shuffle(STAT_UPGRADES.slice());
       for (var t = 0; t < stats.length; t++) {
-        if (stats[t].oneShot && p.oneShotUpgrades[stats[t].id]) continue;
+        if (statUpgradeMaxed(stats[t], p)) continue;
+        var statLevel = passiveUpgradeLevel(p, stats[t].id);
         pool.push({
           kind: "stat", id: stats[t].id, icon: stats[t].icon,
-          name: stats[t].name, tag: stats[t].oneShot ? "一次滿級" : "能力",
-          effect: stats[t].effect, edu: stats[t].edu, oneShot: !!stats[t].oneShot
+          name: stats[t].name,
+          tag: stats[t].oneShot ? "一次滿級" : (stats[t].maxLevel ? ("能力 Lv." + (statLevel + 1) + "/" + stats[t].maxLevel) : "能力"),
+          effect: stats[t].effect, edu: stats[t].edu, oneShot: !!stats[t].oneShot,
+          maxLevel: stats[t].maxLevel || 0
         });
       }
       // 每輪保留兩個主技能槽，另提供一個輕量能力槽；一次滿級能力優先出現。
@@ -1016,7 +1068,7 @@
           break;
         }
       }
-      if (!upgrade || (upgrade.oneShot && p.oneShotUpgrades[id])) return false;
+      if (!upgrade || statUpgradeMaxed(upgrade, p)) return false;
 
       upgrade.apply(p);
       if (upgrade.oneShot) p.oneShotUpgrades[id] = true;
@@ -1027,6 +1079,7 @@
           icon: upgrade.icon,
           effect: upgrade.effect,
           oneShot: !!upgrade.oneShot,
+          maxLevel: upgrade.maxLevel || 0,
           level: 0
         };
         p.passiveUpgradeOrder.push(id);
@@ -1082,6 +1135,8 @@
         result: result,
         stageId: this.stage.id,
         stageName: this.stage.name,
+        characterId: this.player.character.id,
+        skinId: this.player.character.skinId || null,
         bossName: this.stage.bossName || "BOSS",
         bossDefeated: !!this.bossDefeated,
         survived: this.time,
@@ -1090,6 +1145,12 @@
         quizCorrect: this.quizCorrect,
         quizIncorrect: this.quizIncorrect,
         bestQuizStreak: this.bestQuizStreak,
+        // 保留精確值給成就判定；結算介面會自行四捨五入顯示。
+        // 若先四捨五入，4999.6 傷害可能誤判為 5000，0.1 受傷也可能誤判為無傷。
+        damageDealt: this.damageDealt,
+        damageTaken: this.damageTaken,
+        hitCount: this.hitCount,
+        noDamage: this.hitCount === 0 && this.damageTaken <= 0,
         eliteRewardLevel: this.eliteRewardLevel,
         level: this.player.level,
         collected: collected,
