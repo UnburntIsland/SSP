@@ -8,6 +8,54 @@
     return global.Assets && global.Assets.get ? global.Assets.get(key) : null;
   }
 
+  var ENEMY_ATTACK_VISUALS = {
+    battery_bolt: {
+      projectile: "enemy_battery_bolt_projectile",
+      telegraph: "enemy_battery_charge_telegraph",
+      projectileScale: 5.4,
+      telegraphPadding: 50,
+      telegraphSpin: -0.55
+    },
+    scrap_shard: {
+      projectile: "enemy_scrap_shard_projectile",
+      telegraph: "enemy_scrap_magnet_telegraph",
+      projectileScale: 5.6,
+      telegraphPadding: 52,
+      telegraphSpin: -0.7
+    },
+    smog_orb: {
+      projectile: "enemy_smog_orb_projectile",
+      telegraph: "enemy_smog_charge_telegraph",
+      projectileScale: 5.7,
+      telegraphPadding: 54,
+      telegraphSpin: 0.45
+    },
+    ghost_net_barrage: {
+      projectile: "boss_ghost_net_knot_projectile",
+      telegraph: "boss_ghost_net_barrage_telegraph",
+      projectileScale: 6,
+      telegraphPadding: 104,
+      telegraphSpin: 0.28,
+      telegraphExclusive: true
+    },
+    compactor_barrage: {
+      projectile: "boss_compactor_scrap_projectile",
+      telegraph: "boss_compactor_barrage_telegraph",
+      projectileScale: 6.2,
+      telegraphPadding: 112,
+      telegraphSpin: -0.22,
+      telegraphExclusive: true
+    },
+    oil_barrage: {
+      projectile: "boss_oil_barrage_projectile",
+      telegraph: "boss_oil_barrage_telegraph",
+      projectileScale: 6.2,
+      telegraphPadding: 104,
+      telegraphSpin: 0.32,
+      telegraphExclusive: true
+    }
+  };
+
   function Enemy(def, x, y, hpScale) {
     this.def = def;
     this.id = def.id;
@@ -289,36 +337,22 @@
     ctx.strokeStyle = this.ranged.color || "#ffcf5a";
     ctx.fillStyle = this.ranged.color || "#ffcf5a";
     ctx.lineWidth = this.isBoss ? 3 : 2;
-    if (this.ranged.visualId === "battery_bolt") {
-      var batteryCharge = enemyAttackAsset("enemy_battery_charge_telegraph");
-      if (batteryCharge) {
-        var batteryChargeSize = (this.radius * 2 + 50) * (0.88 + t * 0.12);
-        ctx.save();
-        ctx.globalAlpha = 0.4 + t * 0.45;
-        ctx.translate(this.x, this.y);
-        ctx.rotate(-this._bobT * 0.55);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(
-          batteryCharge.src,
-          -batteryChargeSize / 2,
-          -batteryChargeSize / 2,
-          batteryChargeSize,
-          batteryChargeSize
-        );
-        ctx.restore();
-      }
-    }
-    if (this.ranged.visualId === "oil_barrage") {
-      var telegraph = enemyAttackAsset("boss_oil_barrage_telegraph");
+    var visual = ENEMY_ATTACK_VISUALS[this.ranged.visualId];
+    if (visual && visual.telegraph) {
+      var telegraph = enemyAttackAsset(visual.telegraph);
       if (telegraph) {
-        var telegraphSize = (this.radius * 2 + 104) * (0.88 + t * 0.12);
-        ctx.globalAlpha = 0.42 + t * 0.38;
+        var telegraphSize = (this.radius * 2 + visual.telegraphPadding) * (0.88 + t * 0.12);
+        ctx.save();
+        ctx.globalAlpha = 0.4 + t * 0.42;
         ctx.translate(this.x, this.y);
-        ctx.rotate(this._bobT * 0.32);
+        ctx.rotate(this._bobT * visual.telegraphSpin);
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(telegraph.src, -telegraphSize / 2, -telegraphSize / 2, telegraphSize, telegraphSize);
         ctx.restore();
-        return;
+        if (visual.telegraphExclusive) {
+          ctx.restore();
+          return;
+        }
       }
     }
     if (this.ranged.kind === "radial") {
@@ -396,32 +430,12 @@
   EnemyProjectile.prototype.draw = function (ctx) {
     var speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
     var nx = this.vx / speed, ny = this.vy / speed;
-    if (this.visualId === "battery_bolt") {
-      var batteryBolt = enemyAttackAsset("enemy_battery_bolt_projectile");
-      if (batteryBolt) {
-        var batteryBoltSize = this.radius * 5.4;
-        var batteryPulse = 1 + Math.sin(this.age * 18) * 0.04;
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(Math.atan2(this.vy, this.vx));
-        ctx.scale(batteryPulse, 1 / batteryPulse);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(
-          batteryBolt.src,
-          -batteryBoltSize / 2,
-          -batteryBoltSize / 2,
-          batteryBoltSize,
-          batteryBoltSize
-        );
-        ctx.restore();
-        return;
-      }
-    }
-    if (this.visualId === "oil_barrage") {
-      var projectile = enemyAttackAsset("boss_oil_barrage_projectile");
+    var visual = ENEMY_ATTACK_VISUALS[this.visualId];
+    if (visual && visual.projectile) {
+      var projectile = enemyAttackAsset(visual.projectile);
       if (projectile) {
-        var projectileSize = this.radius * 6.2;
-        var wobble = 1 + Math.sin(this.age * 15) * 0.05;
+        var projectileSize = this.radius * visual.projectileScale;
+        var wobble = 1 + Math.sin(this.age * 16) * 0.045;
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(Math.atan2(this.vy, this.vx));

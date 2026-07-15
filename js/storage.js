@@ -5,6 +5,7 @@
    ============================================================ */
 (function (global) {
   var KEY = "senloop_save_v1";
+  var DEFAULT_COINS = 1000000; // 測試期間：新存檔與重置後的預設循環幣
   var OFFICIAL_CHARACTER_IDS = ["ranger", "beachcomber", "solar", "mechanic", "chemist"];
 
   function normalizeCharacterId(id) {
@@ -157,8 +158,8 @@
 
     _default: function () {
       return {
-        schemaVersion: 2,
-        coins: 0,
+        schemaVersion: 3,
+        coins: DEFAULT_COINS,
         shop: {},        // { upgradeId: level }
         knowledge: [],   // 已解鎖的 knowledge id
         ownedCharacters: { ranger: true, beachcomber: true, solar: false, mechanic: false, chemist: false },
@@ -183,6 +184,8 @@
         if (raw) d = JSON.parse(raw);
       } catch (e) { d = null; }
       if (!d || typeof d !== "object") d = this._default();
+      var savedSchemaVersion = d.schemaVersion | 0;
+      var requiresSchemaSave = savedSchemaVersion < 3;
       // 補齊缺漏欄位（含舊存檔沒有的 audio）
       var def = this._default();
       var legacyCharacterSave = !d.ownedCharacters || typeof d.ownedCharacters !== "object";
@@ -223,7 +226,10 @@
       if (!Array.isArray(d.gachaHistory)) d.gachaHistory = [];
       d.gachaHistory = d.gachaHistory.slice(0, 30);
       if (!Array.isArray(d.clearedStages)) d.clearedStages = [];
-      d.schemaVersion = 2;
+      // 測試經濟一次性遷移：既有存檔首次載入時至少補到 100 萬。
+      // 升至 schema 3 後不再重複補幣，因此消費後重新整理不會恢復滿額。
+      if (requiresSchemaSave) d.coins = Math.max(nonNegativeInteger(d.coins), DEFAULT_COINS);
+      d.schemaVersion = 3;
       d.achievements = normalizeAchievementData(d.achievements);
       if (!d.selectedStageId || !global.GameData || !global.GameData.getStage || !global.GameData.getStage(d.selectedStageId)) {
         d.selectedStageId = "tidal_flat";
@@ -232,6 +238,7 @@
       if (!d.audio || typeof d.audio !== "object") d.audio = def.audio;
       for (var ak in def.audio) { if (!(ak in d.audio)) d.audio[ak] = def.audio[ak]; }
       this.data = d;
+      if (requiresSchemaSave) this.save();
       return d;
     },
 

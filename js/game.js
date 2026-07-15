@@ -31,9 +31,9 @@
     { id: "eco_sneakers", name: "輕量步鞋", icon: "passive_eco_sneakers", effect: "移動速度 +15%（一次滿級）",
       edu: "舒適的步行裝備，能讓低碳移動更容易成為日常。", oneShot: true,
       apply: function (p) { p.speed *= 1.15; } },
-    { id: "sorting_pouch", name: "分類小袋", icon: "passive_sorting_pouch", effect: "拾取範圍 +12%（一次滿級）",
+    { id: "sorting_pouch", name: "分類小袋", icon: "passive_sorting_pouch", effect: "拾取範圍 +50%（一次滿級）",
       edu: "先分類再收集，能讓資源整理更有效率。", oneShot: true,
-      apply: function (p) { p.pickupRange *= 1.12; } },
+      apply: function (p) { p.pickupRange *= 1.5; } },
     { id: "refill_snack", name: "補給點心", icon: "passive_refill_snack", effect: "最大生命 +8，並回復 8（一次滿級）",
       edu: "適量補充體力，才能穩定完成長時間的環境行動。", oneShot: true,
       apply: function (p) { p.maxHp += 8; p.heal(8); } }
@@ -116,6 +116,7 @@
 
       this.time = 0;
       this.runCoins = 0;
+      this._coinsCommitted = false;
       this.purifiedCount = 0;
       this.mapCleanedCount = 0;
       this.quizCorrect = 0;
@@ -175,8 +176,23 @@
     pauseGame: function () { if (!this.isPausable()) return false; this.menuPaused = true; return true; },
     resumeGame: function () { if (!this.menuPaused) return false; this.menuPaused = false; this.lastTs = 0; return true; },
     isMenuPaused: function () { return !!this.menuPaused; },
-    // 立即中止本局並清空世界（回首頁用），確保不殘留敵人/子彈/掉落物/計時器/暫停狀態
-    abort: function () {
+    // 同一局只允許提交一次循環幣，避免結算與中止流程競合時重複入帳。
+    commitRunCoins: function (amount) {
+      if (this._coinsCommitted) return 0;
+      this._coinsCommitted = true;
+      var value = Number(amount);
+      var total = isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+      if (total > 0 && global.Storage) global.Storage.addCoins(total);
+      return total;
+    },
+    // 立即中止本局並清空世界；回首頁可選擇只保存當下已取得的循環幣。
+    abort: function (options) {
+      options = options || {};
+      var banked = 0;
+      if (options.bankCoins) {
+        var multiplier = this.player && this.player.coinMult ? this.player.coinMult : 1;
+        banked = this.commitRunCoins((this.runCoins || 0) * multiplier);
+      }
       this.running = false; this.ended = true; this.menuPaused = false; this.paused = false;
       this.enemies = []; this.projectiles = []; this.enemyProjectiles = []; this.deployables = []; this.zones = []; this.pulses = [];
       this.pickups = []; this.effects = []; this.puffs = []; this.floaters = [];
@@ -185,6 +201,7 @@
       this.runIntroActive = false; this.runIntroRemaining = 0; this.time = 0;
       this.bossDefeated = false; this.bossSpawned = false;
       if (this.app && this.app.ui && this.app.ui.hideEnemyIntro) this.app.ui.hideEnemyIntro(false);
+      return banked;
     },
 
     /* ---------------- 背景（離屏繪製一次） ---------------- */
@@ -1161,7 +1178,7 @@
         total: total
       };
 
-      global.Storage.addCoins(total);
+      this.commitRunCoins(total);
       if (this.app) this.app.onRunEnd(stats);
     },
 

@@ -46,6 +46,14 @@
       "assets/images/enemies/battery_slime/attacks/battery_bolt_projectile.png?v=battery_bolt_1" ] },
     enemy_battery_charge_telegraph: { label: "廢電池史萊姆蓄力環", paths: [
       "assets/images/enemies/battery_slime/attacks/battery_charge_telegraph.png?v=battery_bolt_1" ] },
+    enemy_scrap_shard_projectile: { label: "磁選廢料機磁化碎片", paths: [
+      "assets/images/enemies/scrap_drone/attacks/scrap_shard_projectile.png?v=attack-fx-20260714a" ] },
+    enemy_scrap_magnet_telegraph: { label: "磁選廢料機磁力蓄能環", paths: [
+      "assets/images/enemies/scrap_drone/attacks/scrap_magnet_telegraph.png?v=attack-fx-20260714a" ] },
+    enemy_smog_orb_projectile: { label: "煙塵監測機濃縮煙塵彈", paths: [
+      "assets/images/enemies/smog_drone/attacks/smog_orb_projectile.png?v=attack-fx-20260714a" ] },
+    enemy_smog_charge_telegraph: { label: "煙塵監測機污染蓄能環", paths: [
+      "assets/images/enemies/smog_drone/attacks/smog_charge_telegraph.png?v=attack-fx-20260714a" ] },
     enemy_oil:     { label: "油污團塊 (Boss)", paths: [
       "assets/images/enemies/enemy_oil_blob.png",
       "assets/images/enemies/concepts/enemy_oil_slick_mass_boss_concept_v2.png" ] },
@@ -55,8 +63,16 @@
       "assets/images/enemies/oil_blob/attacks/oil_barrage_telegraph.png?v=oil_barrage_1" ] },
     enemy_ghost_net: { label: "幽靈廢網 (Boss)", paths: [
       "assets/images/enemies/ghost_net/enemy_ghost_net.png?v=stages-20260711a" ] },
+    boss_ghost_net_knot_projectile: { label: "幽靈廢網繩結彈", paths: [
+      "assets/images/enemies/ghost_net/attacks/ghost_net_knot_projectile.png?v=attack-fx-20260714a" ] },
+    boss_ghost_net_barrage_telegraph: { label: "幽靈廢網八向預警", paths: [
+      "assets/images/enemies/ghost_net/attacks/ghost_net_barrage_telegraph.png?v=attack-fx-20260714a" ] },
     enemy_compactor_golem: { label: "壓縮機甲 (Boss)", paths: [
       "assets/images/enemies/compactor_golem/enemy_compactor_golem.png?v=stages-20260711a" ] },
+    boss_compactor_scrap_projectile: { label: "壓縮機甲高壓廢料彈", paths: [
+      "assets/images/enemies/compactor_golem/attacks/compactor_scrap_projectile.png?v=attack-fx-20260714a" ] },
+    boss_compactor_barrage_telegraph: { label: "壓縮機甲十二向預警", paths: [
+      "assets/images/enemies/compactor_golem/attacks/compactor_barrage_telegraph.png?v=attack-fx-20260714a" ] },
 
     // -------- 永續圖鑑知識圖示（GPT-image） --------
     codex_knowledge_plastic:   { label: "塑膠袋與海洋", paths: ["assets/images/codex/knowledge/icon_plastic_ocean.png?v=codex1"] },

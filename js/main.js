@@ -493,7 +493,7 @@
     resetSave: function () {
       this.ui.setConfirm(
         "確定重置所有存檔？",
-        "循環幣、角色與造型、技能點、永久升級、關卡進度與圖鑑都會清空。此操作無法復原。",
+        "循環幣會恢復為測試預設的 1,000,000；角色與造型、技能點、永久升級、關卡進度與圖鑑都會重置。此操作無法復原。",
         "確認重置"
       );
       this.ui.showConfirm(true);
@@ -561,7 +561,7 @@
     /* ---------------- 確認視窗（回首頁 / 重新開始） ---------------- */
     askConfirm: function (type) {
       if (type === "home") {
-        this.ui.setConfirm("確定要回到首頁嗎？", "目前這局進度將不會保存。", "確認回首頁");
+        this.ui.setConfirm("確定要回到首頁嗎？", "已取得的循環幣會保存；其他本局進度將不會保存。", "確認回首頁");
       } else {
         this.ui.setConfirm("確定要重新開始本關嗎？", "目前這局進度將重置；永久升級與存檔不受影響。", "確認重新開始");
       }
@@ -591,9 +591,12 @@
       this.ui.showConfirm(false);
       this.ui.showPause(false);
       if (global.AudioManager) global.AudioManager.stopMusic();
-      global.Game.abort();          // 清空敵人/子彈/掉落物/計時器/暫停狀態
+      var banked = global.Game.abort({ bankCoins: true });
       this.showScreen("menu");
       this.ui.updateCoinLabels();
+      if (banked > 0) {
+        this.ui.showToast("循環幣已保存", "本局獲得的 ♻ " + banked.toLocaleString("zh-TW") + " 已存入。");
+      }
       this.setState("HOME");
     },
 

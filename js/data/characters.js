@@ -28,10 +28,10 @@
       startingSkill: "recycle_net",
       passive: {
         // 收集型：更容易吃到散落資源，並有少量移動優勢。
-        pickupRangeMult: 1.35,
+        pickupRangeMult: 1.5,
         speedMult: 1.06
       },
-      passiveText: "拾取範圍 +35%、移動速度 +6%",
+      passiveText: "拾取範圍 +50%、移動速度 +6%",
       flavour: "習慣彎腰撿起每一片海廢，深知資源不該被丟進大海。"
     },
     {

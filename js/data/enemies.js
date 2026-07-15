@@ -68,6 +68,7 @@
       introHint: "穿過繩結彈幕的空隙，持續攻擊中央網囊。",
       ranged: {
         kind: "radial",
+        visualId: "ghost_net_barrage",
         count: 8,
         range: 600,
         cooldown: 3.8,
@@ -135,6 +136,7 @@
       introHint: "看到瞄準線後橫向閃避，再靠近快速淨化。",
       ranged: {
         kind: "aimed",
+        visualId: "scrap_shard",
         range: 390,
         preferredDistance: 205,
         cooldown: 4.1,
@@ -179,6 +181,7 @@
       introHint: "遠離雙臂正面，利用機甲轉向較慢的空檔輸出。",
       ranged: {
         kind: "radial",
+        visualId: "compactor_barrage",
         count: 12,
         range: 650,
         cooldown: 3.2,
@@ -221,6 +224,7 @@
       introHint: "觀察預警線，利用衝刺穿過單發彈道。",
       ranged: {
         kind: "aimed",
+        visualId: "smog_orb",
         range: 450,
         preferredDistance: 245,
         cooldown: 3.1,

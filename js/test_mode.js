@@ -272,7 +272,8 @@
       params.get("qaZone") === "1" || params.get("qaDefeat") === "1" ||
       !!params.get("qaKnowledge") || !!params.get("qaMap") || params.get("qaZoneOutside") === "1" ||
       params.get("qaFinalCountdown") === "1" || !!params.get("qaQuizStreak") || params.get("qaPassives") === "1" ||
-      params.get("qaTurret") === "1" || params.get("qaBossAttack") === "1" || params.get("qaDamageFlash") === "1" ||
+      params.get("qaTurret") === "1" || params.get("qaBossAttack") === "1" || !!params.get("qaEnemyAttack") ||
+      params.get("qaRunCoins") != null || params.get("qaDamageFlash") === "1" ||
       !!params.get("qaEnemyIntro") || !!params.get("qaEnemy8Dir") ||
       params.get("qaBossIntro") === "1" || params.get("qaClearStage") === "1";
     if (wantsScenario) {
@@ -301,6 +302,13 @@
           global.Game.time = global.Game.contamination.startsAt + 2;
           global.Game.player.x = 24;
           global.Game.player.y = 24;
+        }
+        if (params.get("qaRunCoins") != null) {
+          global.Game.stage.waves = [];
+          global.Game.stage.events = [];
+          global.Game.enemies = [];
+          global.Game.enemyProjectiles = [];
+          global.Game.runCoins = Math.max(0, Math.floor(Number(params.get("qaRunCoins")) || 0));
         }
         if (params.get("qaRanged") === "1") {
           var def = global.GameData.getEnemy("battery_slime");
@@ -355,27 +363,37 @@
             });
           }
         }
-        if (params.get("qaBossAttack") === "1") {
+        var attackEnemyId = params.get("qaEnemyAttack") || (params.get("qaBossAttack") === "1" ? "oil_blob" : null);
+        if (attackEnemyId) {
           global.Game.stage.waves = [];
           global.Game.stage.events = [];
           global.Game.enemies = [];
           global.Game.enemyProjectiles = [];
-          var bossDef = global.GameData.getEnemy("oil_blob");
-          var bossPlayer = global.Game.player;
-          var boss = new global.Enemy(bossDef, bossPlayer.x + 185, bossPlayer.y - 25, 1);
-          boss.spawnAge = boss.spawnDuration;
-          boss.speed = 0;
-          boss.contact = 0;
-          boss.maxHp = 99999;
-          boss.hp = boss.maxHp;
-          boss.ranged = Object.assign({}, bossDef.ranged, {
+          var attackDef = global.GameData.getEnemy(attackEnemyId);
+          var attackPlayer = global.Game.player;
+          if (!attackDef || !attackDef.ranged || !attackPlayer) return;
+          var compactAttackQa = global.innerWidth <= 520 ||
+            document.documentElement.classList.contains("compact-visible") ||
+            document.documentElement.classList.contains("is-mobile");
+          var attackEnemy = new global.Enemy(
+            attackDef,
+            attackPlayer.x + (compactAttackQa ? 85 : 185),
+            attackPlayer.y - (compactAttackQa ? 8 : 25),
+            1
+          );
+          attackEnemy.spawnAge = attackEnemy.spawnDuration;
+          attackEnemy.speed = 0;
+          attackEnemy.contact = 0;
+          attackEnemy.maxHp = 99999;
+          attackEnemy.hp = attackEnemy.maxHp;
+          attackEnemy.ranged = Object.assign({}, attackDef.ranged, {
             cooldown: 1.8,
             telegraph: 1.2,
             projectileDamage: 0.01,
             projectileSpeed: 105
           });
-          boss.attackTimer = 0.15;
-          global.Game.enemies.push(boss);
+          attackEnemy.attackTimer = 0.15;
+          global.Game.enemies.push(attackEnemy);
         }
         if (params.get("qaDamageFlash") === "1") {
           global.Game.stage.waves = [];
