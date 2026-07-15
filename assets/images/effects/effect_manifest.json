@@ -1,6 +1,6 @@
 {
-  "version": "skill_effect_promote_20260702_2258",
-  "generatedAt": "2026-07-02T22:58:30",
+  "version": "purifying_trail_fog_gpt_20260715a",
+  "generatedAt": "2026-07-15T00:00:00",
   "runtimeNote": "Visual effect manifest only. Skill damage, cooldown, collision, range, and upgrade logic remain unchanged. Canvas fallback remains mandatory.",
   "effects": {
     "seed_blade": {
@@ -145,6 +145,35 @@
       "promotionReport": "SKILL_EFFECT_PROMOTION_REPORT_compost_spore.md",
       "contactSheet": "screenshots/compost_spore-effect-contact-sheet.png",
       "gameplayPreview": "screenshots/compost_spore-effect-gameplay.png",
+      "failReasons": []
+    },
+    "purifying_trail": {
+      "displayName": "Purifying Trail / purifying_trail",
+      "codeSkillId": "purifying_trail",
+      "approvedEffect": true,
+      "runtimePath": "assets/images/effects/purifying_trail/",
+      "incomingPath": "assets/images/effects/purifying_trail/_incoming/",
+      "fallback": "Canvas fallback remains required if frames are missing or fail to load.",
+      "groups": {
+        "trail": {
+          "prefix": "trail",
+          "frameCount": 4,
+          "canvasSize": [
+            96,
+            96
+          ],
+          "frames": [
+            "trail_0.png",
+            "trail_1.png",
+            "trail_2.png",
+            "trail_3.png"
+          ],
+          "approved": true,
+          "centerNote": "feathered 2x2 GPT-image mist sheet; irregular soft-edge loop frames"
+        }
+      },
+      "qaReport": "purifying_trail/_incoming/PURIFYING_TRAIL_QA.md",
+      "contactSheet": "purifying_trail/_incoming/purifying_trail_fog_contact_sheet.png",
       "failReasons": []
     },
     "common": {

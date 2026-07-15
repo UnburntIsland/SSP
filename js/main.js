@@ -36,12 +36,15 @@
 
     boot: function () {
       global.Storage.load();
+      var testCharacterId = global.TestMode && global.TestMode.enabled && global.TestMode.characterId;
+      var testCharacter = testCharacterId && global.GameData.getCharacter(testCharacterId);
+      testCharacterId = testCharacter ? testCharacter.id : null;
       if (global.TestMode && global.TestMode.unlockStages && global.GameData && global.GameData.stages) {
         global.GameData.stages.forEach(function (stage) { global.Storage.markStageCleared(stage.id); });
       }
       if (global.AudioManager) global.AudioManager.init();   // 在 Storage.load 之後再同步一次設定
 
-      this.selectedCharacterId = this.loadSelectedCharacter();
+      this.selectedCharacterId = testCharacterId || this.loadSelectedCharacter();
       this.currentSelectedCharacter = this.selectedCharacterId;
       this.candidateCharacterId = this.selectedCharacterId;
       this.selectedChar = this.selectedCharacterId; // 相容既有測試與舊程式碼
@@ -610,7 +613,11 @@
     /* ---------------- 一局生命週期 ---------------- */
     startRun: function (charId, stageId) {
       var baseCharacter = global.GameData.getCharacter(charId) || global.GameData.characters[0];
-      if (!global.Storage.isCharacterOwned(baseCharacter.id)) baseCharacter = global.GameData.getCharacter("ranger") || global.GameData.characters[0];
+      var configuredTestCharacter = global.TestMode && global.TestMode.enabled && global.TestMode.characterId
+        ? global.GameData.getCharacter(global.TestMode.characterId)
+        : null;
+      var allowTestCharacter = configuredTestCharacter && configuredTestCharacter.id === baseCharacter.id;
+      if (!allowTestCharacter && !global.Storage.isCharacterOwned(baseCharacter.id)) baseCharacter = global.GameData.getCharacter("ranger") || global.GameData.characters[0];
       var equippedSkinId = global.Storage.getEquippedSkin(baseCharacter.id);
       var character = global.GameData.makePlayableCharacter
         ? global.GameData.makePlayableCharacter(baseCharacter.id, equippedSkinId)

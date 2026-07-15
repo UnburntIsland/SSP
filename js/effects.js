@@ -4,7 +4,7 @@
    range, upgrade logic, or the existing Canvas fallback.
    ============================================================ */
 (function (global) {
-  var VERSION = "skill_effect_promote_20260702_2258";
+  var VERSION = "purifying_trail_fog_gpt_20260715a";
 
   var MANIFEST = {
     seed_blade: {
@@ -41,6 +41,13 @@
       runtimePath: "assets/images/effects/compost_spore/",
       groups: {
         area: { approved: true, frameCount: 6, canvasSize: [192, 192], frames: ["area_0.png", "area_1.png", "area_2.png", "area_3.png", "area_4.png", "area_5.png"] }
+      }
+    },
+    purifying_trail: {
+      approvedEffect: true,
+      runtimePath: "assets/images/effects/purifying_trail/",
+      groups: {
+        trail: { approved: true, frameCount: 4, canvasSize: [96, 96], frames: ["trail_0.png", "trail_1.png", "trail_2.png", "trail_3.png"] }
       }
     },
     common: {

@@ -8,6 +8,21 @@
   GD.GACHA_COST = 1000;
   GD.SKIN_BONUS = 0.10;
   GD.SKILL_POINT_BONUS = 0.05;
+  GD.CHARACTER_SKILL_POINT_BONUS = {
+    chemist: {
+      attack: 0.04,
+      speed: 0.03,
+      hp: 0.05
+    }
+  };
+
+  GD.getCharacterSkillPointBonus = function (characterId, stat) {
+    if (GD.resolveCharacterId) characterId = GD.resolveCharacterId(characterId);
+    var override = GD.CHARACTER_SKILL_POINT_BONUS[characterId];
+    var value = override && Number(override[stat]);
+    if (isFinite(value) && value >= 0) return value;
+    return typeof GD.SKILL_POINT_BONUS === "number" ? GD.SKILL_POINT_BONUS : 0.05;
+  };
 
   GD.skins = [
     { id: "ranger_thorn", characterId: "ranger", name: "荊棘獵手", stat: "attack", statName: "攻擊", accent: "#f06a4a" },
@@ -56,7 +71,7 @@
       out.skinId = skin.id;
       out.skin = skin;
       out.spriteBasePath = skin.spriteBasePath;
-      out.spriteVersion = "skin-20260714a";
+      out.spriteVersion = "skin-chemist-dirfix-20260715a";
       out.animationId = (base.animationId || base.id) + "_" + skin.id;
     }
     return out;

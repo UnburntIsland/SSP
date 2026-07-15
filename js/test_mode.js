@@ -11,6 +11,7 @@
     enabled: enabled,
     seed: Number(params.get("seed")) || 424242,
     stageId: params.get("stage") || "tidal_flat",
+    characterId: params.get("character") || null,
     unlockStages: params.get("qaUnlockStages") === "1",
     achievementPersistence: params.get("qaAchievements") === "1"
   };
@@ -74,6 +75,18 @@
     global.Player.prototype.xpForLevel = function (level) {
       return Math.max(2, 2 + (level - 1) * 2);
     };
+    var qaMove = String(params.get("qaMove") || "").toUpperCase();
+    var vectors = {
+      N: { x: 0, y: -1 }, NE: { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
+      E: { x: 1, y: 0 }, SE: { x: Math.SQRT1_2, y: Math.SQRT1_2 },
+      S: { x: 0, y: 1 }, SW: { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
+      W: { x: -1, y: 0 }, NW: { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }
+    };
+    if (vectors[qaMove] && global.Input) {
+      global.Input.getMoveVector = function () {
+        return { x: vectors[qaMove].x, y: vectors[qaMove].y };
+      };
+    }
   }
 
   function applyCoinTuning() {

@@ -351,9 +351,9 @@
   PurifyingTrail.prototype.configure = function (opt) {
     opt = opt || {};
     this.damage = Math.max(0, Number(opt.damage) || 0);
-    this.tickCooldown = Math.max(0.05, Number(opt.tickCooldown) || 0.6);
-    this.radius = Math.max(4, Number(opt.radius) || 24);
-    this.duration = Math.max(0.2, Number(opt.duration) || 4);
+    this.tickCooldown = Math.max(0.05, Number(opt.tickCooldown) || 1);
+    this.radius = Math.max(4, Number(opt.radius) || 20);
+    this.duration = Math.max(0.2, Number(opt.duration) || 3);
     this.spacing = Math.max(4, Number(opt.spacing) || 20);
     this.eliteMult = Math.max(1, Number(opt.eliteMult) || 1);
   };
@@ -426,33 +426,72 @@
 
   PurifyingTrail.prototype.draw = function (ctx) {
     if (!this.points.length) return;
+    var fx = global.SkillEffectRenderer;
+    var imageReady = !!(fx && fx.ready && fx.ready("purifying_trail", "trail"));
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    if (imageReady && "filter" in ctx) ctx.filter = "blur(3px)";
     for (var i = 1; i < this.points.length; i++) {
       var previous = this.points[i - 1];
       var point = this.points[i];
       var sx = point.x - previous.x;
       var sy = point.y - previous.y;
       if (sx * sx + sy * sy > this.spacing * this.spacing * 3.2) continue;
-      var alpha = Math.min(1, Math.min(previous.life, point.life) / 0.65);
-      ctx.globalAlpha = alpha * 0.23;
+      var alpha = Math.min(1, Math.min(previous.life, point.life) / 0.9);
+      ctx.globalAlpha = alpha * (imageReady ? 0.045 : 0.23);
       ctx.strokeStyle = "#0b6b69";
-      ctx.lineWidth = this.radius * 1.65;
+      ctx.lineWidth = this.radius * (imageReady ? 2.0 : 1.65);
       ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(point.x, point.y); ctx.stroke();
-      ctx.globalAlpha = alpha * 0.52;
+      ctx.globalAlpha = alpha * (imageReady ? 0.055 : 0.52);
       ctx.strokeStyle = "#60ddbd";
-      ctx.lineWidth = this.radius * 0.78;
+      ctx.lineWidth = this.radius * (imageReady ? 0.72 : 0.78);
       ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(point.x, point.y); ctx.stroke();
     }
 
+    ctx.globalAlpha = 1;
+    if (imageReady) {
+      if ("filter" in ctx) ctx.filter = "blur(0.8px)";
+      ctx.globalCompositeOperation = "screen";
+    }
+    var stampStride = this.points.length > 80 ? 2 : 1;
     for (var k = 0; k < this.points.length; k++) {
       var trailPoint = this.points[k];
-      var pointAlpha = Math.min(1, trailPoint.life / 0.65);
-      ctx.globalAlpha = pointAlpha * 0.26;
-      ctx.fillStyle = "#0b6b69";
-      ctx.beginPath(); ctx.arc(trailPoint.x, trailPoint.y, this.radius * 0.82, 0, Math.PI * 2); ctx.fill();
-      if (k % 3 === 0) {
+      var pointAlpha = Math.min(1, trailPoint.life / 0.9);
+      var shouldStamp = k % stampStride === 0 || k === this.points.length - 1;
+      var stampDrawn = false;
+      if (imageReady && shouldStamp) {
+        var neighbour = this.points[Math.min(this.points.length - 1, k + 1)] || trailPoint;
+        var prior = this.points[Math.max(0, k - 1)] || trailPoint;
+        var rotation = Math.atan2(neighbour.y - prior.y, neighbour.x - prior.x);
+        stampDrawn = fx.drawFrame(
+          ctx,
+          "purifying_trail",
+          "trail",
+          Math.floor(this.phase * 1.1 + k * 0.5),
+          trailPoint.x,
+          trailPoint.y,
+          {
+            size: this.radius * 3.3,
+            alpha: pointAlpha * 0.24,
+            rotation: rotation
+          }
+        );
+      }
+      if (!imageReady || (shouldStamp && !stampDrawn)) {
+        var fogRadius = this.radius * 1.22;
+        var fog = ctx.createRadialGradient(
+          trailPoint.x, trailPoint.y, 0,
+          trailPoint.x, trailPoint.y, fogRadius
+        );
+        fog.addColorStop(0, "rgba(96,221,189," + (pointAlpha * 0.22) + ")");
+        fog.addColorStop(0.52, "rgba(11,107,105," + (pointAlpha * 0.12) + ")");
+        fog.addColorStop(1, "rgba(11,107,105,0)");
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = fog;
+        ctx.beginPath(); ctx.arc(trailPoint.x, trailPoint.y, fogRadius, 0, Math.PI * 2); ctx.fill();
+      }
+      if (!imageReady && k % 3 === 0) {
         var bubbleAngle = this.phase + k * 2.1;
         ctx.globalAlpha = pointAlpha * 0.72;
         ctx.fillStyle = "#d9fff1";

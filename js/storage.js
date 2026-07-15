@@ -388,12 +388,20 @@
     },
     getCharacterBonuses: function (id) {
       var progress = this.getCharacterProgress(id);
-      var perPoint = (global.GameData && global.GameData.SKILL_POINT_BONUS) || 0.05;
+      var pointBonus = (global.GameData && global.GameData.SKILL_POINT_BONUS) || 0.05;
+      function perPoint(stat) {
+        if (global.GameData && global.GameData.getCharacterSkillPointBonus) {
+          return global.GameData.getCharacterSkillPointBonus(id, stat);
+        }
+        if (typeof pointBonus === "number") return pointBonus;
+        var value = Number(pointBonus && pointBonus[stat]);
+        return isFinite(value) && value >= 0 ? value : 0.05;
+      }
       var skinBonus = (global.GameData && global.GameData.SKIN_BONUS) || 0.10;
       var bonus = {
-        attack: progress.stats.attack * perPoint,
-        speed: progress.stats.speed * perPoint,
-        hp: progress.stats.hp * perPoint,
+        attack: progress.stats.attack * perPoint("attack"),
+        speed: progress.stats.speed * perPoint("speed"),
+        hp: progress.stats.hp * perPoint("hp"),
         skinId: this.getEquippedSkin(id)
       };
       var skin = global.GameData && global.GameData.getSkin ? global.GameData.getSkin(bonus.skinId) : null;

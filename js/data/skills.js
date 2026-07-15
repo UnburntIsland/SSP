@@ -123,11 +123,11 @@
       eduText: "生物修復會利用微生物分解污染物；正確控制濃度與環境，能讓受污染的土地逐步恢復。",
       maxLevel: 5,
       levels: [
-        { damage: 2, tickCooldown: 0.60, radius: 20, duration: 3, spacing: 20, up: "專屬解鎖：每次傷害 2，每 0.60 秒觸發一次" },
-        { damage: 4, tickCooldown: 0.55, radius: 20, duration: 3, spacing: 20, up: "每次傷害 2 → 4（+2），扣血間隔 0.60 → 0.55 秒" },
-        { damage: 6, tickCooldown: 0.50, radius: 20, duration: 3, spacing: 20, up: "每次傷害 4 → 6（+2），扣血間隔 0.55 → 0.50 秒" },
-        { damage: 8, tickCooldown: 0.45, radius: 20, duration: 3, spacing: 20, up: "每次傷害 6 → 8（+2），扣血間隔 0.50 → 0.45 秒" },
-        { damage: 10, tickCooldown: 0.40, radius: 20, duration: 3, spacing: 20, up: "每次傷害 8 → 10（+2），扣血間隔 0.45 → 0.40 秒（滿級）" }
+        { damage: 2, tickCooldown: 1.00, radius: 20, duration: 3, spacing: 20, up: "專屬解鎖：每次傷害 2，每 1.00 秒觸發一次" },
+        { damage: 2.5, tickCooldown: 0.95, radius: 20, duration: 3, spacing: 20, up: "每次傷害 2 → 2.5（+0.5），扣血間隔 1.00 → 0.95 秒" },
+        { damage: 3, tickCooldown: 0.90, radius: 20, duration: 3, spacing: 20, up: "每次傷害 2.5 → 3（+0.5），扣血間隔 0.95 → 0.90 秒" },
+        { damage: 3.5, tickCooldown: 0.85, radius: 20, duration: 3, spacing: 20, up: "每次傷害 3 → 3.5（+0.5），扣血間隔 0.90 → 0.85 秒" },
+        { damage: 4, tickCooldown: 0.80, radius: 20, duration: 3, spacing: 20, up: "每次傷害 3.5 → 4（+0.5），扣血間隔 0.85 → 0.80 秒（滿級）" }
       ]
     }
   ];

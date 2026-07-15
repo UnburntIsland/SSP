@@ -767,10 +767,19 @@
       upgradeHeader.appendChild(el("div", "guardian-points", "可用技能點：" + pointsLeft));
       manage.appendChild(upgradeHeader);
 
+      var pointBonus = global.GameData.SKILL_POINT_BONUS || 0.05;
+      function pointPercent(stat) {
+        if (global.GameData.getCharacterSkillPointBonus) {
+          return Math.round(global.GameData.getCharacterSkillPointBonus(selected.id, stat) * 100);
+        }
+        var value = typeof pointBonus === "number" ? pointBonus : Number(pointBonus[stat]);
+        if (!isFinite(value) || value < 0) value = 0.05;
+        return Math.round(value * 100);
+      }
       var statDefs = [
-        { id: "attack", label: "攻擊力", icon: "⚔" },
-        { id: "speed", label: "移動速度", icon: "➤" },
-        { id: "hp", label: "最大生命", icon: "♥" }
+        { id: "attack", label: "攻擊力", icon: "⚔", pointPercent: pointPercent("attack") },
+        { id: "speed", label: "移動速度", icon: "➤", pointPercent: pointPercent("speed") },
+        { id: "hp", label: "最大生命", icon: "♥", pointPercent: pointPercent("hp") }
       ];
       var stats = el("div", "guardian-stats");
       statDefs.forEach(function (def) {
@@ -779,7 +788,7 @@
         var copy = el("div", "guardian-stat-copy");
         copy.appendChild(el("span", "guardian-stat-name", def.label));
         var skinExtra = equippedSkin && equippedSkin.stat === def.id ? 10 : 0;
-        var totalPercent = (progress.stats[def.id] + pending[def.id]) * 5 + skinExtra;
+        var totalPercent = (progress.stats[def.id] + pending[def.id]) * def.pointPercent + skinExtra;
         copy.appendChild(el("span", "guardian-stat-value", "Lv." + progress.stats[def.id] + (pending[def.id] ? " → " + (progress.stats[def.id] + pending[def.id]) : "") + "　總加成 +" + totalPercent + "%"));
         row.appendChild(copy);
         var minus = el("button", "guardian-stat-button", "−");
@@ -791,8 +800,8 @@
         row.appendChild(minus);
         var plus = el("button", "guardian-stat-button", "+");
         plus.type = "button";
-        plus.setAttribute("aria-label", "增加" + def.label + " 5% 的待分配技能點");
-        plus.title = "增加" + def.label + " 5%";
+        plus.setAttribute("aria-label", "增加" + def.label + " " + def.pointPercent + "% 的待分配技能點");
+        plus.title = "增加" + def.label + " " + def.pointPercent + "%";
         plus.disabled = !owned || pointsLeft <= 0;
         plus.addEventListener("click", function () { self.app.changePendingCharacterStat(def.id, 1); });
         row.appendChild(plus);

@@ -70,9 +70,9 @@
       passive: {
         // 高機動生存型：利用速度主動鋪設路徑，額外生命提高近身引怪的容錯。
         maxHpMult: 1.1,
-        speedMult: 1.2
+        speedMult: 1.15
       },
-      passiveText: "最大生命值 +10%、移動速度 +20%",
+      passiveText: "最大生命值 +10%、移動速度 +15%",
       flavour: "把微生物與淨水藥劑調成活性配方，走過之處都會留下能分解污染的淨化藥跡。"
     }
   ];
@@ -109,7 +109,7 @@
       ch.canonicalId = CANONICAL[ch.id] || ch.id;
       ch.animationId = ch.canonicalId;
       ch.spriteBasePath = "assets/images/characters/" + folder + "/";
-      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : (ch.id === "mechanic" ? "mechanic_1" : (ch.id === "chemist" ? "chemist_1" : "")));
+      ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : (ch.id === "mechanic" ? "mechanic_1" : (ch.id === "chemist" ? "chemist_dirfix_1" : "")));
       ch.animationSet = buildAnimSet();
     });
   })();
