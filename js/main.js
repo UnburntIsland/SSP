@@ -1,16 +1,17 @@
 /* ============================================================
    main.js  —  App 控制器：狀態機、畫面路由、暫停/設定/確認、ESC/P 快捷鍵
    是整個程式的進入點（最後載入）。
-   狀態：HOME / CHARACTER_SELECT / SHOP / CODEX / SETTINGS_FROM_HOME /
-        PLAYING / PAUSED / SETTINGS_FROM_PAUSE / CONFIRM_HOME /
-        CONFIRM_RESTART / CONFIRM_RESET / GAME_OVER / VICTORY
+   狀態：LOBBY / LOBBY_BUILD / PORTAL_SELECT / CHARACTER_SELECT / SHOP /
+        CODEX / SETTINGS_FROM_HOME / PLAYING / PAUSED / SETTINGS_FROM_PAUSE /
+        CONFIRM_HOME / CONFIRM_RESTART / CONFIRM_RESET / GAME_OVER / VICTORY
+   首頁 = 可走動大廳（js/lobby.js）；傳送門開啟關卡選擇（screen-portal）。
    ============================================================ */
 (function (global) {
 
   var DEFAULT_STAGE_ID = "tidal_flat";
 
   var SCREENS = {
-    menu: "screen-menu",
+    portal: "screen-portal",
     characters: "screen-characters",
     gacha: "screen-gacha",
     shop: "screen-shop",
@@ -23,7 +24,7 @@
   };
 
   var App = {
-    state: "HOME",
+    state: "LOBBY",
     settingsReturn: "home",
     selectedCharacterId: "ranger",
     currentSelectedCharacter: "ranger",
@@ -56,6 +57,7 @@
       this.ui = global.UI;
       this.ui.init(this);
       global.Game.init(this.canvas, this);
+      if (global.Lobby) global.Lobby.init(this.canvas, this);
       if (global.Input && global.Input.attachMouse) global.Input.attachMouse(this.canvas);
 
       this.wireButtons();
@@ -66,8 +68,47 @@
       this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
       this.updateStageSelector();
       this.ui.refreshSettings();
-      this.showScreen("menu");
-      this.setState("HOME");
+      this.enterLobby();
+
+      /* 關頁前保存大廳位置 */
+      var self = this;
+      global.addEventListener("pagehide", function () {
+        if (global.Lobby && global.Lobby.running) global.Lobby.savePosition(true);
+      });
+    },
+
+    /* ---------------- 大廳（首頁） ---------------- */
+    enterLobby: function () {
+      this.showScreen(null);                     // 隱藏所有選單畫面（同時停用戰鬥殘影）
+      this.ui.showHUD(false);
+      if (global.Lobby) global.Lobby.start();
+      this.ui.updateCoinLabels();
+      if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
+      this.setState("LOBBY");
+    },
+
+    openPortalSelect: function () {
+      if (this.state !== "LOBBY") return;
+      this.showScreen("portal");
+      this.updateStageSelector();
+      this.setState("PORTAL_SELECT");
+      var card = document.getElementById("stage-carousel-card");
+      if (card && card.focus) card.focus({ preventScroll: true });
+    },
+
+    cancelPortal: function () {
+      this.enterLobby();                         // 位置在 Lobby.stop 時已保存 → 回到原地
+    },
+
+    enterBuildMode: function () {
+      if (this.state !== "LOBBY" || !global.Lobby || !global.Lobby.running) return;
+      global.Lobby.enterBuild();
+      this.setState("LOBBY_BUILD");
+    },
+
+    exitBuildMode: function () {
+      if (global.Lobby) global.Lobby.exitBuild();
+      this.setState("LOBBY");
     },
 
     setState: function (s) { this.state = s; },
@@ -180,6 +221,12 @@
         else if (c === "Escape") {
           if (st === "SETTINGS_FROM_PAUSE" || st === "SETTINGS_FROM_HOME") { e.preventDefault(); self.closeSettings(); }
           else if (st === "CONFIRM_HOME" || st === "CONFIRM_RESTART" || st === "CONFIRM_RESET") { e.preventDefault(); self.confirmCancel(); }
+          else if (st === "PORTAL_SELECT") { e.preventDefault(); self.cancelPortal(); }
+          else if (st === "LOBBY_BUILD") {
+            e.preventDefault();
+            if (!global.Lobby || !global.Lobby.handleEscape()) self.exitBuildMode();
+            if (global.Lobby && global.Lobby.mode === "idle") self.setState("LOBBY");
+          }
           else if (st === "CHARACTER_SELECT" || st === "GACHA" || st === "SHOP" || st === "ACHIEVEMENTS" || st === "CODEX" || st === "HELP") { e.preventDefault(); self.handleAction("back"); }
         }
       });
@@ -187,10 +234,20 @@
 
     handleAction: function (action, source) {
       switch (action) {
-        // 首頁
+        // 大廳 / 傳送門
         case "play":          this.startSelectedStage(); break;
         case "stage-prev":    this.cycleStage(-1); break;
         case "stage-next":    this.cycleStage(1); break;
+        case "portal-cancel": this.cancelPortal(); break;
+        case "build":         this.enterBuildMode(); break;
+        case "build-close":   this.exitBuildMode(); break;
+        case "ghost-rotate":  if (global.Lobby) global.Lobby.rotateGhost(); break;
+        case "ghost-confirm": if (global.Lobby) global.Lobby.confirmGhost(); break;
+        case "ghost-cancel":  if (global.Lobby) global.Lobby.cancelGhost(); break;
+        case "edit-move":     if (global.Lobby) global.Lobby.editAction("move"); break;
+        case "edit-rotate":   if (global.Lobby) global.Lobby.editAction("rotate"); break;
+        case "edit-stow":     if (global.Lobby) global.Lobby.editAction("stow"); break;
+        case "edit-close":    if (global.Lobby) global.Lobby.closeEditPanel(); break;
         case "characters":    this.openCharacterSelect(); break;
         case "gacha":         this.openGacha(); break;
         case "gacha-pull":    this.pullGacha(); break;
@@ -205,8 +262,8 @@
         case "settings-home": this.openSettings("home"); break;
         case "start":         this.startSelectedStage(); break;
         case "confirm-character": this.confirmCharacterSelection(); break;
-        case "back":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
-        case "menu":          this.showScreen("menu"); this.ui.updateCoinLabels(); this.setState("HOME"); break;
+        case "back":          this.enterLobby(); break;
+        case "menu":          this.enterLobby(); break;
         case "retry":         this.retryRun(); break;
         case "reset":         this.resetSave(); break;
 
@@ -233,6 +290,8 @@
         var s = document.getElementById(SCREENS[key]);
         if (s) s.classList.add("hidden");
       }
+      // 進任何畫面（或準備進戰鬥 / 大廳）前，先停止大廳場景並保存位置。
+      if (global.Lobby) global.Lobby.stop();
       this.ui.showHUD(false);
       this.ui.hideLevelUp();
       if (this.ui.hideKnowledgeCard) this.ui.hideKnowledgeCard(false);
@@ -241,7 +300,7 @@
       this.ui.showPause(false);
       this.ui.showConfirm(false);
 
-      // 大廳、子選單與結算畫面皆由同一張大廳背景完整覆蓋。
+      // 子選單與結算畫面由同一張大廳背景完整覆蓋。
       // 從暫停開啟設定時保留當局 canvas，關閉設定後仍可回到正確的暫停畫面。
       var shouldClearGameplay = !!name && !(name === "settings" && this.settingsReturn === "pause");
       if (shouldClearGameplay && global.Game && global.Game.clearForLobby) global.Game.clearForLobby();
@@ -249,9 +308,7 @@
       if (name && SCREENS[name]) {
         document.getElementById(SCREENS[name]).classList.remove("hidden");
       }
-      if (name === "menu" && this.ui) this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
-      if (name === "menu" && this.ui && this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
-      if (name === "menu") this.updateStageSelector();
+      if (name === "portal") this.updateStageSelector();
     },
 
     openAchievements: function () {
@@ -331,7 +388,7 @@
       var boss = document.getElementById("stage-card-boss");
       var lock = document.getElementById("stage-card-lock");
       var card = document.getElementById("stage-carousel-card");
-      var play = document.querySelector('#screen-menu [data-action="play"]');
+      var play = document.querySelector('#screen-portal [data-action="play"]');
       if (image) {
         image.src = stage.previewImage;
         image.alt = stage.name + "地圖與 " + stage.bossName + " 預覽";
@@ -410,9 +467,7 @@
         return;
       }
       this.saveSelectedCharacter(id);
-      this.showScreen("menu");
-      this.ui.updateCoinLabels();
-      this.setState("HOME");
+      this.enterLobby();               // 大廳角色立即更換（Lobby.start 以新角色重建）
     },
 
     changePendingCharacterStat: function (stat, delta) {
@@ -520,8 +575,7 @@
       this.updateStageSelector();
       this.ui.refreshSettings();
       try { global.dispatchEvent(new Event("gacha-progress")); } catch (e) {}
-      this.showScreen("menu");
-      this.setState("HOME");
+      this.enterLobby();
     },
 
     /* ---------------- 設定畫面 ---------------- */
@@ -537,9 +591,7 @@
       var s = document.getElementById("screen-settings");
       if (s) s.classList.add("hidden");
       if (this.settingsReturn === "home") {
-        this.showScreen("menu");
-        this.ui.updateCoinLabels();
-        this.setState("HOME");
+        this.enterLobby();
       } else {
         // 從暫停進入 → 返回暫停選單，絕不恢復遊戲
         this.ui.showHUD(true);
@@ -577,7 +629,8 @@
       var resetConfirm = this.state === "CONFIRM_RESET";
       this.ui.showConfirm(false);
       if (resetConfirm) {
-        this.setState("HOME");
+        // 重置確認由設定畫面開啟；取消後回到設定畫面
+        this.setState("SETTINGS_FROM_HOME");
         return;
       }
       this.ui.showPause(true);
@@ -595,12 +648,10 @@
       this.ui.showPause(false);
       if (global.AudioManager) global.AudioManager.stopMusic();
       var banked = global.Game.abort({ bankCoins: true });
-      this.showScreen("menu");
-      this.ui.updateCoinLabels();
+      this.enterLobby();
       if (banked > 0) {
         this.ui.showToast("循環幣已保存", "本局獲得的 ♻ " + banked.toLocaleString("zh-TW") + " 已存入。");
       }
-      this.setState("HOME");
     },
 
     doRestart: function () {
@@ -627,6 +678,12 @@
       this.currentStageId = stage.id;
       var meta = global.Storage.getMetaBonuses();
       meta.characterGrowth = global.Storage.getCharacterBonuses(baseCharacter.id);
+      // 大廳建築加成：進入關卡時建立快照；本局中移動 / 收納建築不影響進行中的戰鬥。
+      // 沒有功能建築時所有倍率為 1，數值與無大廳版本完全一致。
+      this.currentLobbyBonuses = global.GameData.getLobbyBonuses
+        ? global.GameData.getLobbyBonuses(global.Storage.getLobby ? global.Storage.getLobby() : null)
+        : null;
+      meta.lobby = this.currentLobbyBonuses;
       var player = new global.Player(character, meta);
 
       this.showScreen(null);     // 隱藏所有選單與覆蓋層
@@ -656,6 +713,14 @@
     onRunEnd: function (stats) {
       this.ui.showHUD(false);
       if (global.AudioManager) global.AudioManager.stopMusic();
+      // 結算顯示大廳建築加成來源（快照），方便玩家與 QA 對數值
+      stats.lobbySources = this.currentLobbyBonuses && this.currentLobbyBonuses.sources
+        ? this.currentLobbyBonuses.sources.slice() : [];
+      // BOSS 每日首勝再生材料（與掛機每日上限分開；每關每日一次）
+      if (stats.result === "victory" && stats.bossDefeated && global.LobbyEconomy) {
+        var claim = global.LobbyEconomy.claimBossDaily(stats.stageId || this.currentStageId);
+        if (claim) stats.bossMaterialBonus = claim.amount;
+      }
       if (stats.result === "victory" && global.Storage.markStageCleared) {
         var unlocked = global.Storage.markStageCleared(stats.stageId || this.currentStageId);
         if (unlocked) {

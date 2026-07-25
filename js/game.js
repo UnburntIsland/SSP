@@ -454,6 +454,14 @@
         this.damageTaken += taken;
         this.hitCount += 1;
       }
+      // 循環防護站格擋成功 → 飄字回饋（不影響任何數值）
+      if (!damaged && this.player.consumeBlockEvent && this.player.consumeBlockEvent()) {
+        this.floaters.push({
+          x: this.player.x, y: this.player.y - 30,
+          age: 0, life: 0.9,
+          text: "循環防護站 格擋！", color: "#9df6e5"
+        });
+      }
       return damaged;
     },
 

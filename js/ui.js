@@ -95,8 +95,8 @@
     readableInset: { panelX: 60, panelRight: 30 },
     selectors: {
       skinnedButtons: [
-        "#screen-menu .menu-buttons .btn",
-        "#screen-menu .stage-start-button",
+        "#screen-portal .stage-start-button",
+        "#screen-portal .screen-footer .btn",
         "#screen-characters .screen-footer .btn",
         "#screen-characters .guardian-apply",
         "#screen-gacha .btn",
@@ -508,6 +508,8 @@
       if (this.dom.shopCoins) this.dom.shopCoins.textContent = c;
       if (this.dom.characterCoins) this.dom.characterCoins.textContent = c;
       if (this.dom.gachaCoins) this.dom.gachaCoins.textContent = c;
+      // 大廳 HUD 的循環幣 / 再生材料一併同步
+      if (global.Lobby && global.Lobby.updateHud) global.Lobby.updateHud();
     },
 
     updateHomeCharacterPreview: function (characterId) {
@@ -1714,6 +1716,9 @@
       if (this.dom && this.dom.settingsScreen) {
         this.dom.settingsScreen.dataset.returnTarget = returnTarget || "home";
       }
+      // 重置存檔只在「從大廳開啟設定」時顯示，避免戰鬥暫停中誤觸
+      var resetBtn = $("settings-reset");
+      if (resetBtn) resetBtn.classList.toggle("hidden", returnTarget !== "home");
       this.refreshSettings();
       return this.getSettingsLayout();
     },
@@ -2095,11 +2100,15 @@
       box.appendChild(row("淨化獎勵", "♻ " + stats.purifyBonus));
       box.appendChild(row("存活時間獎勵", "♻ " + stats.timeBonus));
       if (stats.winBonus > 0) box.appendChild(row("通關獎勵", "♻ " + stats.winBonus));
+      if (stats.bossMaterialBonus > 0) box.appendChild(row("BOSS 每日首勝", "再生材料 ⬢ +" + stats.bossMaterialBonus));
       if (stats.unlockedStage) box.appendChild(row("新關卡解鎖", stats.unlockedStage.name));
       if (stats.newAchievements && stats.newAchievements.length) {
         box.appendChild(row("本局完成成就", stats.newAchievements.length + " 項（可至成就頁領取）"));
       }
       if (stats.multiplier > 1) box.appendChild(row("回收分類加成", "×" + stats.multiplier.toFixed(2)));
+      if (stats.lobbySources && stats.lobbySources.length) {
+        box.appendChild(row("大廳建築加成", stats.lobbySources.map(function (s) { return s.label; }).join("；")));
+      }
       var total = el("div", "row total");
       total.appendChild(el("span", "k", "本局獲得"));
       total.appendChild(el("span", "v", "♻ " + stats.total));

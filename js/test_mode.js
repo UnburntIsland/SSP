@@ -104,7 +104,7 @@
 
   function activeScreenName() {
     var ids = {
-      menu: "screen-menu",
+      portal: "screen-portal",
       characters: "screen-characters",
       gacha: "screen-gacha",
       shop: "screen-shop",
@@ -119,6 +119,7 @@
       if (el && !el.classList.contains("hidden")) return name;
     }
     if (document.getElementById("hud") && !document.getElementById("hud").classList.contains("hidden")) return "game";
+    if (global.Lobby && global.Lobby.running) return "lobby";
     return "none";
   }
 
@@ -128,8 +129,28 @@
       getState: function () {
         var g = global.Game || {};
         var p = g.player || null;
+        var lobbySave = global.Storage && global.Storage.getLobby ? global.Storage.getLobby() : null;
         return {
           screen: activeScreenName(),
+          lobby: global.Lobby ? {
+            running: !!global.Lobby.running,
+            mode: global.Lobby.mode,
+            x: global.Lobby.avatar ? global.Lobby.avatar.x : null,
+            y: global.Lobby.avatar ? global.Lobby.avatar.y : null,
+            appState: global.App ? global.App.state : null,
+            materials: lobbySave ? lobbySave.materials.recycled : 0,
+            idleToday: lobbySave ? lobbySave.daily.idleEarned : 0,
+            buildings: lobbySave ? lobbySave.buildings.map(function (b) {
+              return { id: b.buildingId, x: b.x, y: b.y, rotation: b.rotation, placed: b.placed !== false };
+            }) : [],
+            ghost: global.Lobby.ghost ? {
+              id: global.Lobby.ghost.def.id,
+              cellX: global.Lobby.ghost.cellX,
+              cellY: global.Lobby.ghost.cellY,
+              valid: global.Lobby.ghost.valid,
+              reasons: global.Lobby.ghost.reasons
+            } : null
+          } : null,
           stageId: g.stage ? g.stage.id : null,
           bossDefeated: !!g.bossDefeated,
           running: !!g.running,

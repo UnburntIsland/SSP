@@ -156,9 +156,83 @@
   var Storage = {
     data: null,
 
+    /* -------- 大廳（schema 4 新增）預設值 -------- */
+    _defaultLobby: function () {
+      return {
+        version: 1,
+        playerPosition: { x: 0, y: 0, direction: "S" },   /* 0,0 = 尚未存過 → 用出生點 */
+        materials: { recycled: 0 },
+        daily: { dateKey: null, idleEarned: 0, dailyBossClaims: {} },
+        inventory: {},          /* { buildingId: 數量 }（已購買但收納中） */
+        buildings: [],          /* { instanceId, buildingId, x, y, rotation, level, placed } */
+        orphanedBuildings: [],  /* 未知 building id 先移到這裡，不直接刪除 */
+        nextInstanceId: 1
+      };
+    },
+
+    /* 大廳存檔清洗：舊存檔補預設、未知建築移入 orphanedBuildings、數值防呆 */
+    _normalizeLobby: function (raw) {
+      var def = this._defaultLobby();
+      if (!isRecord(raw)) return def;
+      var out = def;
+      if (isRecord(raw.playerPosition)) {
+        out.playerPosition.x = Number(raw.playerPosition.x) || 0;
+        out.playerPosition.y = Number(raw.playerPosition.y) || 0;
+        if (typeof raw.playerPosition.direction === "string") out.playerPosition.direction = raw.playerPosition.direction;
+      }
+      if (isRecord(raw.materials)) out.materials.recycled = nonNegativeInteger(raw.materials.recycled);
+      if (isRecord(raw.daily)) {
+        out.daily.dateKey = typeof raw.daily.dateKey === "string" ? raw.daily.dateKey : null;
+        out.daily.idleEarned = nonNegativeInteger(raw.daily.idleEarned);
+        if (isRecord(raw.daily.dailyBossClaims)) out.daily.dailyBossClaims = raw.daily.dailyBossClaims;
+      }
+      if (isRecord(raw.inventory)) {
+        Object.keys(raw.inventory).forEach(function (id) {
+          var n = nonNegativeInteger(raw.inventory[id]);
+          if (n > 0) out.inventory[id] = n;
+        });
+      }
+      var maxInstance = 0;
+      var known = function (id) {
+        return !!(global.GameData && global.GameData.getLobbyBuilding && global.GameData.getLobbyBuilding(id));
+      };
+      if (Array.isArray(raw.orphanedBuildings)) {
+        raw.orphanedBuildings.forEach(function (inst) {
+          if (!isRecord(inst)) return;
+          /* 資料表補回該建築後，自動從孤兒區還原 */
+          if (known(inst.buildingId)) out.buildings.push(inst);
+          else out.orphanedBuildings.push(inst);
+        });
+      }
+      if (Array.isArray(raw.buildings)) {
+        raw.buildings.forEach(function (inst) {
+          if (!isRecord(inst) || !inst.buildingId) return;
+          if (!known(inst.buildingId)) { out.orphanedBuildings.push(inst); return; }
+          var defBld = global.GameData.getLobbyBuilding(inst.buildingId);
+          var rotation = [0, 90, 180, 270].indexOf(inst.rotation | 0) !== -1 ? (inst.rotation | 0) : 0;
+          if (defBld.rotations && defBld.rotations.indexOf(rotation) === -1) rotation = defBld.rotations[0] || 0;
+          out.buildings.push({
+            instanceId: typeof inst.instanceId === "string" ? inst.instanceId : ("building-" + (++maxInstance)),
+            buildingId: inst.buildingId,
+            x: Number(inst.x) || 0,
+            y: Number(inst.y) || 0,
+            rotation: rotation,
+            level: Math.max(1, inst.level | 0),
+            placed: inst.placed !== false
+          });
+        });
+      }
+      out.buildings.forEach(function (inst) {
+        var m = /^building-(\d+)$/.exec(inst.instanceId || "");
+        if (m) maxInstance = Math.max(maxInstance, Number(m[1]) || 0);
+      });
+      out.nextInstanceId = Math.max(nonNegativeInteger(raw.nextInstanceId), maxInstance + 1, 1);
+      return out;
+    },
+
     _default: function () {
       return {
-        schemaVersion: 3,
+        schemaVersion: 4,
         coins: DEFAULT_COINS,
         shop: {},        // { upgradeId: level }
         knowledge: [],   // 已解鎖的 knowledge id
@@ -172,6 +246,7 @@
         selectedStageId: "tidal_flat",
         clearedStages: [],
         achievements: achievementDefaults(),
+        lobby: this._defaultLobby(),
         // 音量設定（0~100；mute 為布林）—— 單一來源，audioManager 由此讀寫
         audio: { master: 80, music: 70, sfx: 80, mute: false }
       };
@@ -185,7 +260,9 @@
       } catch (e) { d = null; }
       if (!d || typeof d !== "object") d = this._default();
       var savedSchemaVersion = d.schemaVersion | 0;
-      var requiresSchemaSave = savedSchemaVersion < 3;
+      // 「測試經濟補幣」只在升到 schema 3 之前做一次；schema 3 → 4 不再補幣。
+      var requiresCoinTopUp = savedSchemaVersion < 3;
+      var requiresSchemaSave = savedSchemaVersion < 4;
       // 補齊缺漏欄位（含舊存檔沒有的 audio）
       var def = this._default();
       var legacyCharacterSave = !d.ownedCharacters || typeof d.ownedCharacters !== "object";
@@ -228,8 +305,11 @@
       if (!Array.isArray(d.clearedStages)) d.clearedStages = [];
       // 測試經濟一次性遷移：既有存檔首次載入時至少補到 100 萬。
       // 升至 schema 3 後不再重複補幣，因此消費後重新整理不會恢復滿額。
-      if (requiresSchemaSave) d.coins = Math.max(nonNegativeInteger(d.coins), DEFAULT_COINS);
-      d.schemaVersion = 3;
+      if (requiresCoinTopUp) d.coins = Math.max(nonNegativeInteger(d.coins), DEFAULT_COINS);
+      // schema 4：大廳存檔。舊存檔沒有 lobby 時補預設值；
+      // 不動既有角色、循環幣、商店、圖鑑與關卡進度。
+      d.lobby = this._normalizeLobby(d.lobby);
+      d.schemaVersion = 4;
       d.achievements = normalizeAchievementData(d.achievements);
       if (!d.selectedStageId || !global.GameData || !global.GameData.getStage || !global.GameData.getStage(d.selectedStageId)) {
         d.selectedStageId = "tidal_flat";
@@ -585,6 +665,114 @@
       var a = this.getAudioSettings();
       for (var k in obj) a[k] = obj[k];
       this.save();
+    },
+
+    /* ============================================================
+       大廳（schema 4）：再生材料、建築配置、每日進度
+       所有「扣材料 + 動建築」都在同一次 save() 內完成，
+       重新整理不會出現材料已扣但建築不存在的中間狀態。
+       ============================================================ */
+    getLobby: function () {
+      if (!this.data) this.load();
+      if (!this.data.lobby) this.data.lobby = this._defaultLobby();
+      return this.data.lobby;
+    },
+
+    getRecycled: function () { return this.getLobby().materials.recycled | 0; },
+
+    addRecycled: function (n) {
+      var lobby = this.getLobby();
+      lobby.materials.recycled = Math.max(0, (lobby.materials.recycled | 0) + Math.max(0, n | 0));
+      this.save();
+      return lobby.materials.recycled;
+    },
+
+    setLobbyPlayerPosition: function (x, y, direction, shouldSave) {
+      var lobby = this.getLobby();
+      lobby.playerPosition.x = Math.round(x);
+      lobby.playerPosition.y = Math.round(y);
+      if (direction) lobby.playerPosition.direction = direction;
+      if (shouldSave !== false) this.save();
+    },
+
+    getLobbyInventoryCount: function (buildingId) {
+      return this.getLobby().inventory[buildingId] | 0;
+    },
+
+    /* 已擁有（含收納中）的數量：unique 判定要同時看場上與庫存 */
+    countLobbyBuilding: function (buildingId) {
+      var lobby = this.getLobby();
+      var placed = lobby.buildings.filter(function (b) { return b.buildingId === buildingId; }).length;
+      return placed + (lobby.inventory[buildingId] | 0);
+    },
+
+    /* 購買並直接擺放（交易：扣材料 + 新增建築 → 單次 save） */
+    buildLobbyBuilding: function (def, x, y, rotation) {
+      if (!def) return { ok: false, reason: "definition" };
+      var lobby = this.getLobby();
+      if (def.unique && this.countLobbyBuilding(def.id) > 0) return { ok: false, reason: "unique" };
+      var cost = (def.cost && def.cost.recycled) | 0;
+      if ((lobby.materials.recycled | 0) < cost) return { ok: false, reason: "materials" };
+      lobby.materials.recycled -= cost;
+      var inst = {
+        instanceId: "building-" + (lobby.nextInstanceId++),
+        buildingId: def.id,
+        x: Math.round(x),
+        y: Math.round(y),
+        rotation: rotation | 0,
+        level: 1,
+        placed: true
+      };
+      lobby.buildings.push(inst);
+      this.save();
+      return { ok: true, building: inst, spent: cost };
+    },
+
+    /* 從庫存擺回大廳（不再扣材料） */
+    placeLobbyFromInventory: function (def, x, y, rotation) {
+      if (!def) return { ok: false, reason: "definition" };
+      var lobby = this.getLobby();
+      if ((lobby.inventory[def.id] | 0) <= 0) return { ok: false, reason: "inventory" };
+      lobby.inventory[def.id] -= 1;
+      if (lobby.inventory[def.id] <= 0) delete lobby.inventory[def.id];
+      var inst = {
+        instanceId: "building-" + (lobby.nextInstanceId++),
+        buildingId: def.id,
+        x: Math.round(x),
+        y: Math.round(y),
+        rotation: rotation | 0,
+        level: 1,
+        placed: true
+      };
+      lobby.buildings.push(inst);
+      this.save();
+      return { ok: true, building: inst };
+    },
+
+    getLobbyBuildingInstance: function (instanceId) {
+      return this.getLobby().buildings.find(function (b) { return b.instanceId === instanceId; }) || null;
+    },
+
+    /* 移動 / 旋轉已放置建築 */
+    updateLobbyBuilding: function (instanceId, patch) {
+      var inst = this.getLobbyBuildingInstance(instanceId);
+      if (!inst) return { ok: false, reason: "not_found" };
+      if (patch && patch.x != null) inst.x = Math.round(patch.x);
+      if (patch && patch.y != null) inst.y = Math.round(patch.y);
+      if (patch && patch.rotation != null) inst.rotation = patch.rotation | 0;
+      this.save();
+      return { ok: true, building: inst };
+    },
+
+    /* 收納：物件回庫存，不返還材料 */
+    stowLobbyBuilding: function (instanceId) {
+      var lobby = this.getLobby();
+      var index = lobby.buildings.findIndex(function (b) { return b.instanceId === instanceId; });
+      if (index === -1) return { ok: false, reason: "not_found" };
+      var inst = lobby.buildings.splice(index, 1)[0];
+      lobby.inventory[inst.buildingId] = (lobby.inventory[inst.buildingId] | 0) + 1;
+      this.save();
+      return { ok: true, buildingId: inst.buildingId };
     },
 
     /* -------- 將商店等級換算為開局加成 -------- */

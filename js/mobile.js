@@ -171,7 +171,8 @@
     }
   }
   function setupFullscreenButton() {
-    var menu = document.getElementById("screen-menu");
+    /* 首頁改為可走動大廳後，全螢幕按鈕掛在大廳 HUD 上（相容舊選單） */
+    var menu = document.getElementById("lobby-hud") || document.getElementById("screen-menu");
     if (!menu) return;
     var root = document.documentElement;
     if (!root.requestFullscreen && !root.webkitRequestFullscreen) return;

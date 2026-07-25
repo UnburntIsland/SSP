@@ -21,15 +21,29 @@
     var p = character.passive || {};
     meta = meta || {};
     var growth = meta.characterGrowth || { attackMult: 1, speedMult: 1, hpMult: 1 };
+    // 大廳建築加成（進關前彙整好的快照；player 不讀大廳配置）。
+    // 每種倍率只在此處各乘一次；沒有功能建築時皆為 1。
+    var lobby = meta.lobby || {};
+    var lobbyHpMult = lobby.maxHpMult || 1;
+    var lobbySpeedMult = lobby.speedMult || 1;
+    var lobbyDamageMult = lobby.damageMult || 1;
 
-    // 生命值：基礎 + 商店土壤，再乘角色能力強化與 Skin。
-    this.maxHp = Math.round((BASE.maxHp + (meta.bonusMaxHp || 0)) * (p.maxHpMult || 1) * (growth.hpMult || 1));
+    // 生命值：基礎 + 商店土壤，再乘角色能力強化與 Skin 與大廳建築。
+    this.maxHp = Math.round((BASE.maxHp + (meta.bonusMaxHp || 0)) * (p.maxHpMult || 1) * (growth.hpMult || 1) * lobbyHpMult);
     this.hp = this.maxHp;
 
-    this.speed = BASE.speed * (p.speedMult || 1) * (growth.speedMult || 1);
-    this.damageMult = (p.damageMult || 1) * (growth.attackMult || 1);
+    this.speed = BASE.speed * (p.speedMult || 1) * (growth.speedMult || 1) * lobbySpeedMult;
+    this.damageMult = (p.damageMult || 1) * (growth.attackMult || 1) * lobbyDamageMult;
     this.environmentSpeedMult = 1;
     this.radius = BASE.radius;
+
+    // 循環防護站：每 blockInterval 秒可格擋一次傷害。
+    // 開局即充能完成；格擋只取消一次 takeDamage，不延長無敵時間。
+    this.blockInterval = lobby.blockInterval || 0;
+    this.blockReady = this.blockInterval > 0;
+    this.blockTimer = 0;
+    this.blockFlash = 0;
+    this._blockEvent = false;
 
     // 拾取範圍：基礎 × 角色倍率 ×（1 + 商店生態感知）
     this.pickupRange = BASE.pickupRange * (p.pickupRangeMult || 1) * (1 + (meta.pickupRangeBonus || 0));
@@ -134,10 +148,25 @@
 
   Player.prototype.takeDamage = function (n) {
     if (this.invulnTimer > 0) return false;
+    // 循環防護站格擋：只取消這一次傷害；不給無敵、不改敵人數值，之後重新計時。
+    if (this.blockReady) {
+      this.blockReady = false;
+      this.blockTimer = this.blockInterval;
+      this.blockFlash = 0.5;
+      this._blockEvent = true;
+      return false;
+    }
     this.hp -= n;
     this.invulnTimer = this.invulnAfterHit;
     this.hitFlash = 0.18;
     if (this.hp < 0) this.hp = 0;
+    return true;
+  };
+
+  // 給 game.js 取一次性「剛剛格擋了」事件（顯示飄字用）
+  Player.prototype.consumeBlockEvent = function () {
+    if (!this._blockEvent) return false;
+    this._blockEvent = false;
     return true;
   };
 
@@ -185,6 +214,15 @@
 
     if (this.invulnTimer > 0) this.invulnTimer -= dt;
     if (this.hitFlash > 0) this.hitFlash -= dt;
+    if (this.blockFlash > 0) this.blockFlash -= dt;
+    // 格擋充能：用完後經 blockInterval 秒重新可用
+    if (this.blockInterval > 0 && !this.blockReady) {
+      this.blockTimer -= dt;
+      if (this.blockTimer <= 0) {
+        this.blockTimer = 0;
+        this.blockReady = true;
+      }
+    }
   };
 
   Player.prototype.draw = function (ctx) {
@@ -281,6 +319,26 @@
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.radius + 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 循環防護站：格擋就緒時的淡六邊形護罩；剛格擋完閃亮一下
+    if (this.blockInterval > 0 && (this.blockReady || this.blockFlash > 0)) {
+      var blockAlpha = this.blockFlash > 0 ? Math.min(1, this.blockFlash * 2.2) : 0.28;
+      var blockR = this.radius + 11 + (this.blockFlash > 0 ? (0.5 - this.blockFlash) * 10 : 0);
+      ctx.save();
+      ctx.globalAlpha = blockAlpha;
+      ctx.strokeStyle = "#9df6e5";
+      ctx.lineWidth = this.blockFlash > 0 ? 3 : 2;
+      ctx.beginPath();
+      for (var hex = 0; hex < 6; hex++) {
+        var ha = hex * Math.PI / 3 - Math.PI / 6;
+        var hx = this.x + Math.cos(ha) * blockR;
+        var hy = this.y + Math.sin(ha) * blockR;
+        if (hex === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+      }
+      ctx.closePath();
       ctx.stroke();
       ctx.restore();
     }

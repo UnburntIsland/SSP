@@ -6241,3 +6241,354 @@ html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings [dat
   .achievement-progress > span,
   .achievement-progress-fill{ transition:none !important; }
 }
+
+/* ============================================================
+   可走動大廳（lobby.js）＋ 建造模式 UI —— v=lobby-20260725a
+   #lobby-hud 疊在 canvas 上（pointer-events 只開在元件上），
+   z-index 低於 .screen(20)，子選單打開時自然蓋住大廳。
+   ============================================================ */
+#lobby-hud{
+  position:absolute;
+  inset:0;
+  z-index:10;
+  pointer-events:none;
+}
+#lobby-hud > *{ pointer-events:auto; }
+.lobby-title-tag{
+  position:absolute;
+  top:calc(10px + var(--vis-inset-top, 0px));
+  left:50%;
+  transform:translateX(-50%);
+  font-size:20px;
+  letter-spacing:6px;
+  color:var(--leaf);
+  text-shadow:2px 2px 0 #0a1a23, 0 0 12px rgba(76,175,80,.35);
+  pointer-events:none;
+  opacity:.9;
+}
+
+/* ---- 左上：循環幣 / 再生材料 ---- */
+.lobby-topleft{
+  position:absolute;
+  top:calc(12px + var(--vis-inset-top, 0px));
+  left:calc(14px + var(--vis-inset-left, 0px));
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:flex-start;
+}
+.lobby-chip{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 14px;
+  font-size:16px;
+  color:#eafff7;
+  background:rgba(8, 28, 36, .88);
+  border:2px solid rgba(77, 208, 196, .45);
+  border-radius:20px;
+  box-shadow:0 3px 0 rgba(4,17,22,.8);
+  text-shadow:1px 1px 0 rgba(0,0,0,.6);
+}
+.lobby-chip-coins{ color:var(--coin, #4dd0c4); }
+.material-glyph{ color:#8fd06a; font-size:17px; }
+.lobby-daily{
+  margin-left:6px;
+  padding-left:10px;
+  border-left:1px solid rgba(143,208,106,.4);
+  font-size:12px;
+  color:#bfe3d6;
+}
+
+/* ---- 右上：功能按鈕 ---- */
+.lobby-topright{
+  position:absolute;
+  top:calc(12px + var(--vis-inset-top, 0px));
+  right:calc(14px + var(--vis-inset-right, 0px));
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:stretch;
+  width:150px;
+}
+.lobby-btn{
+  min-height:44px;
+  padding:8px 12px;
+  font-size:15px;
+  letter-spacing:1px;
+}
+#lobby-hud #mobile-fullscreen-btn{
+  right:auto;
+  left:calc(14px + var(--vis-inset-left, 0px));
+  top:calc(112px + var(--vis-inset-top, 0px));
+}
+
+/* ---- 互動提示（靠近傳送門 / 工作台才出現） ---- */
+#lobby-interact{
+  position:absolute;
+  left:50%;
+  bottom:calc(56px + var(--vis-inset-bottom, 0px));
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:52px;
+  padding:10px 22px;
+  font-family:inherit;
+  font-size:17px;
+  color:#08211c;
+  background:linear-gradient(180deg, #ffe08a, #ffd45c);
+  border:3px solid #8a6b1f;
+  border-radius:26px;
+  box-shadow:0 4px 0 #6b4f16, 0 6px 14px rgba(0,0,0,.35);
+  cursor:pointer;
+  animation:lobby-interact-pop .18s ease-out;
+}
+#lobby-interact:active{ transform:translateX(-50%) scale(.96); }
+#lobby-interact .interact-key{
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  font-size:15px;
+  font-weight:700;
+  color:#ffd45c;
+  background:#08211c;
+  border-radius:6px;
+}
+@keyframes lobby-interact-pop{
+  from{ transform:translateX(-50%) scale(.7); opacity:0; }
+  to{ transform:translateX(-50%) scale(1); opacity:1; }
+}
+
+/* ---- 掛機回收狀態 ---- */
+#lobby-idle-status{
+  position:absolute;
+  left:50%;
+  bottom:calc(120px + var(--vis-inset-bottom, 0px));
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  padding:9px 18px;
+  background:rgba(8, 28, 36, .9);
+  border:2px solid rgba(77, 208, 196, .55);
+  border-radius:14px;
+  text-align:center;
+  pointer-events:none;
+}
+#lobby-idle-status strong{ color:#9df6e5; font-size:15px; letter-spacing:1px; }
+#lobby-idle-status span{ color:#bfe3d6; font-size:12px; }
+
+/* ---- 傳送門畫面（沿用 stage-selector 樣式） ---- */
+#screen-portal .portal-stage-selector{ margin-top:2px; }
+#screen-portal .stage-start-button{
+  width:var(--stage-card-width);
+  margin:2px auto 0;
+}
+
+/* ============================================================
+   建造模式
+   ============================================================ */
+#build-root{
+  position:absolute;
+  inset:0;
+  z-index:14;
+  pointer-events:none;
+}
+#build-root > *{ pointer-events:auto; }
+
+/* ---- 底部建造目錄 ---- */
+.build-sheet{
+  position:absolute;
+  left:50%;
+  bottom:calc(8px + var(--vis-inset-bottom, 0px));
+  transform:translateX(-50%);
+  width:min(980px, calc(100% - 24px));
+  max-height:47%;
+  display:flex;
+  flex-direction:column;
+  background:rgba(7, 24, 32, .96);
+  border:3px solid #2f6d63;
+  border-radius:16px;
+  box-shadow:0 8px 22px rgba(0,0,0,.5);
+}
+.build-sheet-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  border-bottom:2px solid rgba(77,208,196,.25);
+  flex-wrap:wrap;
+}
+.build-sheet-title{
+  font-size:18px;
+  color:var(--sun);
+  letter-spacing:2px;
+  text-shadow:2px 2px 0 #0a1a23;
+}
+.build-tabs{ display:flex; gap:6px; }
+.build-tab{
+  padding:7px 14px;
+  min-height:38px;
+  font-family:inherit;
+  font-size:14px;
+  color:#bfe3d6;
+  background:rgba(16, 45, 56, .8);
+  border:2px solid rgba(77,208,196,.3);
+  border-radius:10px;
+  cursor:pointer;
+}
+.build-tab.active{
+  color:#08211c;
+  background:#4dd0c4;
+  border-color:#9df6e5;
+}
+.build-sheet-wallet{
+  margin-left:auto;
+  font-size:16px;
+  color:#8fd06a;
+  text-shadow:1px 1px 0 rgba(0,0,0,.6);
+}
+.build-close{ min-height:40px; padding:6px 18px; }
+.build-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));
+  gap:10px;
+  padding:12px;
+  overflow-y:auto;
+}
+.build-card{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  background:rgba(14, 40, 50, .85);
+  border:2px solid rgba(77,208,196,.22);
+  border-radius:12px;
+}
+.build-card-icon{
+  width:64px;
+  height:64px;
+  flex:0 0 64px;
+  image-rendering:pixelated;
+  background:rgba(5, 18, 24, .6);
+  border-radius:10px;
+}
+.build-card-info{ flex:1; min-width:0; text-align:left; }
+.build-card-name{ font-size:15px; color:#eafff7; }
+.build-card-tag{ font-size:11px; color:#7fb8a8; margin-top:2px; }
+.build-card-effect{ font-size:12px; color:#ffd45c; margin-top:3px; }
+.build-card-actions{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:stretch;
+}
+.build-card-btn{ min-height:40px; padding:6px 12px; font-size:13px; white-space:nowrap; }
+.build-cost{ color:#8fd06a; }
+.build-card-lack{ font-size:11px; color:#e97885; text-align:center; }
+
+/* ---- Ghost 操作列 ---- */
+.build-ghost-bar{
+  position:absolute;
+  left:50%;
+  bottom:calc(10px + var(--vis-inset-bottom, 0px));
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:10px 16px;
+  background:rgba(7, 24, 32, .95);
+  border:3px solid #2f6d63;
+  border-radius:16px;
+  box-shadow:0 6px 16px rgba(0,0,0,.45);
+  max-width:calc(100% - 20px);
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.ghost-hint{ display:flex; flex-direction:column; gap:2px; min-width:150px; text-align:left; }
+.ghost-hint strong{ font-size:15px; color:#eafff7; }
+.ghost-ok{ font-size:12px; color:#8fd06a; }
+.ghost-bad{ font-size:12px; color:#e97885; }
+.ghost-actions{ display:flex; gap:8px; }
+.ghost-btn{ min-height:48px; padding:8px 16px; font-size:14px; }
+.ghost-btn .key-hint{
+  margin-left:6px;
+  padding:2px 6px;
+  font-size:11px;
+  color:#9df6e5;
+  background:rgba(5,18,24,.7);
+  border-radius:5px;
+}
+
+/* ---- 建築編輯面板 ---- */
+.build-edit{
+  position:absolute;
+  right:calc(14px + var(--vis-inset-right, 0px));
+  top:50%;
+  transform:translateY(-50%);
+  width:210px;
+  padding:12px;
+  background:rgba(7, 24, 32, .96);
+  border:3px solid #2f6d63;
+  border-radius:14px;
+  box-shadow:0 6px 16px rgba(0,0,0,.45);
+  text-align:left;
+}
+.build-edit-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.build-edit-name{ font-size:16px; color:var(--sun); }
+.build-edit-close{
+  width:30px; height:30px;
+  display:grid; place-items:center;
+  font-family:inherit; font-size:14px;
+  color:#bfe3d6; background:rgba(16,45,56,.8);
+  border:2px solid rgba(77,208,196,.3); border-radius:8px; cursor:pointer;
+}
+.build-edit-effect{ margin-top:6px; font-size:12px; color:#ffd45c; }
+.build-edit-actions{ display:flex; flex-direction:column; gap:7px; margin-top:10px; }
+.build-edit-actions .btn{ min-height:42px; font-size:14px; }
+.build-edit-note{ margin-top:8px; font-size:11px; color:#7fb8a8; }
+
+/* ============================================================
+   手機 / 平板：大廳與建造介面適配
+   ============================================================ */
+.is-mobile .lobby-topright{
+  width:auto;
+  flex-direction:row;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  max-width:min(430px, 62%);
+}
+.is-mobile .lobby-btn{
+  min-height:var(--mobile-touch-target, 48px);
+  font-size:var(--mobile-caption-font, 14px);
+  padding:6px 12px;
+}
+.is-mobile .lobby-chip{ font-size:var(--mobile-readable-font, 16px); }
+.is-mobile #lobby-interact{
+  min-height:var(--mobile-touch-target, 52px);
+  font-size:var(--mobile-readable-font, 17px);
+  bottom:calc(64px + var(--vis-inset-bottom, 0px));
+}
+.is-mobile .lobby-title-tag{ display:none; }
+.is-mobile #lobby-hud #mobile-fullscreen-btn{
+  top:calc(120px + var(--vis-inset-top, 0px));
+}
+.is-mobile .build-sheet{ max-height:56%; }
+.is-mobile .build-list{ grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); }
+.is-mobile .build-card-btn,
+.is-mobile .ghost-btn,
+.is-mobile .build-tab{ min-height:var(--mobile-touch-target, 48px); }
+.is-mobile .build-edit{
+  right:auto;
+  left:50%;
+  top:auto;
+  bottom:calc(12px + var(--vis-inset-bottom, 0px));
+  transform:translateX(-50%);
+  width:min(320px, calc(100% - 24px));
+}
+.compact-visible .lobby-daily{ display:none; }
+.compact-visible .lobby-topright{ gap:6px; }
+.compact-visible .build-sheet-title{ display:none; }
