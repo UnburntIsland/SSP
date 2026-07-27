@@ -1,0 +1,36 @@
+# Automated Smoke Test Report
+
+執行日期：2026-07-26  
+測試命令：`npm run test:smoke`  
+瀏覽器：Google Chrome headless  
+結果：**6 passed / 0 failed**
+
+## 測試結果
+
+| 流程 | 結果 | 驗證重點 |
+| --- | --- | --- |
+| 大廳 → 傳送門 → 戰鬥 | PASS | 正式台灣地圖入口、第一關可開始、戰鬥狀態正常 |
+| 答題 → 升級 → 勝利 | PASS | 正確答案、升級選擇、Boss 條件、勝利存檔 |
+| 失敗 → 重試 | PASS | 失敗結算、重試按鈕、同關卡重新開始 |
+| 存檔重設 | PASS | 循環幣、角色、通關進度與圖鑑恢復預設 |
+| 關卡鎖定與解鎖 | PASS | 新存檔第二關鎖定、第一關 Boss 後解鎖、第三關維持鎖定 |
+| 手機橫／直向版面 | PASS | 390×844、844×390 無水平溢出，地圖、關卡卡與開始按鈕未被裁切 |
+
+## Runtime 結果
+
+- JavaScript runtime error：0
+- 測試流程中的 HTTP 404：0
+- 失敗截圖：無
+- 詳細 JSON：`output/smoke-test-results.json`
+
+## 維護規則
+
+以下情況應重新執行完整 smoke suite：
+
+- 修改大廳、傳送門或關卡選擇流程
+- 修改問答、升級、勝利或失敗結算
+- 修改 localStorage schema 或重設流程
+- 修改關卡解鎖條件
+- 修改手機縮放、safe area、主要按鈕或關卡卡版面
+
+測試使用 `?test=1` 加速耗時條件，但仍透過正式 UI 按鈕與正式 App 狀態機完成畫面切換。

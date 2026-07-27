@@ -1,0 +1,382 @@
+{
+  "generator": "GPT-image built-in",
+  "assetCount": 26,
+  "transparentAssetCount": 25,
+  "assets": [
+    {
+      "path": "assets/images/lobby/portal/portal_idle_0.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        51,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/portal/portal_idle_1.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        51,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/portal/portal_idle_2.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        51,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/portal/portal_idle_3.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        51,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/portal/portal_idle_4.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        51,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/portal/portal_idle_5.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        51,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/stations/recycling_idle_zone/idle_0.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        24,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/stations/recycling_idle_zone/idle_1.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        25,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/stations/recycling_idle_zone/idle_2.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        24,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/stations/recycling_idle_zone/idle_3.png",
+      "size": [
+        320,
+        320
+      ],
+      "bbox": [
+        14,
+        25,
+        306,
+        302
+      ],
+      "bboxBottom": 302,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/stations/construction_workbench/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        16,
+        26,
+        239,
+        240
+      ],
+      "bboxBottom": 240,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/buildings/solar_workshop/idle_0.png",
+      "size": [
+        384,
+        384
+      ],
+      "bbox": [
+        34,
+        16,
+        351,
+        366
+      ],
+      "bboxBottom": 366,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/buildings/rain_garden/idle_0.png",
+      "size": [
+        384,
+        384
+      ],
+      "bbox": [
+        17,
+        94,
+        367,
+        366
+      ],
+      "bboxBottom": 366,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/buildings/wind_station/idle_0.png",
+      "size": [
+        384,
+        384
+      ],
+      "bbox": [
+        83,
+        16,
+        301,
+        366
+      ],
+      "bboxBottom": 366,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/buildings/recycle_guard/idle_0.png",
+      "size": [
+        384,
+        384
+      ],
+      "bbox": [
+        17,
+        31,
+        367,
+        366
+      ],
+      "bboxBottom": 366,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/small_tree/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        47,
+        16,
+        209,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/flower_bed/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        16,
+        75,
+        240,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/recycling_bench/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        18,
+        105,
+        238,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/solar_streetlight/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        88,
+        12,
+        169,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/sorting_bins/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        18,
+        104,
+        238,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/rain_barrel/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        75,
+        24,
+        181,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/eco_sign/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        26,
+        34,
+        230,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/decorations/eco_pond/idle_0.png",
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        15,
+        93,
+        241,
+        242
+      ],
+      "bboxBottom": 242,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/ui/recycled_material.png",
+      "size": [
+        96,
+        96
+      ],
+      "bbox": [
+        7,
+        7,
+        89,
+        89
+      ],
+      "bboxBottom": 89,
+      "transparentCorners": true
+    },
+    {
+      "path": "assets/images/lobby/ui/build_mode.png",
+      "size": [
+        96,
+        96
+      ],
+      "bbox": [
+        7,
+        9,
+        89,
+        89
+      ],
+      "bboxBottom": 89,
+      "transparentCorners": true
+    }
+  ]
+}

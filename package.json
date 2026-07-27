@@ -1,0 +1,11 @@
+{
+  "name": "sustainability-guardian-action",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/static-server.mjs",
+    "test": "npm run test:smoke",
+    "test:smoke": "node tests/smoke.mjs"
+  }
+}

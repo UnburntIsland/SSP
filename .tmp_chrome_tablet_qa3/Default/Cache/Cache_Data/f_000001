@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>森循島：污染潮倖存者</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="css/style.css?v=ux-fixes-20260726a" />
+</head>
+<body>
+  <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
+  <div id="rotate-hint" class="hidden" role="dialog" aria-modal="true" aria-label="建議旋轉裝置" aria-hidden="true">
+    <div class="rotate-hint-inner">
+      <div class="rotate-hint-icon">⟳</div>
+      <div class="rotate-hint-text">請將裝置轉為橫向以獲得最佳體驗</div>
+    </div>
+  </div>
+  <div id="game-root">
+    <div id="stage">
+    <!-- ===== Gameplay canvas ===== -->
+    <canvas id="game-canvas" width="960" height="600"></canvas>
+
+    <!-- ===== In-game HUD (shown only while playing) ===== -->
+    <div id="hud" class="hidden">
+      <div class="hud-corner hud-tl">
+        <div class="hud-charname" id="hud-charname">守護者</div>
+        <div class="hud-hprow">
+          <span class="hud-lv">Lv.<span id="hud-level">1</span></span>
+          <div class="bar hp-bar"><div id="hp-fill" class="bar-fill"></div><span id="hp-text" class="bar-text">100 / 100</span></div>
+        </div>
+        <div class="bar xp-bar"><div id="xp-fill" class="bar-fill"></div></div>
+      </div>
+      <div class="hud-corner hud-tc">
+        <div id="hud-timer" class="hud-timer">05:00</div>
+        <div id="hud-objective" class="hud-sub">散落資源每 5 秒出現</div>
+        <div id="hud-zone" class="hud-zone"></div>
+      </div>
+      <div class="hud-corner hud-tr">
+        <div class="hud-stat hud-coins">♻ <span id="hud-coins">0</span> 循環幣</div>
+        <div class="hud-stat hud-purified">淨化 <span id="hud-purified">0</span></div>
+        <div id="hud-quiz-streak" class="hud-quiz-streak">答題連勝 0</div>
+        <div class="hud-hint">暫停 P / ESC</div>
+      </div>
+      <div id="hud-skills" class="hud-skills"></div>
+      <div id="hud-passives" class="hud-passives" aria-label="本局被動能力"></div>
+      <div id="hud-skill-detail" class="hud-skill-detail hidden" role="dialog" aria-modal="false" aria-labelledby="hud-skill-detail-title" aria-hidden="true">
+        <div id="hud-skill-detail-icon" class="hud-skill-detail-icon" aria-hidden="true"></div>
+        <div class="hud-skill-detail-copy">
+          <div class="hud-skill-detail-meta">
+            <span id="hud-skill-detail-type"></span>
+            <span id="hud-skill-detail-level"></span>
+          </div>
+          <h3 id="hud-skill-detail-title"></h3>
+          <p id="hud-skill-detail-desc"></p>
+        </div>
+        <div id="hud-skill-detail-stats" class="hud-skill-detail-stats"></div>
+      </div>
+      <button id="dash-btn" class="dash-btn" type="button" aria-label="衝刺" title="衝刺（Space / Shift）">
+        <span class="dash-icon" aria-hidden="true">»</span>
+        <span id="dash-cooldown" class="dash-cooldown"></span>
+      </button>
+    </div>
+
+    <!-- ===== Run objective countdown ===== -->
+    <div id="overlay-run-intro" class="overlay hidden run-intro-overlay" role="dialog" aria-modal="true" aria-labelledby="run-intro-title">
+      <div class="overlay-inner run-intro-panel">
+        <div class="run-intro-eyebrow">本局通關條件</div>
+        <h2 id="run-intro-title" class="run-intro-title">撐過污染潮</h2>
+        <div id="run-intro-goal" class="run-intro-goal">存活 5 分鐘</div>
+        <p class="run-intro-desc">保持生命並活到中央計時歸零，即可完成本局。</p>
+        <div class="run-intro-start" aria-live="polite"><strong id="run-intro-countdown">5</strong><span>秒後開始</span></div>
+      </div>
+      <div id="run-intro-skip-hint" class="run-intro-skip-hint" aria-hidden="true">點擊畫面任意位置跳過</div>
+    </div>
+
+    <!-- ===== First enemy / boss encounter ===== -->
+    <div id="overlay-enemy-intro" class="overlay hidden enemy-intro-overlay" role="dialog" aria-modal="true" aria-labelledby="enemy-intro-title" tabindex="-1">
+      <div id="enemy-intro-card" class="enemy-intro-card">
+        <div id="enemy-intro-eyebrow" class="enemy-intro-eyebrow">新污染物出現</div>
+        <div id="enemy-intro-portrait" class="enemy-intro-portrait" aria-hidden="true"></div>
+        <div class="enemy-intro-copy">
+          <div id="enemy-intro-threat" class="enemy-intro-threat">一般污染物</div>
+          <h2 id="enemy-intro-title" class="enemy-intro-title">污染物</h2>
+          <p id="enemy-intro-text" class="enemy-intro-text"></p>
+          <p id="enemy-intro-hint" class="enemy-intro-hint"></p>
+        </div>
+      </div>
+      <div class="enemy-intro-continue" aria-hidden="true">點擊畫面任意位置繼續</div>
+    </div>
+
+    <!-- ===== Lobby HUD（可走動大廳；首頁） ===== -->
+    <div id="lobby-hud" class="hidden">
+      <div class="lobby-topleft">
+        <div class="lobby-chip lobby-chip-coins" title="循環幣">♻ <span id="lobby-coins">0</span></div>
+        <div class="lobby-chip lobby-chip-materials" title="再生材料：建造建築與裝飾用">
+          <span class="material-glyph" aria-hidden="true">⬢</span>
+          <span id="lobby-materials">0</span>
+          <span id="lobby-daily" class="lobby-daily">今日回收 0 / 60</span>
+        </div>
+      </div>
+      <div class="lobby-topright">
+        <button class="btn lobby-btn" type="button" data-action="characters">角色</button>
+        <button class="btn lobby-btn" type="button" data-action="build">建造</button>
+        <button class="btn lobby-btn" type="button" data-action="commerce-hub">商店/扭蛋</button>
+        <button class="btn lobby-btn achievement-menu-button" type="button" data-action="records-hub" aria-label="圖鑑/成就">
+          <span class="btn-label">圖鑑/成就</span>
+          <span id="achievement-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+        </button>
+        <button class="btn lobby-btn" type="button" data-action="settings-home">設定</button>
+      </div>
+      <div class="lobby-title-tag" aria-hidden="true">森循島</div>
+      <div id="lobby-objective" class="lobby-objective" aria-live="polite">
+        <span class="lobby-objective-label">目前任務</span>
+        <strong id="lobby-objective-text">往上走到傳送門，開始第一場淨化行動</strong>
+        <span id="lobby-objective-control">WASD / 方向鍵移動</span>
+      </div>
+      <div id="lobby-idle-status" class="hidden" aria-live="polite"></div>
+      <button id="lobby-interact" class="hidden" type="button"></button>
+      <button id="gameplay-help-btn" class="gameplay-help-btn" type="button" data-action="help" aria-label="遊戲說明" title="遊戲說明">?</button>
+    </div>
+
+    <!-- ===== First lobby onboarding ===== -->
+    <div id="overlay-lobby-guide" class="overlay hidden lobby-guide-overlay" role="dialog" aria-modal="true" aria-labelledby="lobby-guide-title" aria-hidden="true">
+      <div class="overlay-inner lobby-guide-panel" tabindex="-1">
+        <div class="lobby-guide-head">
+          <span class="lobby-guide-kicker">森循島行動指南</span>
+          <span id="lobby-guide-step" class="lobby-guide-step">1 / 3</span>
+        </div>
+        <div id="lobby-guide-visual" class="lobby-guide-visual" aria-hidden="true">↟</div>
+        <h2 id="lobby-guide-title" class="lobby-guide-title">先在大廳移動</h2>
+        <p id="lobby-guide-text" class="lobby-guide-text">使用 WASD 或方向鍵移動；手機和平板可在畫面上拖曳移動。</p>
+        <div class="lobby-guide-actions">
+          <button id="lobby-guide-prev" class="btn hidden" type="button" data-action="lobby-guide-prev">上一步</button>
+          <button id="lobby-guide-next" class="btn btn-primary" type="button" data-action="lobby-guide-next">下一步</button>
+          <button id="lobby-guide-finish" class="btn btn-primary hidden" type="button" data-action="lobby-guide-finish">開始探索</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 建造模式介面（目錄 / ghost 操作列 / 建築編輯） ===== -->
+    <div id="build-root" class="hidden">
+      <div id="build-sheet" class="build-sheet hidden" role="dialog" aria-label="建造目錄">
+        <div class="build-sheet-header">
+          <div class="build-sheet-title">建造工作台</div>
+          <div id="build-tabs" class="build-tabs" role="tablist">
+            <button type="button" class="build-tab active" role="tab" data-build-tab="functional">功能建築</button>
+            <button type="button" class="build-tab" role="tab" data-build-tab="decoration">裝飾</button>
+          </div>
+          <div class="build-sheet-wallet">⬢ <span id="build-materials">0</span></div>
+          <button class="btn build-close" type="button" data-action="build-close">完成</button>
+        </div>
+        <div id="build-list" class="build-list" role="list"></div>
+      </div>
+      <div id="build-ghost-bar" class="build-ghost-bar hidden">
+        <div id="ghost-hint" class="ghost-hint"></div>
+        <div class="ghost-actions">
+          <button class="btn ghost-btn" type="button" data-action="ghost-rotate">旋轉<span class="key-hint">R</span></button>
+          <button class="btn ghost-btn" type="button" data-action="ghost-cancel">取消<span class="key-hint">Esc</span></button>
+          <button class="btn btn-primary ghost-btn" type="button" data-action="ghost-confirm">確認放置</button>
+        </div>
+      </div>
+      <div id="build-edit" class="build-edit hidden" role="dialog" aria-label="建築編輯">
+        <div class="build-edit-head">
+          <div id="build-edit-name" class="build-edit-name"></div>
+          <button class="build-edit-close" type="button" data-action="edit-close" aria-label="關閉">✕</button>
+        </div>
+        <div id="build-edit-effect" class="build-edit-effect"></div>
+        <div class="build-edit-actions">
+          <button class="btn" type="button" data-action="edit-move">移動</button>
+          <button class="btn" type="button" data-action="edit-rotate">旋轉</button>
+          <button class="btn" type="button" data-action="edit-stow">收納</button>
+        </div>
+        <div class="build-edit-note">收納後物件會回到庫存（材料不返還）。</div>
+      </div>
+    </div>
+
+    <!-- ===== 傳送門：行動地點選擇 ===== -->
+    <section id="screen-portal" class="screen hidden">
+      <h2 id="portal-title" class="screen-title">行動傳送門</h2>
+      <p id="portal-desc" class="screen-desc">選擇行動地點；擊敗前一關 BOSS 可解鎖下一關。</p>
+      <div id="taiwan-portal-layout" class="taiwan-portal-layout">
+        <div class="taiwan-map-column">
+          <div id="taiwan-map-panel" class="taiwan-map-panel" tabindex="0" aria-label="台灣區域地圖；可使用左右方向鍵切換關卡">
+            <img id="taiwan-map-image" class="taiwan-map-image" src="assets/images/maps/taiwan_overview/taiwan_region_map.png?v=taiwan-map-1" alt="台灣北中南東四區像素地圖" />
+            <div id="taiwan-map-nodes" class="taiwan-map-nodes"></div>
+            <div class="taiwan-map-north" aria-hidden="true">北</div>
+          </div>
+          <div class="taiwan-map-status" aria-label="地圖狀態圖例">
+            <span><i class="status-dot available"></i>可進入</span>
+            <span><i class="status-dot planned"></i>後續區域</span>
+          </div>
+        </div>
+
+        <div class="stage-selector portal-stage-selector" aria-label="選擇關卡">
+          <div class="portal-briefing-kicker">任務簡報</div>
+          <div id="stage-region-context" class="stage-region-context">
+            <span id="stage-region-label">北部</span>
+            <strong id="stage-county-label">新北市・淡水河口</strong>
+          </div>
+          <div class="stage-carousel-shell">
+            <button class="stage-arrow stage-arrow-prev" type="button" data-action="stage-prev" aria-label="上一張地圖">‹</button>
+            <div id="stage-carousel-card" class="stage-carousel-card" tabindex="0" aria-live="polite">
+              <img id="stage-card-image" class="stage-card-image" src="assets/images/stages/tidal_flat_card.png?v=stages-20260711a" alt="海廢潮間帶地圖預覽" />
+              <div id="stage-card-number" class="stage-card-number">第 1 關</div>
+              <div id="stage-card-lock" class="stage-card-lock hidden"></div>
+              <div class="stage-card-caption"><strong id="stage-card-name">海廢潮間帶</strong></div>
+            </div>
+            <button class="stage-arrow stage-arrow-next" type="button" data-action="stage-next" aria-label="下一張地圖">›</button>
+          </div>
+          <div id="stage-carousel-dots" class="stage-carousel-dots" aria-hidden="true"></div>
+          <div class="stage-card-meta">
+            <span id="stage-card-duration">5 分鐘</span>
+            <span id="stage-card-difficulty">標準</span>
+            <span id="stage-card-boss">BOSS：幽靈廢網</span>
+          </div>
+          <p id="stage-card-concept" class="stage-card-concept">清理被海廢占據的潮池，阻止幽靈廢網封鎖整片海岸。</p>
+          <p id="stage-learning-focus" class="stage-learning-focus">本區學習：河川垃圾如何一路進入海洋</p>
+        </div>
+        <div class="screen-footer portal-actions">
+          <button class="btn portal-back-button" data-action="portal-cancel">
+            <span class="portal-action-symbol" aria-hidden="true">←</span>
+            <span>返回大廳</span>
+          </button>
+          <button class="btn btn-primary stage-start-button" data-action="play">
+            <span class="portal-action-symbol" aria-hidden="true">▶</span>
+            <span class="btn-label">開始遊戲</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Character Select ===== -->
+    <section id="screen-characters" class="screen hidden">
+      <h2 class="screen-title">選擇守護者</h2>
+      <div class="guardian-summary">角色、造型與能力強化 <span>♻ <b id="character-coins">0</b></span></div>
+      <div class="guardian-layout">
+        <div id="character-list" class="guardian-list" aria-label="角色清單"></div>
+        <div id="character-detail" class="guardian-detail"></div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn" data-action="back">返回</button>
+        <button class="btn btn-primary" id="confirm-character" data-action="confirm-character">確定</button>
+      </div>
+    </section>
+
+    <!-- ===== Eco Gacha ===== -->
+    <section id="screen-gacha" class="screen hidden">
+      <div class="gacha-header">
+        <div class="paired-page-heading">
+          <h2 class="screen-title">生態扭蛋</h2>
+          <p class="screen-desc">每項機率相同；取得 Skin 後會永久移出獎池。</p>
+        </div>
+        <div class="paired-page-tools">
+          <div class="gacha-wallet">♻ <span id="gacha-coins">0</span></div>
+        </div>
+      </div>
+      <div class="gacha-layout">
+        <div class="gacha-machine-panel">
+          <div id="gacha-collection" class="gacha-collection"></div>
+          <div id="gacha-machine" class="gacha-machine" aria-live="polite">
+            <div class="gacha-capsule"><span>?</span></div>
+            <div id="gacha-result" class="gacha-result">準備好後轉動扭蛋機！</div>
+          </div>
+          <button id="gacha-pull" class="btn btn-primary gacha-pull" data-action="gacha-pull">抽取一次　♻ 1,000</button>
+        </div>
+        <div class="gacha-pool-panel">
+          <div class="gacha-pool-title">目前獎池與即時機率</div>
+          <div id="gacha-pool" class="gacha-pool" role="list" tabindex="0" aria-label="目前扭蛋獎池，使用滑動、滾輪或方向鍵查看更多"></div>
+        </div>
+      </div>
+      <div class="screen-footer paired-page-footer">
+        <button class="btn btn-page-switch" type="button" data-action="shop" aria-label="切換至商店">商店</button>
+        <button class="btn" type="button" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Shop ===== -->
+    <section id="screen-shop" class="screen hidden">
+      <header class="paired-page-header shop-header">
+        <div class="paired-page-heading">
+          <h2 class="screen-title">循環商店</h2>
+          <p class="screen-desc">用「循環幣」投資永久升級，讓每一次行動都更有力。</p>
+        </div>
+        <div class="paired-page-tools">
+          <div class="coin-display">可用循環幣：<span class="coin-amount" id="shop-coins">0</span> ♻</div>
+        </div>
+      </header>
+      <div id="shop-list" class="shop-list"></div>
+      <div class="screen-footer paired-page-footer">
+        <button class="btn btn-page-switch" type="button" data-action="gacha" aria-label="切換至生態扭蛋">扭蛋</button>
+        <button class="btn" type="button" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Achievements ===== -->
+    <section id="screen-achievements" class="screen hidden">
+      <header class="achievement-header">
+        <div class="achievement-heading">
+          <h2 class="screen-title">成就</h2>
+          <p class="screen-desc">完成守護者足跡與挑戰紀錄，領取循環幣或角色加成點數。</p>
+        </div>
+        <div class="achievement-summary" aria-live="polite" aria-atomic="true">
+          <span class="achievement-summary-item">
+            <span class="achievement-summary-label">已完成</span>
+            <strong><span id="achievement-complete-count">0</span> / <span id="achievement-total-count">0</span></strong>
+          </span>
+          <span class="achievement-summary-item claimable">
+            <span class="achievement-summary-label">可領取</span>
+            <strong id="achievement-claimable-count">0</strong>
+          </span>
+        </div>
+      </header>
+
+      <div class="achievement-tabs" role="tablist" aria-label="成就分類">
+        <button id="achievement-tab-all" class="achievement-tab active" type="button" role="tab" aria-selected="true" aria-controls="achievement-list" tabindex="0" data-achievement-group="all">全部</button>
+        <button id="achievement-tab-guardian" class="achievement-tab" type="button" role="tab" aria-selected="false" aria-controls="achievement-list" tabindex="-1" data-achievement-group="guardian">守護足跡</button>
+        <button id="achievement-tab-challenge" class="achievement-tab" type="button" role="tab" aria-selected="false" aria-controls="achievement-list" tabindex="-1" data-achievement-group="challenge">挑戰紀錄</button>
+      </div>
+
+      <div id="achievement-list" class="achievement-list" role="tabpanel" aria-labelledby="achievement-tab-all" aria-live="polite"></div>
+
+      <div class="screen-footer paired-page-footer achievement-footer">
+        <button class="btn btn-page-switch" type="button" data-action="codex" aria-label="切換至圖鑑">圖鑑</button>
+        <button class="btn" type="button" data-action="back">返回</button>
+        <button id="achievement-claim-all" class="btn btn-primary" type="button" data-action="achievement-claim-all" disabled>全部領取</button>
+      </div>
+    </section>
+
+    <!-- ===== Codex / Knowledge ===== -->
+    <section id="screen-codex" class="screen hidden">
+      <header class="paired-page-header codex-header">
+        <div class="paired-page-heading">
+          <h2 class="screen-title">永續圖鑑</h2>
+          <p id="codex-view-desc" class="screen-desc">查看各關卡出現的污染物與行動特性。</p>
+        </div>
+      </header>
+      <div class="codex-tabs" role="tablist" aria-label="圖鑑分類">
+        <button id="codex-tab-enemies" class="codex-tab active" type="button" role="tab" aria-selected="true" aria-controls="codex-list" data-codex-view="enemies">污染物圖鑑</button>
+        <button id="codex-tab-knowledge" class="codex-tab" type="button" role="tab" aria-selected="false" aria-controls="codex-list" data-codex-view="knowledge">永續知識</button>
+      </div>
+      <div id="codex-list" class="codex-list codex-enemy-list" role="tabpanel" aria-live="polite"></div>
+      <div class="screen-footer paired-page-footer">
+        <button class="btn btn-page-switch achievement-menu-button" type="button" data-action="achievements" aria-label="切換至成就">
+          <span class="btn-label">成就</span>
+          <span id="achievement-codex-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+        </button>
+        <button class="btn" type="button" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Gameplay Help ===== -->
+    <section id="screen-help" class="screen hidden">
+      <h2 class="screen-title">遊戲說明</h2>
+      <p class="screen-desc">先從大廳進入傳送門，再靠移動、升級與永續知識完成淨化行動。</p>
+      <div class="help-list">
+        <div class="help-row"><span class="help-icon" aria-hidden="true">↟</span><div><strong>大廳移動</strong><span>鍵盤使用 WASD 或方向鍵；手機和平板在畫面上拖曳即可移動角色。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">▶</span><div><strong>進入關卡</strong><span>往大廳上方走到傳送門，靠近後按 E 或點互動提示，再選擇地圖並開始遊戲。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">✦</span><div><strong>自動攻擊</strong><span>戰鬥中角色會自動攻擊附近污染物；你只需要移動、閃避並選擇升級。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">⬢</span><div><strong>取得再生材料</strong><span>站進大廳掛機回收區會定期取得材料，每天有上限；擊敗 BOSS 也有每日首勝材料。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">⌂</span><div><strong>使用建造區</strong><span>靠近工作台或點右上角「建造」，消耗再生材料放置建築與裝飾；功能建築會提供出擊加成。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">5</span><div><strong>隨機資源</strong><span>遊戲開始後每 5 秒在附近隨機出現 1 個，不會在開局一次塞滿地圖。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">♻</span><div><strong>分類回收</strong><span>塑膠瓶、鋁罐、玻璃瓶與廢電池會提供不同的經驗與循環幣。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">+</span><div><strong>自動拾取</strong><span>走近物件即可拾取；物件會立刻從地圖消失並顯示清理獎勵。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">◎</span><div><strong>污染圈</strong><span>紅色虛線是下一個安全邊界；倒數結束後才開始縮小。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">?</span><div><strong>永續知識卡</strong><span>拾取後解鎖圖鑑；升級答題連勝 5 / 10 題可強化對綠色精英的傷害。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">»</span><div><strong>衝刺</strong><span>按 Space / Shift，或點右下角按鈕；衝刺期間短暫免傷。</span></div></div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Settings (from home or pause) ===== -->
+    <section id="screen-settings" class="screen hidden">
+      <h2 class="screen-title">設定</h2>
+      <div class="settings-panel" id="settings-panel">
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-master"></span>
+          <label class="setting-label">主音量</label>
+          <input type="range" class="slider" id="vol-master" min="0" max="100" value="80" />
+          <span class="setting-val" id="val-master">80</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-music"></span>
+          <label class="setting-label">音樂音量</label>
+          <input type="range" class="slider" id="vol-music" min="0" max="100" value="70" />
+          <span class="setting-val" id="val-music">70</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-sfx"></span>
+          <label class="setting-label">音效音量</label>
+          <input type="range" class="slider" id="vol-sfx" min="0" max="100" value="80" />
+          <span class="setting-val" id="val-sfx">80</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-icon" id="icon-mute"></span>
+          <label class="setting-label">靜音</label>
+          <button class="btn toggle" id="btn-mute">未靜音</button>
+        </div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn" data-action="settings-back"><span class="btn-icon" id="ic-back"></span>返回</button>
+      </div>
+      <button id="settings-reset" class="link-reset hidden" data-action="reset">重置存檔</button>
+    </section>
+
+    <!-- ===== Level-up overlay ===== -->
+    <div id="overlay-levelup" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="levelup-title" aria-hidden="true">
+      <div class="overlay-inner" tabindex="-1">
+        <h2 class="levelup-title" id="levelup-title">升級！選擇你的成長</h2>
+        <div id="levelup-feedback" class="levelup-feedback hidden" aria-live="polite"></div>
+        <div id="levelup-options" class="levelup-options"></div>
+      </div>
+    </div>
+
+    <!-- ===== Gacha reward reveal ===== -->
+    <div id="overlay-gacha-result" class="overlay gacha-reward-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gacha-reward-title" aria-describedby="gacha-reward-desc" aria-hidden="true">
+      <div id="gacha-reward-panel" class="overlay-inner gacha-reward-panel" tabindex="-1">
+        <div id="gacha-reward-eyebrow" class="gacha-reward-eyebrow">扭蛋結果</div>
+        <div id="gacha-reward-visual" class="gacha-reward-visual" aria-hidden="true"></div>
+        <h2 id="gacha-reward-title" class="gacha-reward-title">獲得物品</h2>
+        <p id="gacha-reward-desc" class="gacha-reward-desc"></p>
+        <div id="gacha-reward-bonus" class="gacha-reward-bonus"></div>
+        <button class="btn btn-primary gacha-reward-confirm" type="button" data-action="gacha-result-confirm">確認</button>
+      </div>
+    </div>
+
+    <!-- ===== Knowledge card reading pause ===== -->
+    <div id="overlay-knowledge" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="knowledge-card-title" aria-hidden="true">
+      <div class="overlay-inner knowledge-card-panel">
+        <div class="knowledge-card-eyebrow">永續圖鑑 +1</div>
+        <div id="knowledge-card-icon" class="knowledge-card-icon" aria-hidden="true"></div>
+        <h2 id="knowledge-card-title" class="knowledge-card-title">永續知識</h2>
+        <p id="knowledge-card-text" class="knowledge-card-text"></p>
+        <div class="knowledge-card-note">遊戲已暫停，讀完後再繼續行動。</div>
+        <button id="knowledge-card-continue" class="btn btn-primary" type="button">繼續遊戲</button>
+      </div>
+    </div>
+
+    <!-- ===== Pause overlay ===== -->
+    <div id="overlay-pause" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title" aria-hidden="true">
+      <div class="overlay-inner pause-panel" id="pause-panel" tabindex="-1">
+        <h2 class="pause-title" id="pause-title">遊戲暫停</h2>
+        <div class="pause-buttons">
+          <button class="btn btn-primary" data-action="resume">繼續遊戲</button>
+          <button class="btn" data-action="settings-pause"><span class="btn-icon" id="ic-presettings"></span>設定</button>
+          <button class="btn" data-action="ask-restart"><span class="btn-icon" id="ic-restart"></span>重新開始本關</button>
+          <button class="btn" data-action="ask-home"><span class="btn-icon" id="ic-home"></span>回到首頁</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Confirm dialog (home / restart) ===== -->
+    <div id="overlay-confirm" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-desc" aria-hidden="true">
+      <div class="overlay-inner confirm-panel" id="confirm-panel" tabindex="-1">
+        <h2 class="confirm-title" id="confirm-title">確定要回到首頁嗎？</h2>
+        <p class="confirm-desc" id="confirm-desc">目前這局進度將不會保存。</p>
+        <div class="confirm-buttons">
+          <button class="btn" data-action="confirm-cancel"><span class="btn-icon" id="ic-cancel"></span>取消</button>
+          <button class="btn btn-danger" id="confirm-ok" data-action="confirm-ok"><span class="btn-icon" id="ic-ok"></span><span id="confirm-ok-label">確認回首頁</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Victory ===== -->
+    <section id="screen-victory" class="screen result-screen hidden">
+      <div class="result-content">
+        <h2 id="victory-title" class="result-title win">關卡已淨化！</h2>
+        <p id="victory-flavour" class="result-flavour">你撐過污染潮並完成了這次行動。</p>
+        <div id="victory-stats" class="result-stats"></div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn btn-primary" data-action="menu">回到主畫面</button>
+      </div>
+    </section>
+
+    <!-- ===== Game Over ===== -->
+    <section id="screen-gameover" class="screen result-screen hidden">
+      <div class="result-content">
+        <h2 class="result-title lose">污染暫時佔了上風…</h2>
+        <p class="result-flavour">別氣餒——每一次行動都讓你更接近循環再生。</p>
+        <div id="gameover-stats" class="result-stats"></div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn btn-primary" data-action="retry">再試一次</button>
+        <button class="btn btn-primary" data-action="menu">回到主畫面</button>
+      </div>
+    </section>
+
+    <!-- ===== Toast (knowledge unlocked, etc.) ===== -->
+    <div id="toast" class="toast hidden"></div>
+    </div><!-- /#stage -->
+  </div>
+
+  <!-- ===== Scripts (classic scripts so index.html runs directly from file://) ===== -->
+  <!-- Data layer -->
+  <script src="js/data/characters.js?v=chemist-trail-20260715a"></script>
+  <script src="js/data/skins.js?v=chemist-trail-20260715c"></script>
+  <script src="js/data/skills.js?v=chemist-trail-20260715a"></script>
+  <script src="js/data/enemies.js?v=attack-fx-20260714a"></script>
+  <script src="js/data/shop.js?v=balance-20260714a"></script>
+  <script src="js/data/stages.js?v=stage-carousel-20260711a"></script>
+  <script src="js/data/taiwanRegions.js?v=taiwan-map-20260726a"></script>
+  <script src="js/data/achievements.js?v=chemist-20260714a"></script>
+  <script src="js/data/knowledge.js?v=codex-icons-20260712a"></script>
+  <script src="js/data/lobbyBuildings.js?v=lobby-assets-20260726b"></script>
+  <!-- Engine -->
+  <script src="js/config.js?v=circular-mechanic-20260711b"></script>
+  <script src="js/uiTheme.js"></script>
+  <script src="js/mobile.js?v=lobby-20260725a"></script>
+  <script src="js/stageRenderer.js?v=stage-tiles-20260726b"></script>
+  <script src="js/storage.js?v=ux-fixes-20260726a"></script>
+  <script src="js/lobbyEconomy.js?v=lobby-20260725a"></script>
+  <script src="js/lobbyPlacement.js?v=lobby-20260725b"></script>
+  <script src="js/achievements.js?v=chemist-20260714a"></script>
+  <script src="js/gacha.js?v=chemist-20260714a"></script>
+  <script src="js/audioManager.js?v=audio-pack-20260726b"></script>
+  <script src="js/assets.js?v=stage-tiles-20260726b"></script>
+  <script src="js/effects.js?v=chemist-trail-fog-20260715a"></script>
+  <script src="js/sprites.js?v=chemist-20260714a"></script>
+  <script src="js/animation.js"></script>
+  <script src="js/input.js?v=ux-fixes-20260726a"></script>
+  <script src="js/pickups.js?v=gameplay-20260710"></script>
+  <script src="js/player.js?v=lobby-20260725a"></script>
+  <script src="js/enemy.js?v=attack-fx-20260714a"></script>
+  <script src="js/weapons.js?v=chemist-trail-fog-20260715a"></script>
+  <script src="js/ui.js?v=ux-fixes-20260726a"></script>
+  <script src="js/game.js?v=audio-events-20260726a"></script>
+  <script src="js/lobby.js?v=ux-fixes-20260726a"></script>
+  <script src="js/debug.js"></script>
+  <script src="js/test_mode.js?v=taiwan-map-20260726a"></script>
+  <script src="js/main.js?v=ux-fixes-20260726a"></script>
+</body>
+</html>

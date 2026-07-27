@@ -16,12 +16,13 @@
       sand:      ['beach_sand_01', 'beach_sand_02', 'beach_sand_03'],
       tidePool:  ['tide_pool_01'],
       shoreline: ['shoreline_01'],
-      factoryFloor: [],
-      conveyor: [],
-      recyclePad: [],
-      blackwaterPlatform: [],
-      oilChannel: [],
-      hazardDeck: []
+      ocean:     ['ocean_water_01'],
+      factoryFloor: ['factory_floor_01'],
+      conveyor: ['conveyor_01'],
+      recyclePad: ['recycle_pad_01'],
+      blackwaterPlatform: ['blackwater_platform_01'],
+      oilChannel: ['oil_channel_01'],
+      hazardDeck: ['hazard_deck_01']
     },
     props: {
       plasticBottle:   ['map_plastic_bottle_01'],
@@ -80,7 +81,8 @@
             else if ((c + r) % 8 === 0) kind = 'hazardDeck';
             else kind = 'blackwaterPlatform';
           } else {
-            if (y < SEA_H) kind = 'shoreline';
+            if (y < SEA_H - TILE) kind = 'ocean';
+            else if (y < SEA_H) kind = 'shoreline';
             else if (y < WET_H && rnd() < 0.14) kind = 'tidePool';
             else kind = 'sand';
           }
@@ -184,7 +186,18 @@
           var tileAssets = STAGE_ASSETS.tiles[t.kind] || [];
           var tileName = tileAssets[t.v];
           var key = tileName ? 'tile_' + tileName : null;
-          var drawn = key && A && A.ready && A.ready(key) && A.drawInRect && A.drawInRect(ctx, key, x, y, TILE + 1, TILE + 1);
+          var drawn = false;
+          if (t.kind === 'sand' && A && A.ready && A.drawInRect && A.ready('tile_beach_sand_01')) {
+            drawn = A.drawInRect(ctx, 'tile_beach_sand_01', x, y, TILE + 1, TILE + 1);
+            if (drawn && t.v > 0 && key && A.ready(key)) {
+              ctx.save();
+              ctx.globalAlpha = 0.14;
+              A.drawInRect(ctx, key, x, y, TILE + 1, TILE + 1);
+              ctx.restore();
+            }
+          } else {
+            drawn = key && A && A.ready && A.ready(key) && A.drawInRect && A.drawInRect(ctx, key, x, y, TILE + 1, TILE + 1);
+          }
           if (!drawn) this.fallbackTile(ctx, t.kind, x, y);
         }
       }
@@ -258,6 +271,8 @@
         for (var hx = -TILE; hx < TILE * 2; hx += 28) {
           ctx.beginPath(); ctx.moveTo(x + hx, y + TILE); ctx.lineTo(x + hx + TILE, y); ctx.stroke();
         }
+      } else if (kind === 'ocean') {
+        ctx.fillStyle = '#39b6be'; ctx.fillRect(x, y, TILE, TILE);
       } else if (kind === 'shoreline') {
         ctx.fillStyle = '#2a9db5'; ctx.fillRect(x, y, TILE, TILE);
         ctx.fillStyle = 'rgba(255,255,255,0.16)';

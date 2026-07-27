@@ -32,11 +32,24 @@
     selectedStageId: DEFAULT_STAGE_ID,
     currentStageId: DEFAULT_STAGE_ID,
     stageSwipeStartX: null,
+    taiwanMapEnabled: true,
     pendingCharacterStats: { attack: 0, speed: 0, hp: 0 },
     gachaDrawing: false,
 
     boot: function () {
       global.Storage.load();
+      var query = new URLSearchParams(global.location.search);
+      // 台灣區域地圖是正式選關入口；保留 ?taiwanMap=0 供舊版版面回歸測試。
+      this.taiwanMapEnabled = query.get("taiwanMap") !== "0";
+      document.body.classList.toggle("taiwan-map-preview", this.taiwanMapEnabled);
+      var portalTitle = document.getElementById("portal-title");
+      var portalDesc = document.getElementById("portal-desc");
+      if (portalTitle) portalTitle.textContent = this.taiwanMapEnabled ? "台灣守護行動" : "行動傳送門";
+      if (portalDesc) {
+        portalDesc.textContent = this.taiwanMapEnabled
+          ? "從台灣地圖選擇淨化地點；擊敗前一關 BOSS 可解鎖下一段旅程。"
+          : "選擇行動地點；擊敗前一關 BOSS 可解鎖下一關。";
+      }
       var testCharacterId = global.TestMode && global.TestMode.enabled && global.TestMode.characterId;
       var testCharacter = testCharacterId && global.GameData.getCharacter(testCharacterId);
       testCharacterId = testCharacter ? testCharacter.id : null;
@@ -62,6 +75,7 @@
 
       this.wireButtons();
       this.wireStageSelector();
+      this.renderTaiwanMap();
       this.bindKeys();
       this.ui.updateCoinLabels();
       if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
@@ -69,6 +83,9 @@
       this.updateStageSelector();
       this.ui.refreshSettings();
       this.enterLobby();
+      if (global.TestMode && global.TestMode.enabled && global.TestMode.portalPreview) {
+        this.openPortalSelect();
+      }
 
       /* 關頁前保存大廳位置 */
       var self = this;
@@ -82,6 +99,7 @@
       this.showScreen(null);                     // 隱藏所有選單畫面（同時停用戰鬥殘影）
       this.ui.showHUD(false);
       if (global.Lobby) global.Lobby.start();
+      if (global.AudioManager) global.AudioManager.playMusic("lobby");
       this.ui.updateCoinLabels();
       if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
       this.setState("LOBBY");
@@ -92,8 +110,10 @@
       this.showScreen("portal");
       this.updateStageSelector();
       this.setState("PORTAL_SELECT");
-      var card = document.getElementById("stage-carousel-card");
-      if (card && card.focus) card.focus({ preventScroll: true });
+      var focusTarget = this.taiwanMapEnabled
+        ? document.querySelector('.taiwan-map-node[data-stage-id="' + this.selectedStageId + '"]')
+        : document.getElementById("stage-carousel-card");
+      if (focusTarget && focusTarget.focus) focusTarget.focus({ preventScroll: true });
     },
 
     cancelPortal: function () {
@@ -177,26 +197,103 @@
       var self = this;
       var card = document.getElementById("stage-carousel-card");
       if (!card) return;
-      card.addEventListener("pointerdown", function (e) {
-        if (e.target && e.target.closest && e.target.closest("button")) return;
-        self.stageSwipeStartX = e.clientX;
-        if (card.setPointerCapture) card.setPointerCapture(e.pointerId);
+      [card, document.getElementById("taiwan-map-panel")].filter(Boolean).forEach(function (target) {
+        target.addEventListener("pointerdown", function (e) {
+          if (e.target && e.target.closest && e.target.closest("button")) return;
+          self.stageSwipeStartX = e.clientX;
+          if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
+        });
+        target.addEventListener("pointerup", function (e) {
+          if (self.stageSwipeStartX == null) return;
+          var delta = e.clientX - self.stageSwipeStartX;
+          self.stageSwipeStartX = null;
+          if (target.releasePointerCapture && target.hasPointerCapture && target.hasPointerCapture(e.pointerId)) {
+            target.releasePointerCapture(e.pointerId);
+          }
+          if (Math.abs(delta) < 48) return;
+          self.cycleStage(delta < 0 ? 1 : -1);
+        });
+        target.addEventListener("pointercancel", function () { self.stageSwipeStartX = null; });
+        target.addEventListener("keydown", function (e) {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+          e.preventDefault();
+          self.cycleStage(e.key === "ArrowRight" ? 1 : -1);
+        });
       });
-      card.addEventListener("pointerup", function (e) {
-        if (self.stageSwipeStartX == null) return;
-        var delta = e.clientX - self.stageSwipeStartX;
-        self.stageSwipeStartX = null;
-        if (card.releasePointerCapture && card.hasPointerCapture && card.hasPointerCapture(e.pointerId)) {
-          card.releasePointerCapture(e.pointerId);
+    },
+
+    renderTaiwanMap: function () {
+      var map = global.GameData && global.GameData.taiwanMap;
+      var root = document.getElementById("taiwan-map-nodes");
+      if (!map || !root) return;
+      root.innerHTML = "";
+      map.regions.forEach(function (region) {
+        var node = document.createElement(region.stageId ? "button" : "div");
+        node.className = "taiwan-map-node region-" + region.id;
+        node.style.left = region.mapNode.xPercent + "%";
+        node.style.top = region.mapNode.yPercent + "%";
+        node.dataset.regionId = region.id;
+        if (region.stageId) {
+          node.type = "button";
+          node.dataset.action = "select-taiwan-region";
+          node.dataset.stageId = region.stageId;
+        } else {
+          node.classList.add("planned");
+          node.setAttribute("aria-label", region.name + "，" + region.countyLabel + "，後續階段");
         }
-        if (Math.abs(delta) < 48) return;
-        self.cycleStage(delta < 0 ? 1 : -1);
+
+        var marker = document.createElement("span");
+        marker.className = "taiwan-node-marker";
+        marker.setAttribute("aria-hidden", "true");
+        marker.textContent = region.stageId ? String((global.GameData.getStage(region.stageId) || {}).order || "") : "·";
+
+        var label = document.createElement("span");
+        label.className = "taiwan-node-label";
+        var strong = document.createElement("strong");
+        strong.textContent = region.name;
+        var county = document.createElement("small");
+        county.textContent = region.countyLabel.split("・")[0];
+        label.appendChild(strong);
+        label.appendChild(county);
+
+        node.appendChild(marker);
+        node.appendChild(label);
+        root.appendChild(node);
       });
-      card.addEventListener("pointercancel", function () { self.stageSwipeStartX = null; });
-      card.addEventListener("keydown", function (e) {
-        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-        e.preventDefault();
-        self.cycleStage(e.key === "ArrowRight" ? 1 : -1);
+      this.updateTaiwanMap();
+    },
+
+    selectTaiwanRegion: function (source) {
+      var stageId = source && source.dataset && source.dataset.stageId;
+      if (!stageId || !global.GameData.getStage(stageId)) return;
+      this.selectedStageId = stageId;
+      if (this.stageUnlocked(stageId) && global.Storage.saveSelectedStage) {
+        global.Storage.saveSelectedStage(stageId);
+      }
+      this.updateStageSelector();
+    },
+
+    updateTaiwanMap: function () {
+      var self = this;
+      document.querySelectorAll(".taiwan-map-node[data-stage-id]").forEach(function (node) {
+        var stageId = node.dataset.stageId;
+        var stage = global.GameData.getStage(stageId);
+        var region = global.GameData.getTaiwanRegionForStage
+          ? global.GameData.getTaiwanRegionForStage(stageId) : null;
+        var unlocked = self.stageUnlocked(stageId);
+        var cleared = global.Storage.isStageCleared && global.Storage.isStageCleared(stageId);
+        var active = stageId === self.selectedStageId;
+        node.classList.toggle("active", active);
+        node.classList.toggle("locked", !unlocked);
+        node.classList.toggle("cleared", !!cleared);
+        node.disabled = !unlocked;
+        node.setAttribute("aria-pressed", active ? "true" : "false");
+        node.setAttribute("aria-disabled", unlocked ? "false" : "true");
+        node.setAttribute(
+          "aria-label",
+          (region ? region.name + "，" + region.countyLabel + "，" : "") +
+          (stage ? stage.name : stageId) + "，" + (unlocked ? "已解鎖" : "尚未解鎖")
+        );
       });
     },
 
@@ -238,7 +335,11 @@
         case "play":          this.startSelectedStage(); break;
         case "stage-prev":    this.cycleStage(-1); break;
         case "stage-next":    this.cycleStage(1); break;
+        case "select-taiwan-region": this.selectTaiwanRegion(source); break;
         case "portal-cancel": this.cancelPortal(); break;
+        case "lobby-guide-prev": if (global.Lobby) global.Lobby.changeGuideStep(-1); break;
+        case "lobby-guide-next": if (global.Lobby) global.Lobby.changeGuideStep(1); break;
+        case "lobby-guide-finish": if (global.Lobby) global.Lobby.finishGuide(); break;
         case "build":         this.enterBuildMode(); break;
         case "build-close":   this.exitBuildMode(); break;
         case "ghost-rotate":  if (global.Lobby) global.Lobby.rotateGhost(); break;
@@ -389,13 +490,27 @@
       var lock = document.getElementById("stage-card-lock");
       var card = document.getElementById("stage-carousel-card");
       var play = document.querySelector('#screen-portal [data-action="play"]');
+      var region = global.GameData.getTaiwanRegionForStage
+        ? global.GameData.getTaiwanRegionForStage(stage.id) : null;
+      var regionLabel = document.getElementById("stage-region-label");
+      var countyLabel = document.getElementById("stage-county-label");
+      var learningFocus = document.getElementById("stage-learning-focus");
       if (image) {
         image.src = stage.previewImage;
         image.alt = stage.name + "地圖與 " + stage.bossName + " 預覽";
       }
-      if (number) number.textContent = "第 " + stage.order + " 關";
-      if (name) name.textContent = stage.name;
+      if (number) {
+        number.textContent = this.taiwanMapEnabled && region
+          ? region.name + " · " + region.countyLabel.split("・")[0]
+          : "第 " + stage.order + " 關";
+      }
+      if (name) name.textContent = this.taiwanMapEnabled && region ? region.stageTitle : stage.name;
       if (concept) concept.textContent = stage.concept;
+      if (regionLabel) regionLabel.textContent = region ? region.name : "台灣";
+      if (countyLabel) countyLabel.textContent = region ? region.countyLabel : stage.name;
+      if (learningFocus) {
+        learningFocus.textContent = region ? "本區學習：" + region.learningFocus : "";
+      }
       if (duration) duration.textContent = Math.round(stage.duration / 60) + " 分鐘";
       if (difficulty) difficulty.textContent = stage.difficulty;
       if (boss) boss.textContent = "BOSS：" + stage.bossName;
@@ -428,6 +543,7 @@
           dots.appendChild(dot);
         }, this);
       }
+      this.updateTaiwanMap();
     },
 
     startSelectedStage: function () {
@@ -713,6 +829,7 @@
     onRunEnd: function (stats) {
       this.ui.showHUD(false);
       if (global.AudioManager) global.AudioManager.stopMusic();
+      if (stats.result === "victory" && global.AudioManager) global.AudioManager.playSfx("victory");
       // 結算顯示大廳建築加成來源（快照），方便玩家與 QA 對數值
       stats.lobbySources = this.currentLobbyBonuses && this.currentLobbyBonuses.sources
         ? this.currentLobbyBonuses.sources.slice() : [];
@@ -722,7 +839,11 @@
         if (claim) stats.bossMaterialBonus = claim.amount;
       }
       if (stats.result === "victory" && global.Storage.markStageCleared) {
-        var unlocked = global.Storage.markStageCleared(stats.stageId || this.currentStageId);
+        var clearedStageId = stats.stageId || this.currentStageId;
+        stats.firstStageClear = global.Storage.isStageCleared
+          ? !global.Storage.isStageCleared(clearedStageId)
+          : false;
+        var unlocked = global.Storage.markStageCleared(clearedStageId);
         if (unlocked) {
           stats.unlockedStage = unlocked;
           this.selectedStageId = unlocked.id;

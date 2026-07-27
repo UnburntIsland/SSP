@@ -15,17 +15,39 @@
   var LOBBY_SPEED = 205;          /* 大廳固定移動速度 */
   var AVATAR_RADIUS = 20;         /* 腳底碰撞圓半徑 */
   var SAVE_POS_INTERVAL = 4;      /* 秒；行走時定期保存位置 */
+  var GUIDE_STEPS = [
+    {
+      visual: "↟",
+      title: "先在大廳移動",
+      text: "使用 WASD 或方向鍵移動；手機和平板可在畫面上拖曳移動。"
+    },
+    {
+      visual: "◈",
+      title: "走進上方傳送門",
+      text: "靠近傳送門後按 E 或點互動提示，選擇地圖並開始。戰鬥中的攻擊會自動進行。"
+    },
+    {
+      visual: "⬢",
+      title: "回收材料，打造大廳",
+      text: "站進掛機回收區可取得再生材料；靠近工作台或點「建造」即可放置有加成的建築。"
+    }
+  ];
 
   function W() { return global.LobbyWorld; }
   function P() { return global.LobbyPlacement; }
+  function formatNumber(value) {
+    return Math.max(0, Math.floor(Number(value) || 0)).toLocaleString("zh-TW");
+  }
 
   /* ---------------- 大廳素材（缺圖自動 fallback 程式繪製） ---------------- */
+  var LOBBY_ASSET_VERSION = "lobby-gpt-20260726a";
   var LOBBY_ASSETS = {
-    lobby_bg:              "assets/images/backgrounds/lobby_background.png?v=lobby-20260711a",
-    lobby_portal:          "assets/images/lobby/portal/portal.png",
-    lobby_workbench:       "assets/images/lobby/stations/workbench.png",
-    lobby_recycle_station: "assets/images/lobby/stations/recycle_station.png",
-    lobby_material_icon:   "assets/images/lobby/icons/icon_recycled_material.png"
+    lobby_bg:              "assets/images/lobby/ground/lobby_map.png?v=" + LOBBY_ASSET_VERSION,
+    lobby_portal:          "assets/images/lobby/portal/portal_idle_0.png?v=" + LOBBY_ASSET_VERSION,
+    lobby_workbench:       "assets/images/lobby/stations/construction_workbench/idle_0.png?v=" + LOBBY_ASSET_VERSION,
+    lobby_recycle_station: "assets/images/lobby/stations/recycling_idle_zone/idle_0.png?v=" + LOBBY_ASSET_VERSION,
+    lobby_material_icon:   "assets/images/lobby/ui/recycled_material.png?v=" + LOBBY_ASSET_VERSION,
+    lobby_build_mode_icon: "assets/images/lobby/ui/build_mode.png?v=" + LOBBY_ASSET_VERSION
   };
 
   var Lobby = {
@@ -37,6 +59,8 @@
     _floaters: [],
     _savePosTimer: 0,
     _catalogTab: "functional",
+    _guideOpen: false,
+    _guideStep: 0,
 
     /* ---------------- 初始化（App.boot 呼叫一次） ---------------- */
     init: function (canvas, app) {
@@ -52,15 +76,15 @@
       if (A && A.register) {
         Object.keys(LOBBY_ASSETS).forEach(function (key) { A.register(key, [LOBBY_ASSETS[key]]); });
         (global.GameData.lobbyBuildings || []).forEach(function (def) {
-          A.register("lobbybld_" + def.id, [def.assetBasePath + "base.png"]);
+          A.register("lobbybld_" + def.id, [def.assetBasePath + "idle_0.png?v=" + LOBBY_ASSET_VERSION]);
         });
         /* 傳送門待機 6 幀、掛機回收裝置 4 幀；有幾幀用幾幀，
            一幀都沒有 → 靜態單圖 → 仍缺 → 程式繪製 fallback */
         for (var pf = 0; pf < 6; pf++) {
-          A.register("lobby_portal_" + pf, ["assets/images/lobby/portal/portal_idle_" + pf + ".png"]);
+          A.register("lobby_portal_" + pf, ["assets/images/lobby/portal/portal_idle_" + pf + ".png?v=" + LOBBY_ASSET_VERSION]);
         }
         for (var rf = 0; rf < 4; rf++) {
-          A.register("lobby_recycle_" + rf, ["assets/images/lobby/stations/recycle_station_" + rf + ".png"]);
+          A.register("lobby_recycle_" + rf, ["assets/images/lobby/stations/recycling_idle_zone/idle_" + rf + ".png?v=" + LOBBY_ASSET_VERSION]);
         }
       }
 
@@ -79,13 +103,26 @@
         coins: document.getElementById("lobby-coins"),
         materials: document.getElementById("lobby-materials"),
         daily: document.getElementById("lobby-daily"),
+        objective: document.getElementById("lobby-objective"),
+        objectiveText: document.getElementById("lobby-objective-text"),
+        objectiveControl: document.getElementById("lobby-objective-control"),
         interact: document.getElementById("lobby-interact"),
         idleStatus: document.getElementById("lobby-idle-status"),
+        guideOverlay: document.getElementById("overlay-lobby-guide"),
+        guidePanel: document.querySelector("#overlay-lobby-guide .lobby-guide-panel"),
+        guideStep: document.getElementById("lobby-guide-step"),
+        guideVisual: document.getElementById("lobby-guide-visual"),
+        guideTitle: document.getElementById("lobby-guide-title"),
+        guideText: document.getElementById("lobby-guide-text"),
+        guidePrev: document.getElementById("lobby-guide-prev"),
+        guideNext: document.getElementById("lobby-guide-next"),
+        guideFinish: document.getElementById("lobby-guide-finish"),
         buildRoot: document.getElementById("build-root"),
         buildSheet: document.getElementById("build-sheet"),
         buildList: document.getElementById("build-list"),
         buildTabs: document.getElementById("build-tabs"),
         buildMaterials: document.getElementById("build-materials"),
+        buildRecycleProgress: document.getElementById("build-recycle-progress"),
         ghostBar: document.getElementById("build-ghost-bar"),
         ghostHint: document.getElementById("ghost-hint"),
         editPanel: document.getElementById("build-edit"),
@@ -110,6 +147,21 @@
           if (!tab) return;
           self._catalogTab = tab.dataset.buildTab;
           self.buildCatalog();
+        });
+        this.dom.buildTabs.addEventListener("keydown", function (e) {
+          var tabs = Array.prototype.slice.call(self.dom.buildTabs.querySelectorAll("[data-build-tab]"));
+          var current = tabs.indexOf(e.target.closest("[data-build-tab]"));
+          if (current < 0) return;
+          var next = current;
+          if (e.key === "ArrowRight") next = (current + 1) % tabs.length;
+          else if (e.key === "ArrowLeft") next = (current - 1 + tabs.length) % tabs.length;
+          else if (e.key === "Home") next = 0;
+          else if (e.key === "End") next = tabs.length - 1;
+          else return;
+          e.preventDefault();
+          self._catalogTab = tabs[next].dataset.buildTab;
+          self.buildCatalog();
+          tabs[next].focus();
         });
       }
     },
@@ -155,6 +207,7 @@
       this.updateHud();
       this.updateIdleStatus(global.LobbyEconomy.getStatus());
       this.setPrompt(null);
+      this.updateObjective();
 
       if (this.canvas.width !== (global.Config ? global.Config.GAME_WIDTH : 1280)) {
         this.canvas.width = global.Config ? global.Config.GAME_WIDTH : 1280;
@@ -165,6 +218,7 @@
       this.running = true;
       this.lastTs = 0;
       this.updateCamera(true);
+      this.showGuideIfNeeded();
       if (!this._looping) { this._looping = true; global.requestAnimationFrame(this._loop); }
     },
 
@@ -180,6 +234,7 @@
       this.mode = "idle";
       this.ghost = null;
       this.editTarget = null;
+      this.hideGuide();
       if (this.dom.hud) this.dom.hud.classList.add("hidden");
       this.hideBuildDom();
       this.setPrompt(null);
@@ -216,6 +271,12 @@
       this.time += dt;
       var av = this.avatar;
       if (!av) return;
+
+      if (this._guideOpen) {
+        if (av.animator) av.animator.update(dt, 0, 0);
+        this.updateCamera(false);
+        return;
+      }
 
       if (this.mode === "idle") {
         var mv = global.Input.getMoveVector();
@@ -274,6 +335,7 @@
       });
       if ((nearest && nearest.kind) !== (this.nearestInteraction && this.nearestInteraction.kind)) {
         this.setPrompt(nearest ? nearest.label : null);
+        this.updateObjective(nearest && nearest.kind);
       }
       this.nearestInteraction = nearest;
     },
@@ -296,6 +358,86 @@
       btn.classList.remove("hidden");
     },
 
+    updateObjective: function (nearKind) {
+      if (!this.dom.objectiveText) return;
+      var touch = global.Input && global.Input.isTouchDevice && global.Input.isTouchDevice();
+      if (nearKind === "portal") {
+        this.dom.objectiveText.textContent = touch
+          ? "已抵達傳送門：點互動提示選擇行動地點"
+          : "已抵達傳送門：按 E 選擇行動地點";
+      } else if (nearKind === "workbench") {
+        this.dom.objectiveText.textContent = touch
+          ? "工作台可用：點互動提示開始建造"
+          : "工作台可用：按 E 開啟建造目錄";
+      } else {
+        var stage = this.app && global.GameData
+          ? global.GameData.getStage(this.app.selectedStageId)
+          : null;
+        this.dom.objectiveText.textContent = "往上走到傳送門，挑戰「" +
+          (stage ? stage.name : "海廢潮間帶") + "」";
+      }
+      if (this.dom.objectiveControl) {
+        this.dom.objectiveControl.textContent = touch ? "拖曳畫面移動" : "WASD / 方向鍵移動";
+      }
+    },
+
+    showGuideIfNeeded: function () {
+      var forceGuide = false;
+      try { forceGuide = new URLSearchParams(global.location.search).get("qaLobbyGuide") === "1"; }
+      catch (error) {}
+      if (global.TestMode && global.TestMode.enabled && !forceGuide) return;
+      if (!forceGuide && global.Storage.isLobbyGuideCompleted && global.Storage.isLobbyGuideCompleted()) return;
+      this._guideStep = 0;
+      this._guideOpen = true;
+      this.renderGuide();
+      if (this.dom.guideOverlay) {
+        this.dom.guideOverlay.classList.remove("hidden");
+        this.dom.guideOverlay.setAttribute("aria-hidden", "false");
+      }
+      if (this.dom.guideNext && this.dom.guideNext.focus) {
+        try { this.dom.guideNext.focus({ preventScroll: true }); }
+        catch (error) { this.dom.guideNext.focus(); }
+      }
+    },
+
+    renderGuide: function () {
+      var step = GUIDE_STEPS[this._guideStep] || GUIDE_STEPS[0];
+      var last = this._guideStep === GUIDE_STEPS.length - 1;
+      if (this.dom.guideStep) this.dom.guideStep.textContent = (this._guideStep + 1) + " / " + GUIDE_STEPS.length;
+      if (this.dom.guideVisual) this.dom.guideVisual.textContent = step.visual;
+      if (this.dom.guideTitle) this.dom.guideTitle.textContent = step.title;
+      if (this.dom.guideText) this.dom.guideText.textContent = step.text;
+      if (this.dom.guidePrev) this.dom.guidePrev.classList.toggle("hidden", this._guideStep === 0);
+      if (this.dom.guideNext) this.dom.guideNext.classList.toggle("hidden", last);
+      if (this.dom.guideFinish) this.dom.guideFinish.classList.toggle("hidden", !last);
+    },
+
+    changeGuideStep: function (delta) {
+      if (!this._guideOpen) return;
+      this._guideStep = Math.max(0, Math.min(GUIDE_STEPS.length - 1, this._guideStep + delta));
+      this.renderGuide();
+      var target = this._guideStep === GUIDE_STEPS.length - 1 ? this.dom.guideFinish : this.dom.guideNext;
+      if (target && target.focus) target.focus();
+    },
+
+    hideGuide: function () {
+      this._guideOpen = false;
+      if (this.dom && this.dom.guideOverlay) {
+        this.dom.guideOverlay.classList.add("hidden");
+        this.dom.guideOverlay.setAttribute("aria-hidden", "true");
+      }
+    },
+
+    finishGuide: function () {
+      if (!this._guideOpen) return;
+      this.hideGuide();
+      if (global.Storage.completeLobbyGuide) global.Storage.completeLobbyGuide();
+      if (global.Input && global.Input.clearPresses) global.Input.clearPresses();
+      if (this.canvas && this.canvas.focus) {
+        try { this.canvas.focus({ preventScroll: true }); } catch (error) {}
+      }
+    },
+
     /* ---------------- 掛機回收 ---------------- */
     updateIdleEconomy: function () {
       var av = this.avatar;
@@ -314,29 +456,57 @@
       if (sig !== this._idleStatusSig) {
         this._idleStatusSig = sig;
         this.updateIdleStatus(status);
-        if (this.dom.daily) this.dom.daily.textContent = "今日回收 " + status.earned + " / " + status.cap;
       }
     },
 
     updateIdleStatus: function (status) {
       var box = this.dom.idleStatus;
-      if (!box) return;
-      if (!status.inZone) { box.classList.add("hidden"); return; }
-      box.classList.remove("hidden");
-      box.innerHTML = status.capped
-        ? "<strong>今日回收已完成</strong><span>明日可再取得 " + status.cap + " 份</span>"
-        : "<strong>資源回收中…</strong><span>下一份材料：" + (status.secondsToNext != null ? status.secondsToNext : "--") + " 秒</span><span>今日：" + status.earned + " / " + status.cap + "</span>";
+      var interval = global.LobbyEconomy.IDLE_INTERVAL || 20;
+      var seconds = status.secondsToNext != null ? status.secondsToNext : interval;
+      var progress = status.capped ? 100 : Math.max(0, Math.min(100, ((interval - seconds) / interval) * 100));
+
+      if (box) {
+        if (!status.inZone) {
+          box.classList.add("hidden");
+        } else {
+          box.classList.remove("hidden");
+          box.innerHTML = status.capped
+            ? "<strong>今日回收已完成</strong><span>已取得 " + formatNumber(status.cap) + " 份，明日重置</span>"
+            : "<strong>資源回收中</strong><span>下一份材料：" + seconds + " 秒</span>" +
+              "<span class='idle-progress-track' aria-hidden='true'><i style='width:" + progress.toFixed(1) + "%'></i></span>" +
+              "<span>今日：" + formatNumber(status.earned) + " / " + formatNumber(status.cap) + "</span>";
+        }
+      }
+
+      if (this.dom.daily) {
+        this.dom.daily.textContent = status.capped
+          ? "今日回收已滿 " + formatNumber(status.earned) + " / " + formatNumber(status.cap)
+          : status.inZone
+            ? "下一份 " + seconds + " 秒 · 今日 " + formatNumber(status.earned) + " / " + formatNumber(status.cap)
+            : "回收區每 " + interval + " 秒 +1 · 今日 " + formatNumber(status.earned) + " / " + formatNumber(status.cap);
+      }
+      if (this.dom.buildRecycleProgress) {
+        var lobbyState = global.Storage.getLobby ? global.Storage.getLobby() : null;
+        var isFirstBuild = lobbyState && (!lobbyState.buildings || lobbyState.buildings.length === 0);
+        var recycled = global.Storage.getRecycled();
+        this.dom.buildRecycleProgress.textContent = status.capped
+          ? "今日掛機回收已達上限"
+          : status.inZone
+            ? "回收進度：" + Math.round(progress) + "% · " + seconds + " 秒後取得下一份"
+            : this.mode === "catalog" && isFirstBuild && recycled > 0
+              ? "新手建造：先用起步材料放置一件裝飾"
+            : this.mode === "catalog"
+              ? "建造時回收暫停；關閉後站回回收區即可繼續"
+              : "前往大廳右側回收區即可開始 " + interval + " 秒倒數";
+      }
     },
 
     /* ---------------- HUD ---------------- */
     updateHud: function () {
-      if (this.dom.coins) this.dom.coins.textContent = global.Storage.getCoins().toLocaleString("zh-TW");
-      if (this.dom.materials) this.dom.materials.textContent = global.Storage.getRecycled();
-      if (this.dom.buildMaterials) this.dom.buildMaterials.textContent = global.Storage.getRecycled();
-      if (this.dom.daily) {
-        var status = global.LobbyEconomy.getStatus();
-        this.dom.daily.textContent = "今日回收 " + status.earned + " / " + status.cap;
-      }
+      if (this.dom.coins) this.dom.coins.textContent = formatNumber(global.Storage.getCoins());
+      if (this.dom.materials) this.dom.materials.textContent = formatNumber(global.Storage.getRecycled());
+      if (this.dom.buildMaterials) this.dom.buildMaterials.textContent = formatNumber(global.Storage.getRecycled());
+      this.updateIdleStatus(global.LobbyEconomy.getStatus());
     },
 
     addFloater: function (x, y, text, color) {
@@ -351,6 +521,11 @@
       this.mode = "catalog";
       this.ghost = null;
       this.closeEditPanel();
+      var lobbyState = global.Storage.getLobby ? global.Storage.getLobby() : null;
+      if (lobbyState && (!lobbyState.buildings || lobbyState.buildings.length === 0) &&
+          global.Storage.getRecycled() < 65) {
+        this._catalogTab = "decoration";
+      }
       global.LobbyEconomy.leaveZone();
       this.setPrompt(null);
       if (this.dom.buildRoot) this.dom.buildRoot.classList.remove("hidden");
@@ -391,9 +566,13 @@
       var tab = this._catalogTab;
       if (this.dom.buildTabs) {
         Array.prototype.forEach.call(this.dom.buildTabs.querySelectorAll("[data-build-tab]"), function (b) {
-          b.classList.toggle("active", b.dataset.buildTab === tab);
+          var active = b.dataset.buildTab === tab;
+          b.classList.toggle("active", active);
+          b.setAttribute("aria-selected", String(active));
+          b.tabIndex = active ? 0 : -1;
         });
       }
+      list.setAttribute("aria-labelledby", "build-tab-" + tab);
       list.innerHTML = "";
       var defs = (global.GameData.lobbyBuildings || []).filter(function (d) { return d.category === tab; });
       var materials = global.Storage.getRecycled();
@@ -407,7 +586,8 @@
 
         var card = document.createElement("div");
         card.className = "build-card";
-        card.setAttribute("role", "listitem");
+        card.setAttribute("role", "group");
+        card.setAttribute("aria-label", def.name);
 
         var icon = document.createElement("canvas");
         icon.className = "build-card-icon";
@@ -443,9 +623,9 @@
           buyBtn.textContent = "已擁有（收納中）";
           buyBtn.disabled = true;
         } else {
-          buyBtn.innerHTML = "建造 <span class='build-cost'>⬢ " + cost + "</span>";
+          buyBtn.innerHTML = "建造 <span class='build-cost'>⬢ " + formatNumber(cost) + "</span>";
           buyBtn.disabled = !canBuy;
-          if (!canBuy) buyBtn.title = "再生材料不足，還差 " + (cost - materials);
+          if (!canBuy) buyBtn.title = "再生材料不足，還差 " + formatNumber(cost - materials) + "；可在大廳回收區或 BOSS 每日首勝取得";
         }
         buyBtn.addEventListener("click", function () {
           if (buyBtn.disabled) return;
@@ -455,7 +635,7 @@
         if (!canBuy && !builtOut && !(def.unique && owned > 0) && stock === 0) {
           var lack = document.createElement("div");
           lack.className = "build-card-lack";
-          lack.textContent = "還差 ⬢ " + (cost - materials);
+          lack.textContent = "還差 ⬢ " + formatNumber(cost - materials) + " · 回收區可取得";
           actions.appendChild(lack);
         }
         card.appendChild(actions);
@@ -743,6 +923,18 @@
       this._cameraPan.y += dy;
     },
 
+    clampWorldLabelX: function (worldX, margin) {
+      var z = W().ZOOM;
+      var visible = global.MobileFit && global.MobileFit.getVisibleGameRect
+        ? global.MobileFit.getVisibleGameRect()
+        : { x: 0, width: this.canvas.width };
+      var minScreenX = visible.x + margin;
+      var maxScreenX = visible.x + visible.width - margin;
+      var screenX = (worldX - this.camera.x) * z;
+      screenX = Math.max(minScreenX, Math.min(maxScreenX, screenX));
+      return this.camera.x + screenX / z;
+    },
+
     updateCamera: function (snap) {
       var z = W().ZOOM;
       var vw = this.canvas.width / z, vh = this.canvas.height / z;
@@ -896,7 +1088,7 @@
         ctx.beginPath(); ctx.ellipse(p.x, p.y + 41, 70, 22, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
       }
-      if (global.UI_THEME) global.UI_THEME.drawOutlinedText(ctx, "行動傳送門", p.x, p.y - 92, { fontSize: 16, fill: "#c9f5ec", strokeWidth: 3 });
+      if (global.UI_THEME) global.UI_THEME.drawOutlinedText(ctx, "行動傳送門", this.clampWorldLabelX(p.x, 96), p.y - 92, { fontSize: 16, fill: "#c9f5ec", strokeWidth: 3 });
     },
 
     drawWorkbench: function (ctx) {
@@ -937,7 +1129,7 @@
         ctx.beginPath(); ctx.ellipse(wb.x, wb.y + 22, 62, 21, 0, 0, Math.PI * 2); ctx.stroke();
       }
       ctx.restore();
-      if (global.UI_THEME) global.UI_THEME.drawOutlinedText(ctx, "建造工作台", wb.x, wb.y - 58, { fontSize: 16, fill: "#ffe1b3", strokeWidth: 3 });
+      if (global.UI_THEME) global.UI_THEME.drawOutlinedText(ctx, "建造工作台", this.clampWorldLabelX(wb.x, 96), wb.y - 58, { fontSize: 16, fill: "#ffe1b3", strokeWidth: 3 });
     },
 
     drawIdleZone: function (ctx) {
@@ -990,7 +1182,7 @@
       }
       ctx.restore();
       if (global.UI_THEME) {
-        global.UI_THEME.drawOutlinedText(ctx, "資源回收區", cx, zone.y - 12, { fontSize: 16, fill: "#bdf4ec", strokeWidth: 3 });
+        global.UI_THEME.drawOutlinedText(ctx, "資源回收區", this.clampWorldLabelX(cx, 96), zone.y - 12, { fontSize: 16, fill: "#bdf4ec", strokeWidth: 3 });
       }
     },
 

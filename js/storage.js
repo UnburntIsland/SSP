@@ -6,6 +6,7 @@
 (function (global) {
   var KEY = "senloop_save_v1";
   var DEFAULT_COINS = 1000000; // 測試期間：新存檔與重置後的預設循環幣
+  var STARTING_RECYCLED = 10; // 新手可立即完成第一個小型裝飾建造
   var OFFICIAL_CHARACTER_IDS = ["ranger", "beachcomber", "solar", "mechanic", "chemist"];
 
   function normalizeCharacterId(id) {
@@ -13,6 +14,12 @@
     if (global.GameData && global.GameData.resolveCharacterId) return global.GameData.resolveCharacterId(id);
     if (id === "solar_engineer") return "solar";
     return id;
+  }
+
+  function normalizeEnemyId(id) {
+    if (!id) return null;
+    if (global.GameData && global.GameData.resolveEnemyId) return global.GameData.resolveEnemyId(id);
+    return String(id);
   }
 
   function achievementCharacterId(id) {
@@ -161,7 +168,8 @@
       return {
         version: 1,
         playerPosition: { x: 0, y: 0, direction: "S" },   /* 0,0 = 尚未存過 → 用出生點 */
-        materials: { recycled: 0 },
+        guideCompleted: false,
+        materials: { recycled: STARTING_RECYCLED },
         daily: { dateKey: null, idleEarned: 0, dailyBossClaims: {} },
         inventory: {},          /* { buildingId: 數量 }（已購買但收納中） */
         buildings: [],          /* { instanceId, buildingId, x, y, rotation, level, placed } */
@@ -180,6 +188,7 @@
         out.playerPosition.y = Number(raw.playerPosition.y) || 0;
         if (typeof raw.playerPosition.direction === "string") out.playerPosition.direction = raw.playerPosition.direction;
       }
+      out.guideCompleted = raw.guideCompleted === true;
       if (isRecord(raw.materials)) out.materials.recycled = nonNegativeInteger(raw.materials.recycled);
       if (isRecord(raw.daily)) {
         out.daily.dateKey = typeof raw.daily.dateKey === "string" ? raw.daily.dateKey : null;
@@ -232,7 +241,7 @@
 
     _default: function () {
       return {
-        schemaVersion: 4,
+        schemaVersion: 5,
         coins: DEFAULT_COINS,
         shop: {},        // { upgradeId: level }
         knowledge: [],   // 已解鎖的 knowledge id
@@ -245,6 +254,7 @@
         lastChar: "ranger",
         selectedStageId: "tidal_flat",
         clearedStages: [],
+        encounteredEnemies: [],
         achievements: achievementDefaults(),
         lobby: this._defaultLobby(),
         // 音量設定（0~100；mute 為布林）—— 單一來源，audioManager 由此讀寫
@@ -262,7 +272,7 @@
       var savedSchemaVersion = d.schemaVersion | 0;
       // 「測試經濟補幣」只在升到 schema 3 之前做一次；schema 3 → 4 不再補幣。
       var requiresCoinTopUp = savedSchemaVersion < 3;
-      var requiresSchemaSave = savedSchemaVersion < 4;
+      var requiresSchemaSave = savedSchemaVersion < 5;
       // 補齊缺漏欄位（含舊存檔沒有的 audio）
       var def = this._default();
       var legacyCharacterSave = !d.ownedCharacters || typeof d.ownedCharacters !== "object";
@@ -303,13 +313,35 @@
       if (!Array.isArray(d.gachaHistory)) d.gachaHistory = [];
       d.gachaHistory = d.gachaHistory.slice(0, 30);
       if (!Array.isArray(d.clearedStages)) d.clearedStages = [];
+      if (!Array.isArray(d.encounteredEnemies)) d.encounteredEnemies = [];
+      var normalizedEnemyIds = [];
+      function rememberEnemy(id) {
+        id = normalizeEnemyId(id);
+        if (!id || normalizedEnemyIds.indexOf(id) !== -1) return;
+        if (global.GameData && global.GameData.getEnemy && !global.GameData.getEnemy(id)) return;
+        normalizedEnemyIds.push(id);
+      }
+      d.encounteredEnemies.forEach(rememberEnemy);
+      // schema 5：舊存檔已通關的關卡視為曾遭遇其中敵人，保留既有探索成果。
+      if (savedSchemaVersion < 5 && global.GameData && Array.isArray(global.GameData.stages)) {
+        global.GameData.stages.forEach(function (stage) {
+          if (d.clearedStages.indexOf(stage.id) === -1) return;
+          (stage.fallbackEnemies || []).forEach(rememberEnemy);
+          (stage.waves || []).forEach(function (wave) {
+            (wave.types || []).forEach(function (entry) { rememberEnemy(entry.enemy); });
+          });
+          (stage.events || []).forEach(function (event) { rememberEnemy(event.enemy); });
+          rememberEnemy(stage.bossId);
+        });
+      }
+      d.encounteredEnemies = normalizedEnemyIds;
       // 測試經濟一次性遷移：既有存檔首次載入時至少補到 100 萬。
       // 升至 schema 3 後不再重複補幣，因此消費後重新整理不會恢復滿額。
       if (requiresCoinTopUp) d.coins = Math.max(nonNegativeInteger(d.coins), DEFAULT_COINS);
       // schema 4：大廳存檔。舊存檔沒有 lobby 時補預設值；
-      // 不動既有角色、循環幣、商店、圖鑑與關卡進度。
+      // schema 5：污染物遭遇圖鑑。兩者皆不改角色、經濟與關卡解鎖。
       d.lobby = this._normalizeLobby(d.lobby);
-      d.schemaVersion = 4;
+      d.schemaVersion = 5;
       d.achievements = normalizeAchievementData(d.achievements);
       if (!d.selectedStageId || !global.GameData || !global.GameData.getStage || !global.GameData.getStage(d.selectedStageId)) {
         d.selectedStageId = "tidal_flat";
@@ -375,6 +407,23 @@
         }
       }
       return null;
+    },
+
+    isEnemyEncountered: function (id) {
+      id = normalizeEnemyId(id);
+      return !!(id && this.data && Array.isArray(this.data.encounteredEnemies) &&
+        this.data.encounteredEnemies.indexOf(id) !== -1);
+    },
+
+    markEnemyEncountered: function (id) {
+      id = normalizeEnemyId(id);
+      if (!id || !this.data) return false;
+      if (global.GameData && global.GameData.getEnemy && !global.GameData.getEnemy(id)) return false;
+      if (!Array.isArray(this.data.encounteredEnemies)) this.data.encounteredEnemies = [];
+      if (this.data.encounteredEnemies.indexOf(id) !== -1) return false;
+      this.data.encounteredEnemies.push(id);
+      this.save();
+      return true;
     },
 
     /* -------- 目前選用角色 -------- */
@@ -581,7 +630,7 @@
       } catch (cloneError) {
         return { ok: false, reason: "storage" };
       }
-      next.schemaVersion = 2;
+      next.schemaVersion = 5;
       next.coins = nonNegativeInteger(next.coins) + coins;
       next.achievements = normalizeAchievementData(next.achievements);
       if (points) {
@@ -632,10 +681,12 @@
     },
     markStageCleared: function (id) {
       if (!this.data || !global.GameData || !global.GameData.getStage(id)) return null;
-      if (!this.isStageCleared(id)) this.data.clearedStages.push(id);
       var next = global.GameData.getNextStage ? global.GameData.getNextStage(id) : null;
+      var nextWasUnlocked = next ? this.isStageUnlocked(next.id) : false;
+      if (!this.isStageCleared(id)) this.data.clearedStages.push(id);
+      var nextIsUnlocked = next ? this.isStageUnlocked(next.id) : false;
       this.save();
-      return next && this.isStageUnlocked(next.id) ? next : null;
+      return next && !nextWasUnlocked && nextIsUnlocked ? next : null;
     },
     loadSelectedStage: function () {
       var id = (this.data && this.data.selectedStageId) || "tidal_flat";
@@ -676,6 +727,15 @@
       if (!this.data) this.load();
       if (!this.data.lobby) this.data.lobby = this._defaultLobby();
       return this.data.lobby;
+    },
+
+    isLobbyGuideCompleted: function () {
+      return this.getLobby().guideCompleted === true;
+    },
+
+    completeLobbyGuide: function () {
+      this.getLobby().guideCompleted = true;
+      this.save();
     },
 
     getRecycled: function () { return this.getLobby().materials.recycled | 0; },

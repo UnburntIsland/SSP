@@ -11,10 +11,49 @@
 
   function norm(code) { return code; }
 
+  function isScrollable(element) {
+    if (!element || element === document.body || element === document.documentElement) return false;
+    var style = global.getComputedStyle ? global.getComputedStyle(element) : null;
+    var overflowY = style ? style.overflowY : "";
+    var overflowX = style ? style.overflowX : "";
+    return ((overflowY === "auto" || overflowY === "scroll") && element.scrollHeight > element.clientHeight + 1) ||
+      ((overflowX === "auto" || overflowX === "scroll") && element.scrollWidth > element.clientWidth + 1);
+  }
+
+  function usesNativeKeyboard(target) {
+    if (!target || target === global || target === document) return false;
+    if (target.closest && target.closest(
+      "input, textarea, select, button, a[href], [contenteditable='true'], " +
+      "[role='slider'], [role='button'], [role='tab'], [role='option'], [data-native-keys]"
+    )) return true;
+    var current = target;
+    while (current && current !== document.body) {
+      if (isScrollable(current)) return true;
+      current = current.parentElement;
+    }
+    return false;
+  }
+
+  function inputContext() {
+    var state = global.App && global.App.state;
+    if (state) return state;
+    if (global.Game && global.Game.running) return "PLAYING";
+    if (global.Lobby && global.Lobby.running) return "LOBBY";
+    return "";
+  }
+
+  function capturesMovement() {
+    var state = inputContext();
+    return state === "PLAYING" || state === "LOBBY" || state === "LOBBY_BUILD";
+  }
+
   global.addEventListener("keydown", function (e) {
+    if (!capturesMovement() || usesNativeKeyboard(e.target)) return;
     if (!keys[e.code]) pressedOnce[e.code] = true;
     keys[e.code] = true;
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].indexOf(e.code) !== -1) {
+    var isArrow = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) !== -1;
+    var isBattleDash = e.code === "Space" && inputContext() === "PLAYING";
+    if (isArrow || isBattleDash) {
       e.preventDefault();
     }
   });
@@ -36,6 +75,8 @@
     },
 
     clearPresses: function () { pressedOnce = {}; dashRequested = false; },
+
+    isKeyboardCaptureActive: function () { return capturesMovement(); },
 
     requestDash: function () { dashRequested = true; },
 

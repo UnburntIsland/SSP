@@ -453,6 +453,7 @@
       if (taken > 0) {
         this.damageTaken += taken;
         this.hitCount += 1;
+        if (global.AudioManager) global.AudioManager.playSfx("hurt");
       }
       // 循環防護站格擋成功 → 飄字回饋（不影響任何數值）
       if (!damaged && this.player.consumeBlockEvent && this.player.consumeBlockEvent()) {
@@ -726,6 +727,7 @@
       if (e._counted) return;
       e._counted = true;
       this.purifiedCount += 1;
+      if (global.AudioManager) global.AudioManager.playSfx("purify");
       if (e.isBoss && this.stage && (!this.stage.bossId || e.id === this.stage.bossId)) {
         this.bossDefeated = true;
         this.floaters.push({ x: e.x, y: e.y - 34, age: 0, life: 1.4, text: "BOSS 已淨化！", color: "#fff19a" });
@@ -770,6 +772,7 @@
     },
 
     collect: function (pk) {
+      if (global.AudioManager) global.AudioManager.playSfx("pickup");
       if (pk.type === "xp") {
         var ups = this.player.gainXp(pk.value);
         this.pendingLevelUps += ups;
@@ -844,7 +847,11 @@
 
     /* ---------------- 生成 ---------------- */
     queueEnemyIntro: function (def) {
-      if (!def || this.ended || this.seenEnemyIntros[def.id]) return false;
+      if (!def || this.ended) return false;
+      if (global.Storage && global.Storage.markEnemyEncountered) {
+        global.Storage.markEnemyEncountered(def.id);
+      }
+      if (this.seenEnemyIntros[def.id]) return false;
       this.seenEnemyIntros[def.id] = true;
       this.enemyIntroQueue.push({
         id: def.id,
@@ -864,6 +871,7 @@
       this.enemyIntroPaused = true;
       this.paused = true;
       this.activeEnemyIntro = this.enemyIntroQueue.shift();
+      if (this.activeEnemyIntro.isBoss && global.AudioManager) global.AudioManager.playSfx("boss_intro");
       var self = this;
       if (this.app && this.app.onEnemyIntroduced) {
         this.app.onEnemyIntroduced(this.activeEnemyIntro, function () { self.resumeEnemyIntro(); });
@@ -957,6 +965,7 @@
     /* ---------------- 升級 ---------------- */
     triggerLevelUp: function () {
       this.paused = true;
+      if (global.AudioManager) global.AudioManager.playSfx("levelup");
       var options = this.generateLevelUpOptions();
       var self = this;
       var question = this.nextQuizQuestion();
@@ -984,6 +993,9 @@
 
     applyQuizAnswer: function (result) {
       if (!result) return;
+      if (global.AudioManager) {
+        global.AudioManager.playSfx(result.correct ? "quiz_correct" : "quiz_wrong");
+      }
       if (result.correct) {
         this.quizCorrect += 1;
         this.quizStreak += 1;

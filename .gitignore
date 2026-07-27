@@ -1,0 +1,4 @@
+node_modules/
+output/smoke-failures/
+output/smoke-test-results.json
+.tmp-smoke-profile-*/

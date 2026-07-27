@@ -12,6 +12,9 @@
     var m = Math.floor(sec / 60), s = sec % 60;
     return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
   }
+  function formatNumber(value) {
+    return Math.round(Number(value) || 0).toLocaleString("zh-TW");
+  }
   function objectiveTimeLabel(sec) {
     sec = Math.max(0, Math.round(sec));
     if (sec < 60) return "存活 " + sec + " 秒";
@@ -504,10 +507,11 @@
 
     updateCoinLabels: function () {
       var c = global.Storage.getCoins();
-      if (this.dom.menuCoins) this.dom.menuCoins.textContent = c;
-      if (this.dom.shopCoins) this.dom.shopCoins.textContent = c;
-      if (this.dom.characterCoins) this.dom.characterCoins.textContent = c;
-      if (this.dom.gachaCoins) this.dom.gachaCoins.textContent = c;
+      var label = formatNumber(c);
+      if (this.dom.menuCoins) this.dom.menuCoins.textContent = label;
+      if (this.dom.shopCoins) this.dom.shopCoins.textContent = label;
+      if (this.dom.characterCoins) this.dom.characterCoins.textContent = label;
+      if (this.dom.gachaCoins) this.dom.gachaCoins.textContent = label;
       // 大廳 HUD 的循環幣 / 再生材料一併同步
       if (global.Lobby && global.Lobby.updateHud) global.Lobby.updateHud();
     },
@@ -1018,9 +1022,9 @@
           buy.appendChild(el("div", "shop-max", "已滿級"));
         } else {
           var price = item.prices[lvl];
-          buy.appendChild(el("div", "shop-price", "♻ " + price));
+          buy.appendChild(el("div", "shop-price", "♻ " + formatNumber(price)));
           var btn = el("button", "btn btn-primary", "升級");
-          btn.setAttribute("aria-label", "升級" + item.name + "，花費 " + price + " 枚循環幣");
+          btn.setAttribute("aria-label", "升級" + item.name + "，花費 " + formatNumber(price) + " 枚循環幣");
           if (!global.Storage.canBuy(item)) btn.disabled = true;
           btn.addEventListener("click", function () { self.app.buyUpgrade(item.id); });
           buy.appendChild(btn);
@@ -1185,7 +1189,9 @@
 
         var reward = el("div", "achievement-reward");
         reward.appendChild(el("span", "achievement-reward-label", "獎勵"));
-        reward.appendChild(el("strong", "achievement-reward-value", item.rewardLabel));
+        var rewardValue = el("strong", "achievement-reward-value", item.rewardLabel);
+        rewardValue.title = item.rewardLabel;
+        reward.appendChild(rewardValue);
         var button = el("button", "btn btn-primary achievement-claim", item.claimed ? "已領取" : (item.claimable ? "領取" : (isAvailable ? "進行中" : "未解鎖")));
         button.type = "button";
         button.disabled = !item.claimable;
@@ -1287,14 +1293,21 @@
 
       entries.forEach(function (entry) {
         var def = entry.enemy;
-        var type = def.isBoss ? "BOSS" : (def.isElite ? "精英污染物" : (def.ranged ? "遠程污染物" : "一般污染物"));
-        var item = el("article", "codex-enemy-card" + (def.isBoss ? " boss" : (def.isElite ? " elite" : "")));
+        var encountered = !global.Storage.isEnemyEncountered || global.Storage.isEnemyEncountered(def.id);
+        var type = encountered
+          ? (def.isBoss ? "BOSS" : (def.isElite ? "精英污染物" : (def.ranged ? "遠程污染物" : "一般污染物")))
+          : "未發現";
+        var item = el("article", "codex-enemy-card" +
+          (def.isBoss ? " boss" : (def.isElite ? " elite" : "")) +
+          (encountered ? "" : " locked"));
+        item.setAttribute("aria-label", encountered ? def.name : "尚未遭遇的污染物");
 
         var art = el("div", "codex-enemy-art");
         var img = document.createElement("img");
         var base = def.spriteBasePath || ("assets/images/enemies/" + def.id + "/");
         img.src = base + "idle_S_0.png?v=" + (def.spriteVersion || "codex1");
-        img.alt = def.name;
+        img.alt = encountered ? def.name : "";
+        if (!encountered) img.setAttribute("aria-hidden", "true");
         img.loading = "lazy";
         img.decoding = "async";
         img.onerror = function () {
@@ -1309,9 +1322,13 @@
         item.appendChild(art);
 
         var body = el("div", "codex-enemy-body");
-        body.appendChild(el("div", "codex-enemy-stage", entry.stage ? ("第 " + entry.stage.order + " 關 · " + entry.stage.shortName) : "特殊污染物"));
-        body.appendChild(el("div", "codex-enemy-name", def.name));
-        body.appendChild(el("div", "codex-enemy-text", def.introHint || def.introText || "觀察移動方式並保持安全距離。"));
+        body.appendChild(el("div", "codex-enemy-stage", encountered
+          ? (entry.stage ? ("第 " + entry.stage.order + " 關 · " + entry.stage.shortName) : "特殊污染物")
+          : "尚未遭遇"));
+        body.appendChild(el("div", "codex-enemy-name", encountered ? def.name : "未知污染物"));
+        body.appendChild(el("div", "codex-enemy-text", encountered
+          ? (def.introHint || def.introText || "觀察移動方式並保持安全距離。")
+          : "在行動中首次遇見後，才會解鎖名稱與行動情報。"));
         item.appendChild(body);
         list.appendChild(item);
       });
@@ -1402,8 +1419,8 @@
       }
       d.level.textContent = p.level;
       d.xpFill.style.width = Math.min(100, (p.xp / p.xpToNext) * 100) + "%";
-      d.coins.textContent = game.runCoins;
-      d.purified.textContent = game.purifiedCount;
+      d.coins.textContent = formatNumber(game.runCoins);
+      d.purified.textContent = formatNumber(game.purifiedCount);
       if (d.quizStreak) {
         var streak = game.quizStreak || 0;
         var eliteMult = p.eliteDamageMult || 1;
@@ -2074,9 +2091,13 @@
         var victoryFlavour = $("victory-flavour");
         if (victoryTitle) victoryTitle.textContent = (stats.stageName || "關卡") + "已淨化！";
         if (victoryFlavour) {
-          victoryFlavour.textContent = stats.unlockedStage
-            ? "通往「" + stats.unlockedStage.name + "」的行動路線已開放。"
-            : "你已完成目前所有淨化行動。";
+          if (stats.unlockedStage) {
+            victoryFlavour.textContent = "通往「" + stats.unlockedStage.name + "」的行動路線已開放。";
+          } else if (stats.firstStageClear) {
+            victoryFlavour.textContent = "這個區域已完成首次淨化，新的紀錄已保存。";
+          } else {
+            victoryFlavour.textContent = "再次完成本區淨化，既有關卡進度維持不變。";
+          }
         }
       }
       box.innerHTML = "";
@@ -2089,18 +2110,18 @@
       if (stats.stageName) box.appendChild(row("行動地點", stats.stageName));
       if (stats.bossName) box.appendChild(row("關卡 BOSS", stats.bossName + (stats.bossDefeated ? "（已淨化）" : "（未淨化）")));
       box.appendChild(row("存活時間", fmtTime(stats.survived)));
-      box.appendChild(row("淨化污染物", stats.purified + " 個"));
-      box.appendChild(row("清理地圖物件", (stats.mapCleaned || 0) + " 個"));
-      box.appendChild(row("本局有效傷害", Math.round(stats.damageDealt || 0).toLocaleString("zh-TW")));
-      box.appendChild(row("本局承受傷害", stats.noDamage ? "0（無傷）" : Math.round(stats.damageTaken || 0).toLocaleString("zh-TW")));
+      box.appendChild(row("淨化污染物", formatNumber(stats.purified) + " 個"));
+      box.appendChild(row("清理地圖物件", formatNumber(stats.mapCleaned || 0) + " 個"));
+      box.appendChild(row("本局有效傷害", formatNumber(stats.damageDealt || 0)));
+      box.appendChild(row("本局承受傷害", stats.noDamage ? "0（無傷）" : formatNumber(stats.damageTaken || 0)));
       box.appendChild(row("永續問答", (stats.quizCorrect || 0) + " 對 / " + (stats.quizIncorrect || 0) + " 錯"));
       box.appendChild(row("最佳答題連勝", (stats.bestQuizStreak || 0) + " 題"));
       box.appendChild(row("達到等級", "Lv." + stats.level));
-      box.appendChild(row("拾取循環幣", "♻ " + stats.collected));
-      box.appendChild(row("淨化獎勵", "♻ " + stats.purifyBonus));
-      box.appendChild(row("存活時間獎勵", "♻ " + stats.timeBonus));
-      if (stats.winBonus > 0) box.appendChild(row("通關獎勵", "♻ " + stats.winBonus));
-      if (stats.bossMaterialBonus > 0) box.appendChild(row("BOSS 每日首勝", "再生材料 ⬢ +" + stats.bossMaterialBonus));
+      box.appendChild(row("拾取循環幣", "♻ " + formatNumber(stats.collected)));
+      box.appendChild(row("淨化獎勵", "♻ " + formatNumber(stats.purifyBonus)));
+      box.appendChild(row("存活時間獎勵", "♻ " + formatNumber(stats.timeBonus)));
+      if (stats.winBonus > 0) box.appendChild(row("通關獎勵", "♻ " + formatNumber(stats.winBonus)));
+      if (stats.bossMaterialBonus > 0) box.appendChild(row("BOSS 每日首勝", "再生材料 ⬢ +" + formatNumber(stats.bossMaterialBonus)));
       if (stats.unlockedStage) box.appendChild(row("新關卡解鎖", stats.unlockedStage.name));
       if (stats.newAchievements && stats.newAchievements.length) {
         box.appendChild(row("本局完成成就", stats.newAchievements.length + " 項（可至成就頁領取）"));
@@ -2111,7 +2132,7 @@
       }
       var total = el("div", "row total");
       total.appendChild(el("span", "k", "本局獲得"));
-      total.appendChild(el("span", "v", "♻ " + stats.total));
+      total.appendChild(el("span", "v", "♻ " + formatNumber(stats.total)));
       box.appendChild(total);
     }
   };

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=lobby-20260725a" />
+  <link rel="stylesheet" href="css/style.css?v=discovery-20260726b" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -67,7 +67,7 @@
         <div class="run-intro-eyebrow">本局通關條件</div>
         <h2 id="run-intro-title" class="run-intro-title">撐過污染潮</h2>
         <div id="run-intro-goal" class="run-intro-goal">存活 5 分鐘</div>
-        <p class="run-intro-desc">保持生命並活到中央計時歸零，即可完成本局。</p>
+        <p class="run-intro-desc">撐到計時歸零並擊敗本關 BOSS，兩項條件都完成才算通關。</p>
         <div class="run-intro-start" aria-live="polite"><strong id="run-intro-countdown">5</strong><span>秒後開始</span></div>
       </div>
       <div id="run-intro-skip-hint" class="run-intro-skip-hint" aria-hidden="true">點擊畫面任意位置跳過</div>
@@ -95,7 +95,7 @@
         <div class="lobby-chip lobby-chip-materials" title="再生材料：建造建築與裝飾用">
           <span class="material-glyph" aria-hidden="true">⬢</span>
           <span id="lobby-materials">0</span>
-          <span id="lobby-daily" class="lobby-daily">今日回收 0 / 60</span>
+          <span id="lobby-daily" class="lobby-daily">回收區每 20 秒 +1 · 今日 0 / 60</span>
         </div>
       </div>
       <div class="lobby-topright">
@@ -109,9 +109,32 @@
         <button class="btn lobby-btn" type="button" data-action="settings-home">設定</button>
       </div>
       <div class="lobby-title-tag" aria-hidden="true">森循島</div>
+      <div id="lobby-objective" class="lobby-objective" aria-live="polite">
+        <span class="lobby-objective-label">目前任務</span>
+        <strong id="lobby-objective-text">往上走到傳送門，開始第一場淨化行動</strong>
+        <span id="lobby-objective-control">WASD / 方向鍵移動</span>
+      </div>
       <div id="lobby-idle-status" class="hidden" aria-live="polite"></div>
       <button id="lobby-interact" class="hidden" type="button"></button>
       <button id="gameplay-help-btn" class="gameplay-help-btn" type="button" data-action="help" aria-label="遊戲說明" title="遊戲說明">?</button>
+    </div>
+
+    <!-- ===== First lobby onboarding ===== -->
+    <div id="overlay-lobby-guide" class="overlay hidden lobby-guide-overlay" role="dialog" aria-modal="true" aria-labelledby="lobby-guide-title" aria-hidden="true">
+      <div class="overlay-inner lobby-guide-panel" tabindex="-1">
+        <div class="lobby-guide-head">
+          <span class="lobby-guide-kicker">森循島行動指南</span>
+          <span id="lobby-guide-step" class="lobby-guide-step">1 / 3</span>
+        </div>
+        <div id="lobby-guide-visual" class="lobby-guide-visual" aria-hidden="true">↟</div>
+        <h2 id="lobby-guide-title" class="lobby-guide-title">先在大廳移動</h2>
+        <p id="lobby-guide-text" class="lobby-guide-text">使用 WASD 或方向鍵移動；手機和平板可在畫面上拖曳移動。</p>
+        <div class="lobby-guide-actions">
+          <button id="lobby-guide-prev" class="btn hidden" type="button" data-action="lobby-guide-prev">上一步</button>
+          <button id="lobby-guide-next" class="btn btn-primary" type="button" data-action="lobby-guide-next">下一步</button>
+          <button id="lobby-guide-finish" class="btn btn-primary hidden" type="button" data-action="lobby-guide-finish">開始探索</button>
+        </div>
+      </div>
     </div>
 
     <!-- ===== 建造模式介面（目錄 / ghost 操作列 / 建築編輯） ===== -->
@@ -119,14 +142,21 @@
       <div id="build-sheet" class="build-sheet hidden" role="dialog" aria-label="建造目錄">
         <div class="build-sheet-header">
           <div class="build-sheet-title">建造工作台</div>
-          <div id="build-tabs" class="build-tabs" role="tablist">
-            <button type="button" class="build-tab active" role="tab" data-build-tab="functional">功能建築</button>
-            <button type="button" class="build-tab" role="tab" data-build-tab="decoration">裝飾</button>
+          <div id="build-tabs" class="build-tabs" role="tablist" aria-label="建造分類">
+            <button id="build-tab-functional" type="button" class="build-tab active" role="tab" aria-selected="true" aria-controls="build-list" tabindex="0" data-build-tab="functional">功能建築</button>
+            <button id="build-tab-decoration" type="button" class="build-tab" role="tab" aria-selected="false" aria-controls="build-list" tabindex="-1" data-build-tab="decoration">裝飾</button>
           </div>
           <div class="build-sheet-wallet">⬢ <span id="build-materials">0</span></div>
           <button class="btn build-close" type="button" data-action="build-close">完成</button>
         </div>
-        <div id="build-list" class="build-list" role="list"></div>
+        <div class="build-source-note" aria-live="polite">
+          <div class="build-source-copy">
+            <strong>再生材料來源</strong>
+            <span>站進大廳右側「資源回收區」每 20 秒取得 1 份，每日最多 60 份；各關 BOSS 每日首勝另有獎勵。</span>
+          </div>
+          <span id="build-recycle-progress" class="build-recycle-progress">前往回收區即可開始倒數</span>
+        </div>
+        <div id="build-list" class="build-list" role="tabpanel" aria-labelledby="build-tab-functional" tabindex="0"></div>
       </div>
       <div id="build-ghost-bar" class="build-ghost-bar hidden">
         <div id="ghost-hint" class="ghost-hint"></div>
@@ -153,30 +183,56 @@
 
     <!-- ===== 傳送門：行動地點選擇 ===== -->
     <section id="screen-portal" class="screen hidden">
-      <h2 class="screen-title">行動傳送門</h2>
-      <p class="screen-desc">選擇要淨化的行動地點；擊敗前一關 BOSS 可解鎖下一關。</p>
-      <div class="stage-selector portal-stage-selector" aria-label="選擇關卡">
-        <div class="stage-carousel-shell">
-          <button class="stage-arrow stage-arrow-prev" type="button" data-action="stage-prev" aria-label="上一張地圖">‹</button>
-          <div id="stage-carousel-card" class="stage-carousel-card" tabindex="0" aria-live="polite">
-            <img id="stage-card-image" class="stage-card-image" src="assets/images/stages/tidal_flat_card.png?v=stages-20260711a" alt="海廢潮間帶地圖預覽" />
-            <div id="stage-card-number" class="stage-card-number">第 1 關</div>
-            <div id="stage-card-lock" class="stage-card-lock hidden"></div>
-            <div class="stage-card-caption"><strong id="stage-card-name">海廢潮間帶</strong></div>
+      <h2 id="portal-title" class="screen-title">行動傳送門</h2>
+      <p id="portal-desc" class="screen-desc">選擇行動地點；擊敗前一關 BOSS 可解鎖下一關。</p>
+      <div id="taiwan-portal-layout" class="taiwan-portal-layout">
+        <div class="taiwan-map-column">
+          <div id="taiwan-map-panel" class="taiwan-map-panel" tabindex="0" aria-label="台灣區域地圖；可使用左右方向鍵切換關卡">
+            <img id="taiwan-map-image" class="taiwan-map-image" src="assets/images/maps/taiwan_overview/taiwan_region_map.png?v=taiwan-map-1" alt="台灣北中南東四區像素地圖" />
+            <div id="taiwan-map-nodes" class="taiwan-map-nodes"></div>
+            <div class="taiwan-map-north" aria-hidden="true">北</div>
           </div>
-          <button class="stage-arrow stage-arrow-next" type="button" data-action="stage-next" aria-label="下一張地圖">›</button>
+          <div class="taiwan-map-status" aria-label="地圖狀態圖例">
+            <span><i class="status-dot available"></i>可進入</span>
+            <span><i class="status-dot planned"></i>後續區域</span>
+          </div>
         </div>
-        <div id="stage-carousel-dots" class="stage-carousel-dots" aria-hidden="true"></div>
-        <button class="btn btn-primary stage-start-button" data-action="play">開始遊戲</button>
-        <div class="stage-card-meta">
-          <span id="stage-card-duration">5 分鐘</span>
-          <span id="stage-card-difficulty">標準</span>
-          <span id="stage-card-boss">BOSS：幽靈廢網</span>
+
+        <div class="stage-selector portal-stage-selector" aria-label="選擇關卡">
+          <div class="portal-briefing-kicker">任務簡報</div>
+          <div id="stage-region-context" class="stage-region-context">
+            <span id="stage-region-label">北部</span>
+            <strong id="stage-county-label">新北市・淡水河口</strong>
+          </div>
+          <div class="stage-carousel-shell">
+            <button class="stage-arrow stage-arrow-prev" type="button" data-action="stage-prev" aria-label="上一張地圖">‹</button>
+            <div id="stage-carousel-card" class="stage-carousel-card" tabindex="0" aria-live="polite">
+              <img id="stage-card-image" class="stage-card-image" src="assets/images/stages/tidal_flat_card.png?v=stages-20260711a" alt="海廢潮間帶地圖預覽" />
+              <div id="stage-card-number" class="stage-card-number">第 1 關</div>
+              <div id="stage-card-lock" class="stage-card-lock hidden"></div>
+              <div class="stage-card-caption"><strong id="stage-card-name">海廢潮間帶</strong></div>
+            </div>
+            <button class="stage-arrow stage-arrow-next" type="button" data-action="stage-next" aria-label="下一張地圖">›</button>
+          </div>
+          <div id="stage-carousel-dots" class="stage-carousel-dots" aria-hidden="true"></div>
+          <div class="stage-card-meta">
+            <span id="stage-card-duration">5 分鐘</span>
+            <span id="stage-card-difficulty">標準</span>
+            <span id="stage-card-boss">BOSS：幽靈廢網</span>
+          </div>
+          <p id="stage-card-concept" class="stage-card-concept">清理被海廢占據的潮池，阻止幽靈廢網封鎖整片海岸。</p>
+          <p id="stage-learning-focus" class="stage-learning-focus">本區學習：河川垃圾如何一路進入海洋</p>
         </div>
-        <p id="stage-card-concept" class="stage-card-concept">清理被海廢占據的潮池，阻止幽靈廢網封鎖整片海岸。</p>
-      </div>
-      <div class="screen-footer">
-        <button class="btn" data-action="portal-cancel">返回大廳</button>
+        <div class="screen-footer portal-actions">
+          <button class="btn portal-back-button" data-action="portal-cancel">
+            <span class="portal-action-symbol" aria-hidden="true">←</span>
+            <span>返回大廳</span>
+          </button>
+          <button class="btn btn-primary stage-start-button" data-action="play">
+            <span class="portal-action-symbol" aria-hidden="true">▶</span>
+            <span class="btn-label">開始遊戲</span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -286,8 +342,8 @@
         </div>
       </header>
       <div class="codex-tabs" role="tablist" aria-label="圖鑑分類">
-        <button id="codex-tab-enemies" class="codex-tab active" type="button" role="tab" aria-selected="true" aria-controls="codex-list" data-codex-view="enemies">污染物圖鑑</button>
-        <button id="codex-tab-knowledge" class="codex-tab" type="button" role="tab" aria-selected="false" aria-controls="codex-list" data-codex-view="knowledge">永續知識</button>
+        <button id="codex-tab-enemies" class="codex-tab active" type="button" role="tab" aria-selected="true" aria-controls="codex-list" tabindex="0" data-codex-view="enemies">污染物圖鑑</button>
+        <button id="codex-tab-knowledge" class="codex-tab" type="button" role="tab" aria-selected="false" aria-controls="codex-list" tabindex="-1" data-codex-view="knowledge">永續知識</button>
       </div>
       <div id="codex-list" class="codex-list codex-enemy-list" role="tabpanel" aria-live="polite"></div>
       <div class="screen-footer paired-page-footer">
@@ -302,8 +358,13 @@
     <!-- ===== Gameplay Help ===== -->
     <section id="screen-help" class="screen hidden">
       <h2 class="screen-title">遊戲說明</h2>
-      <p class="screen-desc">靠近散落資源就會自動拾取；留意污染圈預告與敵人攻擊線。</p>
+      <p class="screen-desc">先從大廳進入傳送門，再靠移動、升級與永續知識完成淨化行動。</p>
       <div class="help-list">
+        <div class="help-row"><span class="help-icon" aria-hidden="true">↟</span><div><strong>大廳移動</strong><span>鍵盤使用 WASD 或方向鍵；手機和平板在畫面上拖曳即可移動角色。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">▶</span><div><strong>進入關卡</strong><span>往大廳上方走到傳送門，靠近後按 E 或點互動提示，再選擇地圖並開始遊戲。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">✦</span><div><strong>自動攻擊</strong><span>戰鬥中角色會自動攻擊附近污染物；你只需要移動、閃避並選擇升級。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">⬢</span><div><strong>取得再生材料</strong><span>站進大廳掛機回收區會定期取得材料，每天有上限；擊敗 BOSS 也有每日首勝材料。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">⌂</span><div><strong>使用建造區</strong><span>靠近工作台或點右上角「建造」，消耗再生材料放置建築與裝飾；功能建築會提供出擊加成。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">5</span><div><strong>隨機資源</strong><span>遊戲開始後每 5 秒在附近隨機出現 1 個，不會在開局一次塞滿地圖。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">♻</span><div><strong>分類回收</strong><span>塑膠瓶、鋁罐、玻璃瓶與廢電池會提供不同的經驗與循環幣。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">+</span><div><strong>自動拾取</strong><span>走近物件即可拾取；物件會立刻從地圖消失並顯示清理獎勵。</span></div></div>
@@ -410,9 +471,11 @@
 
     <!-- ===== Victory ===== -->
     <section id="screen-victory" class="screen result-screen hidden">
-      <h2 id="victory-title" class="result-title win">關卡已淨化！</h2>
-      <p id="victory-flavour" class="result-flavour">你撐過污染潮並完成了這次行動。</p>
-      <div id="victory-stats" class="result-stats"></div>
+      <div class="result-content">
+        <h2 id="victory-title" class="result-title win">關卡已淨化！</h2>
+        <p id="victory-flavour" class="result-flavour">你撐過污染潮並完成了這次行動。</p>
+        <div id="victory-stats" class="result-stats"></div>
+      </div>
       <div class="screen-footer">
         <button class="btn btn-primary" data-action="menu">回到主畫面</button>
       </div>
@@ -420,9 +483,11 @@
 
     <!-- ===== Game Over ===== -->
     <section id="screen-gameover" class="screen result-screen hidden">
-      <h2 class="result-title lose">污染暫時佔了上風…</h2>
-      <p class="result-flavour">別氣餒——每一次行動都讓你更接近循環再生。</p>
-      <div id="gameover-stats" class="result-stats"></div>
+      <div class="result-content">
+        <h2 class="result-title lose">污染暫時佔了上風…</h2>
+        <p class="result-flavour">別氣餒——每一次行動都讓你更接近循環再生。</p>
+        <div id="gameover-stats" class="result-stats"></div>
+      </div>
       <div class="screen-footer">
         <button class="btn btn-primary" data-action="retry">再試一次</button>
         <button class="btn btn-primary" data-action="menu">回到主畫面</button>
@@ -442,34 +507,35 @@
   <script src="js/data/enemies.js?v=attack-fx-20260714a"></script>
   <script src="js/data/shop.js?v=balance-20260714a"></script>
   <script src="js/data/stages.js?v=stage-carousel-20260711a"></script>
+  <script src="js/data/taiwanRegions.js?v=taiwan-map-20260726a"></script>
   <script src="js/data/achievements.js?v=chemist-20260714a"></script>
   <script src="js/data/knowledge.js?v=codex-icons-20260712a"></script>
-  <script src="js/data/lobbyBuildings.js?v=lobby-20260725a"></script>
+  <script src="js/data/lobbyBuildings.js?v=lobby-assets-20260726b"></script>
   <!-- Engine -->
   <script src="js/config.js?v=circular-mechanic-20260711b"></script>
   <script src="js/uiTheme.js"></script>
   <script src="js/mobile.js?v=lobby-20260725a"></script>
-  <script src="js/stageRenderer.js?v=stage-carousel-20260711a"></script>
-  <script src="js/storage.js?v=lobby-20260725a"></script>
+  <script src="js/stageRenderer.js?v=stage-tiles-20260726b"></script>
+  <script src="js/storage.js?v=discovery-20260726b"></script>
   <script src="js/lobbyEconomy.js?v=lobby-20260725a"></script>
   <script src="js/lobbyPlacement.js?v=lobby-20260725b"></script>
   <script src="js/achievements.js?v=chemist-20260714a"></script>
   <script src="js/gacha.js?v=chemist-20260714a"></script>
-  <script src="js/audioManager.js"></script>
-  <script src="js/assets.js?v=attack-fx-20260714a"></script>
+  <script src="js/audioManager.js?v=audio-pack-20260726b"></script>
+  <script src="js/assets.js?v=stage-tiles-20260726b"></script>
   <script src="js/effects.js?v=chemist-trail-fog-20260715a"></script>
   <script src="js/sprites.js?v=chemist-20260714a"></script>
   <script src="js/animation.js"></script>
-  <script src="js/input.js?v=mobile-comfort-20260713b"></script>
+  <script src="js/input.js?v=ux-fixes-20260726a"></script>
   <script src="js/pickups.js?v=gameplay-20260710"></script>
   <script src="js/player.js?v=lobby-20260725a"></script>
   <script src="js/enemy.js?v=attack-fx-20260714a"></script>
   <script src="js/weapons.js?v=chemist-trail-fog-20260715a"></script>
-  <script src="js/ui.js?v=lobby-20260725a"></script>
-  <script src="js/game.js?v=lobby-20260725a"></script>
-  <script src="js/lobby.js?v=lobby-20260725b"></script>
+  <script src="js/ui.js?v=discovery-20260726b"></script>
+  <script src="js/game.js?v=discovery-20260726b"></script>
+  <script src="js/lobby.js?v=discovery-20260726b"></script>
   <script src="js/debug.js"></script>
-  <script src="js/test_mode.js?v=lobby-20260725a"></script>
-  <script src="js/main.js?v=lobby-20260725a"></script>
+  <script src="js/test_mode.js?v=taiwan-map-20260726a"></script>
+  <script src="js/main.js?v=discovery-20260726b"></script>
 </body>
 </html>

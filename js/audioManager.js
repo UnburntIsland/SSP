@@ -1,52 +1,92 @@
-/* ============================================================
-   audioManager.js  —  音量設定與播放（master / music / sfx / mute）
-   - 設定值來自 storage.js（localStorage），重整後保留。
-   - 音量範圍 0～100，data-driven：音效/音樂清單集中在 SFX / MUSIC。
-   - 目前若尚無音檔，playSfx/playMusic 會安靜地略過，不會報錯（之後放檔即生效）。
-   ============================================================ */
+/* Central audio playback for lobby music, battle music, and event SFX. */
 (function (global) {
+  "use strict";
 
-  // 預設值（與 storage 的預設一致）
   var DEFAULTS = { master: 80, music: 70, sfx: 80, mute: false };
 
-  // 音效清單（之後把檔案放到這些路徑即可自動接上）
   var SFX = {
-    click:   "assets/audio/ui_click.wav",
-    pickup:  "assets/audio/pickup.wav",
+    click: "assets/audio/ui_click.wav",
+    pickup: "assets/audio/pickup.wav",
     levelup: "assets/audio/levelup.wav",
-    purify:  "assets/audio/purify.wav"
-  };
-  // 背景音樂清單
-  var MUSIC = {
-    stage: "assets/audio/bgm_stage.mp3"
+    purify: "assets/audio/purify.wav",
+    hurt: "assets/audio/hurt.wav",
+    quiz_correct: "assets/audio/quiz_correct.wav",
+    quiz_wrong: "assets/audio/quiz_wrong.wav",
+    boss_intro: "assets/audio/boss_intro.wav",
+    victory: "assets/audio/victory.wav"
   };
 
-  function clamp100(v) { v = Math.round(+v || 0); return v < 0 ? 0 : (v > 100 ? 100 : v); }
+  var SFX_COOLDOWN = {
+    click: 30,
+    pickup: 55,
+    purify: 90,
+    hurt: 100
+  };
+
+  var MUSIC = {
+    lobby: "assets/audio/bgm_lobby.wav",
+    stage: "assets/audio/bgm_stage.wav"
+  };
+
+  function clamp100(value) {
+    value = Math.round(+value || 0);
+    return value < 0 ? 0 : (value > 100 ? 100 : value);
+  }
 
   var AudioManager = {
     settings: null,
     sfxList: SFX,
     musicList: MUSIC,
     _cache: {},
+    _lastSfxAt: {},
     _music: null,
     _musicKey: null,
-    _canAudio: (typeof Audio !== "undefined"),
+    _gestureUnlockInstalled: false,
+    _canAudio: typeof Audio !== "undefined",
 
-    init: function () { this.settings = this._read(); return this.settings; },
-
-    _read: function () {
-      var s = (global.Storage && global.Storage.data && global.Storage.getAudioSettings)
-        ? global.Storage.getAudioSettings() : null;
-      var out = {};
-      for (var k in DEFAULTS) out[k] = (s && s[k] != null) ? s[k] : DEFAULTS[k];
-      out.master = clamp100(out.master);
-      out.music = clamp100(out.music);
-      out.sfx = clamp100(out.sfx);
-      out.mute = !!out.mute;
-      return out;
+    init: function () {
+      this.settings = this._read();
+      this._installGestureUnlock();
+      return this.settings;
     },
 
-    getSettings: function () { return this.settings || (this.settings = this._read()); },
+    _installGestureUnlock: function () {
+      if (!this._canAudio || this._gestureUnlockInstalled || !global.addEventListener) return;
+      this._gestureUnlockInstalled = true;
+      var self = this;
+      var unlock = function () {
+        self._resumeMusic();
+      };
+      global.addEventListener("pointerdown", unlock, { passive: true });
+      global.addEventListener("keydown", unlock);
+    },
+
+    _resumeMusic: function () {
+      if (!this._music || !this._music.paused || this.musicGain() <= 0) return;
+      try {
+        var playResult = this._music.play();
+        if (playResult && playResult.catch) playResult.catch(function () {});
+      } catch (error) {}
+    },
+
+    _read: function () {
+      var stored = global.Storage && global.Storage.data && global.Storage.getAudioSettings
+        ? global.Storage.getAudioSettings()
+        : null;
+      var output = {};
+      for (var key in DEFAULTS) {
+        output[key] = stored && stored[key] != null ? stored[key] : DEFAULTS[key];
+      }
+      output.master = clamp100(output.master);
+      output.music = clamp100(output.music);
+      output.sfx = clamp100(output.sfx);
+      output.mute = !!output.mute;
+      return output;
+    },
+
+    getSettings: function () {
+      return this.settings || (this.settings = this._read());
+    },
 
     _persist: function () {
       if (global.Storage && global.Storage.setAudioSettings) {
@@ -54,55 +94,112 @@
       }
     },
 
-    /* -------- 有效增益（0~1），已套用靜音與主音量 -------- */
-    masterGain: function () { var s = this.getSettings(); return s.mute ? 0 : s.master / 100; },
-    musicGain: function () { var s = this.getSettings(); return s.mute ? 0 : (s.master / 100) * (s.music / 100); },
-    sfxGain: function () { var s = this.getSettings(); return s.mute ? 0 : (s.master / 100) * (s.sfx / 100); },
+    masterGain: function () {
+      var settings = this.getSettings();
+      return settings.mute ? 0 : settings.master / 100;
+    },
 
-    /* -------- 設定（會持久化並即時套用到正在播放的音樂） -------- */
-    setMaster: function (v) { this.getSettings().master = clamp100(v); this._persist(); this._applyMusicVol(); },
-    setMusic: function (v) { this.getSettings().music = clamp100(v); this._persist(); this._applyMusicVol(); },
-    setSfx: function (v) { this.getSettings().sfx = clamp100(v); this._persist(); },
-    setMute: function (b) { this.getSettings().mute = !!b; this._persist(); this._applyMusicVol(); },
-    toggleMute: function () { this.setMute(!this.getSettings().mute); return this.getSettings().mute; },
-    isMuted: function () { return !!this.getSettings().mute; },
+    musicGain: function () {
+      var settings = this.getSettings();
+      return settings.mute ? 0 : (settings.master / 100) * (settings.music / 100);
+    },
 
-    /* -------- 播放（缺檔時安靜略過） -------- */
+    sfxGain: function () {
+      var settings = this.getSettings();
+      return settings.mute ? 0 : (settings.master / 100) * (settings.sfx / 100);
+    },
+
+    setMaster: function (value) {
+      this.getSettings().master = clamp100(value);
+      this._persist();
+      this._applyMusicVol();
+    },
+
+    setMusic: function (value) {
+      this.getSettings().music = clamp100(value);
+      this._persist();
+      this._applyMusicVol();
+    },
+
+    setSfx: function (value) {
+      this.getSettings().sfx = clamp100(value);
+      this._persist();
+    },
+
+    setMute: function (muted) {
+      this.getSettings().mute = !!muted;
+      this._persist();
+      this._applyMusicVol();
+    },
+
+    toggleMute: function () {
+      this.setMute(!this.getSettings().mute);
+      return this.getSettings().mute;
+    },
+
+    isMuted: function () {
+      return !!this.getSettings().mute;
+    },
+
     playSfx: function (name) {
       if (!this._canAudio) return;
-      var path = SFX[name]; if (!path) return;
-      var g = this.sfxGain(); if (g <= 0) return;
+      this._resumeMusic();
+      var path = SFX[name];
+      var gain = this.sfxGain();
+      if (!path || gain <= 0) return;
+
+      var now = Date.now();
+      var cooldown = SFX_COOLDOWN[name] || 0;
+      if (cooldown && now - (this._lastSfxAt[name] || 0) < cooldown) return;
+      this._lastSfxAt[name] = now;
+
       try {
         var base = this._cache[name];
-        if (!base) { base = new Audio(path); base.preload = "auto"; this._cache[name] = base; }
-        var node = (base.cloneNode) ? base.cloneNode(true) : new Audio(path);
-        node.volume = g;
-        var pr = node.play(); if (pr && pr.catch) pr.catch(function () {});
-      } catch (e) { /* 缺檔或瀏覽器限制 → 靜默 */ }
+        if (!base) {
+          base = new Audio(path);
+          base.preload = "auto";
+          this._cache[name] = base;
+        }
+        var node = base.cloneNode ? base.cloneNode(true) : new Audio(path);
+        node.volume = gain;
+        var playResult = node.play();
+        if (playResult && playResult.catch) playResult.catch(function () {});
+      } catch (error) {}
     },
 
     playMusic: function (key) {
       if (!this._canAudio) return;
       key = key || "stage";
-      var path = MUSIC[key]; if (!path) return;
+      var path = MUSIC[key];
+      if (!path) return;
+
       try {
         if (this._musicKey !== key || !this._music) {
           this.stopMusic();
           this._music = new Audio(path);
+          this._music.preload = "auto";
           this._music.loop = true;
           this._musicKey = key;
         }
         this._applyMusicVol();
-        var pr = this._music.play(); if (pr && pr.catch) pr.catch(function () {});
-      } catch (e) { /* 靜默 */ }
+        var playResult = this._music.play();
+        if (playResult && playResult.catch) playResult.catch(function () {});
+      } catch (error) {}
     },
 
     stopMusic: function () {
-      try { if (this._music) this._music.pause(); } catch (e) {}
-      this._music = null; this._musicKey = null;
+      try {
+        if (this._music) this._music.pause();
+      } catch (error) {}
+      this._music = null;
+      this._musicKey = null;
     },
 
-    _applyMusicVol: function () { try { if (this._music) this._music.volume = this.musicGain(); } catch (e) {} }
+    _applyMusicVol: function () {
+      try {
+        if (this._music) this._music.volume = this.musicGain();
+      } catch (error) {}
+    }
   };
 
   AudioManager.init();
