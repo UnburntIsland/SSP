@@ -402,6 +402,174 @@ async function main() {
       }
     },
     {
+      name: "大廳背景與固定裝置座標",
+      run: async () => {
+        await browser.prepare("test=1&qaSkipIntro=1&seed=1007");
+        await browser.waitFor(
+          "__TEST__.getState().lobby.world.backgroundWidth > 0",
+          "大廳背景圖片載入"
+        );
+        const alignment = await browser.evaluate(`(() => {
+          const state = __TEST__.getState().lobby;
+          const migrated = Storage._normalizeLobby({
+            version: 1,
+            playerPosition: { x: 820, y: 500, direction: "S" },
+            buildings: [{
+              instanceId: "building-1",
+              buildingId: "solar_workshop",
+              x: 640,
+              y: 416,
+              rotation: 0,
+              level: 1,
+              placed: true
+            }]
+          });
+          const oldSave = Storage._default();
+          oldSave.schemaVersion = 5;
+          oldSave.lobby.version = 1;
+          oldSave.lobby.playerPosition = { x: 820, y: 500, direction: "S" };
+          localStorage.setItem("senloop_save_v1", JSON.stringify(oldSave));
+          Storage.data = null;
+          Storage.load();
+          const persistedLobbyVersion =
+            JSON.parse(localStorage.getItem("senloop_save_v1")).lobby.version;
+          return {
+            world: state.world,
+            fixed: {
+              portal: { x: LobbyWorld.portal.x, y: LobbyWorld.portal.y },
+              workbench: { x: LobbyWorld.workbench.x, y: LobbyWorld.workbench.y },
+              idleZone: {
+                x: LobbyWorld.idleZone.x,
+                y: LobbyWorld.idleZone.y,
+                w: LobbyWorld.idleZone.w,
+                h: LobbyWorld.idleZone.h
+              }
+            },
+            terrain: {
+              polygonCount: LobbyWorld.walkablePolygons.length,
+              portalApproach: LobbyWorld.circleInWalkable(800, 136, 20),
+              workbenchApproach: LobbyWorld.circleInWalkable(330, 448, 20),
+              recycleCenter: LobbyWorld.circleInWalkable(1308, 480, 20),
+              reopenedClearing: LobbyWorld.circleInWalkable(700, 750, 20),
+              leftRiver: LobbyWorld.pointInWalkable(80, 500),
+              rightRiver: LobbyWorld.pointInWalkable(1540, 500),
+              upperRockWall: LobbyWorld.pointInWalkable(400, 200),
+              riverCollision: LobbyPlacement.resolveCircle(80, 500, 250, 500, 20, []),
+              rockCollision: LobbyPlacement.resolveCircle(400, 200, 500, 300, 20, []),
+              riverCollisionSafe: (() => {
+                const p = LobbyPlacement.resolveCircle(80, 500, 250, 500, 20, []);
+                return LobbyWorld.circleInWalkable(p.x, p.y, 20);
+              })(),
+              rockCollisionSafe: (() => {
+                const p = LobbyPlacement.resolveCircle(400, 200, 500, 300, 20, []);
+                return LobbyWorld.circleInWalkable(p.x, p.y, 20);
+              })()
+            },
+            unreachable: LobbyPlacement.checkReachability([], null),
+            migratedVersion: migrated.version,
+            migratedPlayerY: migrated.playerPosition.y,
+            migratedBuildingY: migrated.buildings[0]?.y,
+            persistedLobbyVersion
+          };
+        })()`);
+        assert(alignment.world.width === 1600 && alignment.world.height === 1000,
+          "大廳世界尺寸不是 1600x1000");
+        assert(alignment.world.backgroundWidth === alignment.world.width &&
+          alignment.world.backgroundHeight === alignment.world.height,
+          "大廳底圖仍被縮放到不同長寬比");
+        assert(
+          alignment.fixed.portal.x === 800 && alignment.fixed.portal.y === 40 &&
+          alignment.fixed.workbench.x === 300 && alignment.fixed.workbench.y === 448 &&
+          alignment.fixed.idleZone.x === 1196 && alignment.fixed.idleZone.y === 391 &&
+          alignment.fixed.idleZone.w === 224 && alignment.fixed.idleZone.h === 178,
+          "傳送門、工作台或回收區未對齊背景預留平台"
+        );
+        assert(
+          alignment.terrain.polygonCount === 3 &&
+          alignment.terrain.portalApproach &&
+          alignment.terrain.workbenchApproach &&
+          alignment.terrain.recycleCenter &&
+          alignment.terrain.reopenedClearing &&
+          !alignment.terrain.leftRiver &&
+          !alignment.terrain.rightRiver &&
+          !alignment.terrain.upperRockWall &&
+          alignment.terrain.riverCollisionSafe &&
+          alignment.terrain.rockCollisionSafe,
+          "大廳多邊形地形遮罩未貼合空地、石牆或河道"
+        );
+        assert(alignment.unreachable.length === 0,
+          `固定裝置不可到達：${alignment.unreachable.join("、")}`);
+        assert(alignment.migratedVersion === 2 &&
+          alignment.migratedPlayerY === 556 &&
+          alignment.migratedBuildingY === 462 &&
+          alignment.persistedLobbyVersion === 2,
+          "舊版大廳 Y 座標沒有正確遷移");
+
+        const captureLobbyAnchor = async (camera, filename) => {
+          await browser.evaluate(`(() => {
+            Lobby.running = false;
+            const vw = Lobby.canvas.width / LobbyWorld.ZOOM;
+            const vh = Lobby.canvas.height / LobbyWorld.ZOOM;
+            Lobby.camera.x = Math.max(0, Math.min(LobbyWorld.W - vw, ${camera.x}));
+            Lobby.camera.y = Math.max(0, Math.min(LobbyWorld.H - vh, ${camera.y}));
+            const avatar = Lobby.avatar;
+            Lobby.avatar = null;
+            Lobby.render();
+            Lobby.avatar = avatar;
+            return true;
+          })()`);
+          await browser.screenshot(path.join(ROOT, "screenshots", filename));
+        };
+        await captureLobbyAnchor({ x: 288, y: 0 }, "lobby-aligned-portal.png");
+        await captureLobbyAnchor({ x: 0, y: 180 }, "lobby-aligned-workbench.png");
+        await captureLobbyAnchor({ x: 796, y: 190 }, "lobby-aligned-recycle-zone.png");
+      }
+    },
+    {
+      name: "大廳子頁持續掛機收益",
+      run: async () => {
+        await browser.prepare("test=1&qaSkipIntro=1&qaIdleInterval=0.2&seed=1008");
+        const beforeSettings = await browser.evaluate(`(() => {
+          Lobby.avatar.x = LobbyWorld.idleZone.x + LobbyWorld.idleZone.w / 2;
+          Lobby.avatar.y = LobbyWorld.idleZone.y + LobbyWorld.idleZone.h / 2;
+          Lobby.updateIdleEconomy();
+          const before = Storage.getRecycled();
+          App.openSettings("home");
+          return before;
+        })()`);
+        await browser.waitFor(
+          "App.state === 'SETTINGS_FROM_HOME' && LobbyEconomy.isCollecting()",
+          "設定頁保留掛機狀態"
+        );
+        await browser.waitFor(
+          `Storage.getRecycled() > ${beforeSettings}`,
+          "設定頁掛機材料增加",
+          4000
+        );
+        await browser.evaluate("App.closeSettings()");
+        await browser.waitFor("__TEST__.getState().screen === 'lobby'", "設定頁返回大廳");
+
+        const beforeAchievements = await browser.evaluate(`(() => {
+          const before = Storage.getRecycled();
+          App.openAchievements();
+          return before;
+        })()`);
+        await browser.waitFor(
+          "App.state === 'ACHIEVEMENTS' && LobbyEconomy.isCollecting()",
+          "成就頁保留掛機狀態"
+        );
+        await browser.waitFor(
+          `Storage.getRecycled() > ${beforeAchievements}`,
+          "成就頁掛機材料增加",
+          4000
+        );
+        await browser.evaluate("App.enterLobby()");
+        await browser.waitFor("__TEST__.getState().screen === 'lobby'", "成就頁返回大廳");
+        const state = await browser.evaluate("__TEST__.getState().lobby");
+        assert(state.idleCollecting, "返回大廳後掛機狀態未延續");
+      }
+    },
+    {
       name: "關卡鎖定與解鎖",
       run: async () => {
         await browser.prepare("test=1&duration=8&qaSkipIntro=1&seed=1005");
@@ -442,6 +610,38 @@ async function main() {
     {
       name: "手機橫／直向版面",
       run: async () => {
+        await browser.setViewport(1366, 768, false);
+        await browser.navigate("test=1&qaPortal=1&seed=1006&layout=desktop");
+        await browser.waitFor("__TEST__.getState().screen === 'portal'", "desktop portal visible");
+        const desktopPortal = await browser.evaluate(`(() => {
+          const read = (selector) => {
+            const element = document.querySelector(selector);
+            if (!element) return null;
+            const rect = element.getBoundingClientRect();
+            return {
+              width: rect.width,
+              height: rect.height,
+              top: rect.top,
+              bottom: rect.bottom,
+              left: rect.left,
+              right: rect.right
+            };
+          };
+          return {
+            viewport: { width: innerWidth, height: innerHeight },
+            layout: read("#taiwan-portal-layout"),
+            map: read("#taiwan-map-panel"),
+            card: read("#stage-carousel-card"),
+            start: read(".stage-start-button")
+          };
+        })()`);
+        assert(desktopPortal.layout && desktopPortal.map && desktopPortal.card && desktopPortal.start, "desktop portal elements missing");
+        assert(desktopPortal.map.width >= 420, "desktop Taiwan map regressed below 420px");
+        assert(desktopPortal.card.width >= 440, "desktop stage art regressed below 440px");
+        assert(desktopPortal.start.width >= 440 && desktopPortal.start.height >= 56, "desktop start button is undersized");
+        assert(desktopPortal.layout.top >= 0 && desktopPortal.layout.bottom <= desktopPortal.viewport.height + 1, "desktop portal clips vertically");
+        assert(desktopPortal.layout.left >= 0 && desktopPortal.layout.right <= desktopPortal.viewport.width + 1, "desktop portal clips horizontally");
+
         const viewports = [
           { name: "portrait", width: 390, height: 844 },
           { name: "landscape", width: 844, height: 390 }
@@ -455,6 +655,8 @@ async function main() {
               "#portal-title",
               "#taiwan-map-panel",
               "#stage-carousel-card",
+              "#stage-card-name",
+              ".stage-card-meta span",
               ".stage-start-button"
             ];
             return {
@@ -470,6 +672,7 @@ async function main() {
                   height: rect.height,
                   left: rect.left,
                   right: rect.right,
+                  fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
                   visible: rect.width > 0 && rect.height > 0
                 };
               })
@@ -481,6 +684,16 @@ async function main() {
             assert(element.width <= layout.viewport.width + 1, `${viewport.name} 的 ${element.selector} 超出畫面寬度`);
             assert(element.left >= -1 && element.right <= layout.viewport.width + 1, `${viewport.name} 的 ${element.selector} 被水平裁切`);
           }
+          const map = layout.elements.find((element) => element.selector === "#taiwan-map-panel");
+          const card = layout.elements.find((element) => element.selector === "#stage-carousel-card");
+          const stageName = layout.elements.find((element) => element.selector === "#stage-card-name");
+          const meta = layout.elements.find((element) => element.selector === ".stage-card-meta span");
+          const minimumMapWidth = viewport.name === "portrait" ? 180 : 145;
+          const minimumCardWidth = viewport.name === "portrait" ? 200 : 140;
+          assert(map.width >= minimumMapWidth, `${viewport.name} 傳送門地圖過小`);
+          assert(card.width >= minimumCardWidth, `${viewport.name} 關卡預覽圖過小`);
+          assert(stageName.fontSize >= 15, `${viewport.name} 關卡名稱字級過小`);
+          assert(meta.fontSize >= 10, `${viewport.name} 關卡資訊字級過小`);
         }
         await browser.setViewport(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height, false);
       }

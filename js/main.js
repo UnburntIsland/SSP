@@ -96,7 +96,7 @@
 
     /* ---------------- 大廳（首頁） ---------------- */
     enterLobby: function () {
-      this.showScreen(null);                     // 隱藏所有選單畫面（同時停用戰鬥殘影）
+      this.showScreen(null, { preserveLobbyIdle: true }); // 子頁返回時延續回收區計時
       this.ui.showHUD(false);
       if (global.Lobby) global.Lobby.start();
       if (global.AudioManager) global.AudioManager.playMusic("lobby");
@@ -386,13 +386,22 @@
       }
     },
 
-    showScreen: function (name) {
+    showScreen: function (name, options) {
+      options = options || {};
       for (var key in SCREENS) {
         var s = document.getElementById(SCREENS[key]);
         if (s) s.classList.add("hidden");
       }
       // 進任何畫面（或準備進戰鬥 / 大廳）前，先停止大廳場景並保存位置。
-      if (global.Lobby) global.Lobby.stop();
+      var lobbySubview = !!name &&
+        name !== "victory" &&
+        name !== "gameover" &&
+        !(name === "settings" && this.settingsReturn === "pause");
+      var preserveLobbyIdle = options.preserveLobbyIdle === true ||
+        (lobbySubview && global.LobbyEconomy &&
+          global.LobbyEconomy.isCollecting &&
+          global.LobbyEconomy.isCollecting());
+      if (global.Lobby) global.Lobby.stop({ preserveIdleEconomy: preserveLobbyIdle });
       this.ui.showHUD(false);
       this.ui.hideLevelUp();
       if (this.ui.hideKnowledgeCard) this.ui.hideKnowledgeCard(false);

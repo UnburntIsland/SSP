@@ -39,7 +39,8 @@
     DAILY_CAP: DAILY_CAP,
 
     _inZone: false,
-    _lastTick: 0,          /* 上次結算的 timestamp（ms）；不持久化 → 關頁即停 */
+    _lastTick: 0,          /* 上次結算的 timestamp（ms）；離開大廳子頁時仍可結算 */
+    _backgroundTimer: 0,
 
     /* 日期換日檢查；必要時歸零今日進度。任何讀寫每日資料前都先呼叫。 */
     ensureDaily: function (now) {
@@ -71,6 +72,26 @@
       /* 移出區域立即停止；未滿 20 秒的進度不保留（規則透明、不可刷） */
       this._inZone = false;
       this._lastTick = 0;
+    },
+
+    isCollecting: function () {
+      return this._inZone;
+    },
+
+    startBackgroundSettlement: function () {
+      if (this._backgroundTimer) return;
+      var self = this;
+      this._backgroundTimer = global.setInterval(function () {
+        if (!self._inZone) return;
+        var gained = self.update(Date.now());
+        if (gained > 0) {
+          try {
+            global.dispatchEvent(new CustomEvent("lobby-material-gained", {
+              detail: { amount: gained, total: global.Storage.getRecycled() }
+            }));
+          } catch (e) {}
+        }
+      }, 1000);
     },
 
     /* 主迴圈呼叫；回傳本次新增的材料數（0 = 無變化） */
@@ -140,4 +161,5 @@
   };
 
   global.LobbyEconomy = LobbyEconomy;
+  LobbyEconomy.startBackgroundSettlement();
 })(window);

@@ -148,6 +148,15 @@
             appState: global.App ? global.App.state : null,
             materials: lobbySave ? lobbySave.materials.recycled : 0,
             idleToday: lobbySave ? lobbySave.daily.idleEarned : 0,
+            idleCollecting: !!(global.LobbyEconomy &&
+              global.LobbyEconomy.isCollecting &&
+              global.LobbyEconomy.isCollecting()),
+            world: global.LobbyWorld ? {
+              width: global.LobbyWorld.W,
+              height: global.LobbyWorld.H,
+              backgroundWidth: global.Lobby._bgImage ? global.Lobby._bgImage.naturalWidth : 0,
+              backgroundHeight: global.Lobby._bgImage ? global.Lobby._bgImage.naturalHeight : 0
+            } : null,
             buildings: lobbySave ? lobbySave.buildings.map(function (b) {
               return { id: b.buildingId, x: b.x, y: b.y, rotation: b.rotation, placed: b.placed !== false };
             }) : [],

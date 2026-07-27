@@ -166,7 +166,7 @@
     /* -------- 大廳（schema 4 新增）預設值 -------- */
     _defaultLobby: function () {
       return {
-        version: 1,
+        version: 2,
         playerPosition: { x: 0, y: 0, direction: "S" },   /* 0,0 = 尚未存過 → 用出生點 */
         guideCompleted: false,
         materials: { recycled: STARTING_RECYCLED },
@@ -183,9 +183,11 @@
       var def = this._defaultLobby();
       if (!isRecord(raw)) return def;
       var out = def;
+      var sourceVersion = nonNegativeInteger(raw.version);
+      var legacyYScale = sourceVersion < 2 ? (1000 / 900) : 1;
       if (isRecord(raw.playerPosition)) {
         out.playerPosition.x = Number(raw.playerPosition.x) || 0;
-        out.playerPosition.y = Number(raw.playerPosition.y) || 0;
+        out.playerPosition.y = Math.round((Number(raw.playerPosition.y) || 0) * legacyYScale);
         if (typeof raw.playerPosition.direction === "string") out.playerPosition.direction = raw.playerPosition.direction;
       }
       out.guideCompleted = raw.guideCompleted === true;
@@ -209,7 +211,11 @@
         raw.orphanedBuildings.forEach(function (inst) {
           if (!isRecord(inst)) return;
           /* 資料表補回該建築後，自動從孤兒區還原 */
-          if (known(inst.buildingId)) out.buildings.push(inst);
+          if (known(inst.buildingId)) {
+            var restored = Object.assign({}, inst);
+            restored.y = Math.round((Number(restored.y) || 0) * legacyYScale);
+            out.buildings.push(restored);
+          }
           else out.orphanedBuildings.push(inst);
         });
       }
@@ -224,7 +230,7 @@
             instanceId: typeof inst.instanceId === "string" ? inst.instanceId : ("building-" + (++maxInstance)),
             buildingId: inst.buildingId,
             x: Number(inst.x) || 0,
-            y: Number(inst.y) || 0,
+            y: Math.round((Number(inst.y) || 0) * legacyYScale),
             rotation: rotation,
             level: Math.max(1, inst.level | 0),
             placed: inst.placed !== false
@@ -272,7 +278,8 @@
       var savedSchemaVersion = d.schemaVersion | 0;
       // 「測試經濟補幣」只在升到 schema 3 之前做一次；schema 3 → 4 不再補幣。
       var requiresCoinTopUp = savedSchemaVersion < 3;
-      var requiresSchemaSave = savedSchemaVersion < 5;
+      var requiresLobbySave = !isRecord(d.lobby) || nonNegativeInteger(d.lobby.version) < 2;
+      var requiresSchemaSave = savedSchemaVersion < 5 || requiresLobbySave;
       // 補齊缺漏欄位（含舊存檔沒有的 audio）
       var def = this._default();
       var legacyCharacterSave = !d.ownedCharacters || typeof d.ownedCharacters !== "object";

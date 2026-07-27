@@ -315,7 +315,9 @@
         enemy.animationSet = { idle: {}, move: {} };
       } else {
         enemy.spriteBasePath = "assets/images/enemies/" + (FOLDER[id] || id) + "/";
-        enemy.spriteVersion = "enemy_8dir_20260711a";
+        enemy.spriteVersion = id === "bottle_mite"
+          ? "bottle_mite_left_head_fix_20260727a"
+          : "enemy_8dir_20260711a";
         enemy.animationSet = buildAnimSet();
       }
     });

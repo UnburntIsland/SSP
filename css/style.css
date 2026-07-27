@@ -7470,6 +7470,369 @@ html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview #scre
 /* ============================================================
    建造模式
    ============================================================ */
+/* Portal readability: keep the map art and mission briefing legible at a glance. */
+body.taiwan-map-preview #screen-portal{
+  justify-content:flex-start;
+  gap:4px;
+  padding:6px 10px;
+}
+body.taiwan-map-preview #screen-portal > .screen-title{
+  font-size:34px;
+}
+body.taiwan-map-preview #screen-portal > .screen-desc{
+  max-width:920px;
+  font-size:14px;
+  line-height:1.35;
+}
+body.taiwan-map-preview .taiwan-portal-layout{
+  width:min(1120px, calc(100% - 16px));
+  grid-template-columns:420px 546px;
+  grid-template-areas:
+    "map briefing"
+    "map actions";
+  gap:8px 28px;
+  padding:10px 18px;
+}
+body.taiwan-map-preview .taiwan-map-column{
+  grid-row:1 / span 2;
+  gap:6px;
+}
+body.taiwan-map-preview .taiwan-map-panel{
+  width:420px;
+}
+body.taiwan-map-preview .taiwan-map-node{
+  min-width:108px;
+  min-height:48px;
+  gap:7px;
+  padding:6px 10px 6px 6px;
+}
+body.taiwan-map-preview .taiwan-node-marker{
+  flex-basis:30px;
+  width:30px;
+  height:30px;
+  font-size:13px;
+}
+body.taiwan-map-preview .taiwan-node-label strong{
+  font-size:15px;
+}
+body.taiwan-map-preview .taiwan-node-label small{
+  font-size:10px;
+}
+body.taiwan-map-preview .taiwan-map-north{
+  width:29px;
+  height:29px;
+  font-size:13px;
+}
+body.taiwan-map-preview .taiwan-map-status{
+  width:420px;
+  min-height:24px;
+  font-size:12px;
+}
+body.taiwan-map-preview .portal-stage-selector{
+  --stage-card-width:440px;
+  width:546px;
+  gap:5px;
+}
+body.taiwan-map-preview .portal-briefing-kicker{
+  font-size:12px;
+}
+body.taiwan-map-preview .stage-region-context{
+  min-height:30px;
+  padding-bottom:5px;
+}
+body.taiwan-map-preview .stage-region-context span{
+  font-size:12px;
+}
+body.taiwan-map-preview .stage-region-context strong{
+  font-size:16px;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-carousel-shell{
+  width:546px;
+  grid-template-columns:45px 440px 45px;
+  gap:8px;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-arrow{
+  width:45px;
+  height:64px;
+  font-size:38px;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-carousel-card{
+  width:440px;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-card-caption{
+  min-height:52px;
+  padding:8px 14px;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-card-caption strong{
+  font-size:24px;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-card-meta{
+  width:440px;
+  grid-template-columns:76px 70px minmax(0, 1fr);
+}
+body.taiwan-map-preview .portal-stage-selector .stage-card-meta span{
+  min-height:31px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 8px;
+  font-size:13px;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-card-concept{
+  width:440px;
+  min-height:28px;
+  font-size:12px;
+  line-height:1.35;
+  -webkit-line-clamp:1;
+}
+body.taiwan-map-preview .portal-stage-selector .stage-learning-focus{
+  width:440px;
+  min-height:30px;
+  padding:6px 9px;
+  font-size:12px;
+  line-height:1.35;
+}
+body.taiwan-map-preview #screen-portal .portal-actions{
+  width:546px;
+  grid-template-columns:96px 440px;
+  gap:10px;
+  padding-top:7px;
+  align-self:end;
+}
+body.taiwan-map-preview #screen-portal .portal-actions .btn{
+  min-height:56px;
+  font-size:18px;
+}
+body.taiwan-map-preview #screen-portal .portal-actions .stage-start-button{
+  width:440px;
+  font-size:20px;
+}
+html:not(.is-mobile) body.taiwan-map-preview .portal-briefing-kicker,
+html:not(.is-mobile) body.taiwan-map-preview .portal-stage-selector .stage-card-concept{
+  display:none;
+}
+
+/* Portrait tablet: preserve the two-column overview without shrinking the copy. */
+html.compact-visible body.taiwan-map-preview .taiwan-portal-layout{
+  width:min(480px, calc(var(--visible-stage-width, 500px) - 16px));
+  grid-template-columns:198px 246px;
+  gap:7px 10px;
+  padding:7px;
+}
+html.compact-visible body.taiwan-map-preview .taiwan-map-column{
+  grid-row:auto;
+}
+html.compact-visible body.taiwan-map-preview .taiwan-map-panel{
+  width:198px;
+}
+html.compact-visible body.taiwan-map-preview .taiwan-map-status{
+  width:198px;
+  font-size:9px;
+}
+html.compact-visible body.taiwan-map-preview .portal-stage-selector,
+html.compact-visible.is-mobile body.taiwan-map-preview #stage .portal-stage-selector{
+  --stage-card-width:246px;
+  width:246px;
+}
+html.compact-visible body.taiwan-map-preview .portal-briefing-kicker{
+  font-size:9px;
+}
+html.compact-visible body.taiwan-map-preview .stage-region-context{
+  width:246px;
+}
+html.compact-visible body.taiwan-map-preview .stage-region-context span{
+  font-size:9px;
+}
+html.compact-visible body.taiwan-map-preview .stage-region-context strong{
+  font-size:11px;
+}
+html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-carousel-shell,
+html.compact-visible.is-mobile body.taiwan-map-preview #stage .portal-stage-selector .stage-carousel-shell,
+html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-carousel-card{
+  width:246px;
+}
+html.compact-visible.is-mobile body.taiwan-map-preview #stage .portal-stage-selector :is(.stage-carousel-card,.stage-card-meta){
+  width:246px;
+}
+html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-card-caption strong{
+  font-size:15px;
+}
+html.compact-visible body.taiwan-map-preview #stage .portal-stage-selector .stage-card-caption strong{
+  font-size:15px;
+}
+html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-card-meta{
+  width:246px;
+  grid-template-columns:54px 50px minmax(0, 1fr);
+}
+html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-card-meta span{
+  font-size:10px;
+}
+html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-learning-focus{
+  width:246px;
+  font-size:10px;
+}
+html.compact-visible body.taiwan-map-preview #screen-portal .portal-actions{
+  grid-template-columns:142px 246px;
+}
+
+/* Phone portrait: stack the map and briefing so both remain large and readable. */
+@media (max-width:520px){
+  html.compact-visible body.taiwan-map-preview #screen-portal{
+    gap:4px;
+    padding:
+      calc(var(--vis-inset-top, 0px) + 5px)
+      calc(var(--vis-inset-right, 0px) + 6px)
+      calc(var(--vis-inset-bottom, 0px) + 5px)
+      calc(var(--vis-inset-left, 0px) + 6px);
+  }
+  html.compact-visible body.taiwan-map-preview #screen-portal > .screen-title{
+    font-size:20px;
+  }
+  html.compact-visible body.taiwan-map-preview .taiwan-portal-layout{
+    width:min(340px, calc(var(--visible-stage-width, 360px) - 12px));
+    grid-template-columns:minmax(0, 1fr);
+    grid-template-areas:
+      "map"
+      "briefing"
+      "actions";
+    justify-items:center;
+    gap:5px;
+    padding:6px;
+  }
+  html.compact-visible body.taiwan-map-preview .taiwan-map-panel{
+    width:184px;
+  }
+  html.compact-visible body.taiwan-map-preview .taiwan-map-node{
+    min-width:58px;
+    min-height:28px;
+  }
+  html.compact-visible body.taiwan-map-preview .taiwan-node-label strong{
+    font-size:9px;
+  }
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector,
+  html.compact-visible.is-mobile body.taiwan-map-preview #stage .portal-stage-selector{
+    --stage-card-width:210px;
+    width:min(300px, calc(var(--visible-stage-width, 360px) - 36px));
+    gap:3px;
+  }
+  html.compact-visible body.taiwan-map-preview .stage-region-context{
+    width:100%;
+    min-height:22px;
+  }
+  html.compact-visible body.taiwan-map-preview .stage-region-context strong{
+    font-size:11px;
+  }
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-carousel-shell,
+  html.compact-visible.is-mobile body.taiwan-map-preview #stage .portal-stage-selector .stage-carousel-shell,
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-carousel-card,
+  html.compact-visible.is-mobile body.taiwan-map-preview #stage .portal-stage-selector .stage-carousel-card{
+    width:210px;
+  }
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-card-caption{
+    min-height:38px;
+  }
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-card-caption strong{
+    font-size:16px;
+  }
+  html.compact-visible body.taiwan-map-preview #stage .portal-stage-selector .stage-card-caption strong{
+    font-size:16px;
+  }
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-card-meta,
+  html.compact-visible.is-mobile body.taiwan-map-preview #stage .portal-stage-selector .stage-card-meta{
+    width:100%;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-card-meta span{
+    min-height:20px;
+    font-size:10px;
+  }
+  html.compact-visible body.taiwan-map-preview .portal-stage-selector .stage-learning-focus{
+    width:100%;
+    min-height:27px;
+    font-size:10px;
+  }
+  html.compact-visible body.taiwan-map-preview #screen-portal .portal-actions{
+    width:min(300px, 100%);
+    grid-template-columns:minmax(0, 1fr) minmax(0, 1.4fr);
+    padding-top:5px;
+  }
+}
+
+/* Tablet landscape: keep the enlarged content while containing the outer panel. */
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview .taiwan-portal-layout{
+  width:min(960px, calc(var(--visible-stage-width, 980px) - 20px));
+  grid-template-columns:330px 446px;
+  grid-template-areas:
+    "map briefing"
+    "map actions";
+  gap:8px 20px;
+}
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview .taiwan-map-column{
+  grid-row:1 / span 2;
+}
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview .taiwan-map-panel,
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview .taiwan-map-status{
+  width:330px;
+}
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview .portal-stage-selector{
+  --stage-card-width:340px;
+  width:446px;
+}
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview .portal-stage-selector .stage-carousel-shell{
+  width:446px;
+  grid-template-columns:45px 340px 45px;
+  gap:8px;
+}
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview .portal-stage-selector :is(
+  .stage-carousel-card,
+  .stage-card-meta,
+  .stage-card-concept
+){
+  width:340px;
+}
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview #screen-portal .portal-actions{
+  width:446px;
+  grid-template-columns:96px 340px;
+}
+html.is-mobile:not(.compact-visible):not(.short-visible) body.taiwan-map-preview #screen-portal .portal-actions .stage-start-button{
+  width:340px;
+}
+
+/* Phone landscape: enlarge the stage art while retaining the compact side-by-side flow. */
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .taiwan-portal-layout{
+  width:620px;
+  grid-template-columns:260px 330px;
+  gap:6px 14px;
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .portal-stage-selector{
+  --stage-card-width:224px;
+  width:330px;
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .stage-region-context,
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .portal-stage-selector .stage-card-meta{
+  width:330px;
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .stage-region-context strong{
+  font-size:11px;
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .portal-stage-selector .stage-carousel-shell{
+  width:330px;
+  grid-template-columns:46px 224px 46px;
+  gap:7px;
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .portal-stage-selector .stage-carousel-card{
+  width:224px;
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .portal-stage-selector .stage-card-caption strong{
+  font-size:15px;
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .portal-stage-selector .stage-card-meta{
+  grid-template-columns:58px 52px minmax(0, 1fr);
+}
+html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .portal-stage-selector .stage-card-meta span{
+  font-size:10px;
+}
+
 #build-root{
   position:absolute;
   inset:0;
@@ -7754,4 +8117,99 @@ html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview #scre
   .lobby-guide-title,
   .lobby-guide-text{ text-align:center; }
   .lobby-guide-actions{ justify-content:center; }
+
+  /* 直向窄螢幕也可能使用桌面 UA；不能只依賴 .is-mobile。 */
+  .lobby-title-tag{ display:none; }
+  .lobby-topleft{
+    top:calc(8px + var(--vis-inset-top, 0px));
+    left:calc(8px + var(--vis-inset-left, 0px));
+    max-width:190px;
+    gap:4px;
+  }
+  .lobby-chip{
+    max-width:190px;
+    padding:4px 8px;
+    font-size:12px;
+  }
+  .lobby-daily{ display:none; }
+  .lobby-topright{
+    top:calc(8px + var(--vis-inset-top, 0px));
+    right:calc(8px + var(--vis-inset-right, 0px));
+    width:178px;
+    max-width:178px;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:4px;
+  }
+  .lobby-btn{
+    min-width:0;
+    min-height:32px;
+    padding:4px 5px;
+    font-size:10px;
+    letter-spacing:0;
+  }
+  .lobby-objective,
+  .is-mobile .lobby-objective,
+  .compact-visible .lobby-objective{
+    top:calc(112px + var(--vis-inset-top, 0px));
+    left:calc(8px + var(--vis-inset-left, 0px));
+    width:calc(100% - 76px - var(--vis-inset-left, 0px) - var(--vis-inset-right, 0px));
+    min-height:38px;
+    transform:none;
+    grid-template-columns:auto minmax(0, 1fr);
+    gap:6px;
+    padding:5px 8px;
+  }
+  .lobby-objective strong{ font-size:11px; }
+  .lobby-objective > span:last-child{ display:none; }
+}
+
+/* 720p desktop: stay larger than the former selector while keeping both edges visible. */
+@media (min-width:800px) and (max-height:760px){
+  html:not(.is-mobile) body.taiwan-map-preview #screen-portal{
+    padding:5px 10px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview #screen-portal > .screen-title{
+    font-size:30px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview #screen-portal > .screen-desc{
+    font-size:13px;
+    line-height:1.2;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview .taiwan-portal-layout{
+    width:min(1080px, calc(100% - 14px));
+    grid-template-columns:400px 526px;
+    gap:7px 24px;
+    padding:8px 16px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview .taiwan-map-panel,
+  html:not(.is-mobile) body.taiwan-map-preview .taiwan-map-status{
+    width:400px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview .portal-stage-selector{
+    --stage-card-width:420px;
+    width:526px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview .portal-briefing-kicker,
+  html:not(.is-mobile) body.taiwan-map-preview .portal-stage-selector .stage-card-concept{
+    display:none;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview .portal-stage-selector .stage-carousel-shell{
+    width:526px;
+    grid-template-columns:45px 420px 45px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview .portal-stage-selector :is(
+    .stage-carousel-card,
+    .stage-card-meta,
+    .stage-learning-focus
+  ){
+    width:420px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview #screen-portal .portal-actions{
+    width:526px;
+    grid-template-columns:96px 420px;
+  }
+  html:not(.is-mobile) body.taiwan-map-preview #screen-portal .portal-actions .stage-start-button{
+    width:420px;
+  }
 }

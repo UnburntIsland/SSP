@@ -2,7 +2,7 @@
    lobbyPlacement.js  —  大廳格線世界與建造擺放驗證
    - LobbyWorld：大廳尺寸、固定區域（傳送門/掛機區/工作台/出生點）、
      不可通行區（水域/樹林/固定建物）與格線工具。座標皆為 world px，
-     格線 32x32。背景圖 1280x720 → 世界 1600x900（等比 1.25，不變形）。
+     格線 32x32。背景圖與世界皆為 1600x1000，固定裝置不再受縮放變形。
    - LobbyPlacement：擺放驗證（邊界/重疊/保留區/水域/可達性 flood-fill/
      unique/材料），與玩家行走碰撞查詢。
    規則見 LOBBY_BUILDING_SYSTEM_PLAN.md 第 3、7 節。
@@ -10,9 +10,9 @@
 (function (global) {
 
   var CELL = 32;
-  var W = 1600, H = 900;
+  var W = 1600, H = 1000;
   var COLS = Math.floor(W / CELL);          /* 50 */
-  var ROWS = Math.floor(H / CELL);          /* 28（最後 4px 併入下邊界） */
+  var ROWS = Math.floor(H / CELL);          /* 31（最後 8px 併入下邊界） */
 
   /* ---------------- 固定配置（對齊背景圖地景） ---------------- */
   var LobbyWorld = {
@@ -22,46 +22,72 @@
        與背景圖中的門、樓梯、回收桶比例一致。 */
     ZOOM: 1.25,
 
-    spawn: { x: 820, y: 500, direction: "S" },
+    spawn: { x: 820, y: 556, direction: "S" },
 
-    portal:    { x: 830, y: 205, interactRadius: 110, label: "行動傳送門" },
-    workbench: { x: 470, y: 505, interactRadius: 105, label: "建造工作台" },
+    portal:    { x: 800, y: 40, interactRadius: 110, label: "行動傳送門" },
+    workbench: { x: 300, y: 448, interactRadius: 105, label: "建造工作台" },
     /* 掛機回收區：站上去就開始累積（矩形判定） */
-    idleZone:  { x: 1216, y: 448, w: 224, h: 160, label: "資源回收區" },
+    idleZone:  { x: 1196, y: 391, w: 224, h: 178, label: "資源回收區" },
 
-    /* 不可通行（水域 / 樹林 / 背景固定建物）。玩家與建築皆不可進入。 */
-    blockedRects: [
-      { x: 0,    y: 0,   w: 1600, h: 132, name: "上方樹林帶" },
-      { x: 0,    y: 0,   w: 700,  h: 150, name: "上方樹林(左)" },
-      { x: 975,  y: 0,   w: 625,  h: 150, name: "上方樹林(右)" },
-      { x: 25,   y: 75,  w: 525,  h: 280, name: "左側工坊平台" },
-      { x: 25,   y: 355, w: 350,  h: 195, name: "左側平台下段" },
-      { x: 0,    y: 560, w: 470,  h: 340, name: "左下水域與棧橋" },
-      { x: 1010, y: 130, w: 590,  h: 200, name: "右側水塔平台" },
-      { x: 1150, y: 330, w: 450,  h: 110, name: "右側菜園平台" },
-      { x: 1520, y: 0,   w: 80,   h: 900, name: "右側海面" },
-      { x: 1470, y: 380, w: 130,  h: 520, name: "右下海灣" },
-      { x: 1150, y: 760, w: 450,  h: 140, name: "右下海灘水線" },
-      { x: 0,    y: 840, w: 1600, h: 60,  name: "下方叢林邊界" },
-      { x: 540,  y: 620, w: 250,  h: 150, name: "紅樹林矮叢" },
-      { x: 870,  y: 630, w: 140,  h: 90,  name: "中央灌木" }
+    /*
+     * 可行走輪廓直接沿著 lobby_map.png 的草地、沙地與橋面描繪。
+     * 舊版使用大型矩形排除水域，會同時留下可走進河裡的缺口，
+     * 也會誤擋中央空地。多邊形聯集讓海岸、石牆與回收平台貼合底圖。
+     */
+    walkablePolygons: [
+      {
+        name: "中央島與傳送門通道",
+        points: [
+          [690, 105], [910, 105], [910, 195], [965, 225],
+          [1030, 255], [1090, 290], [1120, 330], [1110, 385],
+          [1070, 430], [1050, 490], [1090, 545], [1160, 585],
+          [1240, 615], [1330, 650], [1410, 700], [1480, 760],
+          [1460, 825], [1380, 855], [1290, 825], [1190, 795],
+          [1090, 765], [1020, 765], [975, 805], [945, 850],
+          [900, 880], [800, 895], [700, 875], [605, 840],
+          [520, 805], [445, 770], [385, 720], [350, 660],
+          [305, 600], [245, 565], [190, 535], [165, 485],
+          [190, 435], [250, 400], [310, 365], [370, 330],
+          [430, 300], [500, 270], [585, 245], [650, 220],
+          [690, 190]
+        ]
+      },
+      {
+        name: "右側資源回收平台",
+        points: [
+          [1155, 370], [1210, 340], [1390, 340], [1450, 380],
+          [1470, 430], [1470, 500], [1430, 545], [1390, 570],
+          [1370, 580], [1280, 585], [1210, 560], [1170, 530],
+          [1140, 490], [1140, 420]
+        ]
+      },
+      {
+        name: "回收平台入口石階",
+        points: [
+          [1280, 540], [1410, 540], [1440, 620], [1410, 690],
+          [1310, 670], [1260, 610]
+        ]
+      }
     ],
 
+    /* 只保留真正位於可行走輪廓內的矩形障礙；背景邊界由多邊形負責。 */
+    blockedRects: [],
+
     /* 可建造範圍（再扣掉 blocked 與 fixed 保留區） */
-    buildArea: { x: 96, y: 160, w: 1408, h: 680 },
+    buildArea: { x: 96, y: 178, w: 1408, h: 756 },
 
     /* 建造保留區：出生點 5x5、傳送門、工作台、掛機區（含出入口緩衝） */
     reservedRects: [
-      { x: 736,  y: 416, w: 160, h: 160, name: "出生點安全區" },
-      { x: 736,  y: 64,  w: 192, h: 224, name: "傳送門保留區" },
-      { x: 416,  y: 416, w: 192, h: 192, name: "工作台保留區" },
-      { x: 1184, y: 416, w: 288, h: 224, name: "掛機回收區" }
+      { x: 736,  y: 462, w: 160, h: 178, name: "出生點安全區" },
+      { x: 704,  y: 0,   w: 192, h: 220, name: "傳送門保留區" },
+      { x: 220,  y: 352, w: 176, h: 192, name: "工作台保留區" },
+      { x: 1164, y: 359, w: 288, h: 242, name: "掛機回收區" }
     ],
 
     /* flood-fill 檢查目標：出生點必須永遠走得到這些位置 */
     reachTargets: function () {
       return [
-        { x: this.portal.x, y: this.portal.y + 62, name: "傳送門" },
+        { x: this.portal.x, y: this.portal.y + 96, name: "傳送門" },
         { x: this.workbench.x + 30, y: this.workbench.y, name: "工作台" },
         { x: this.idleZone.x + 16, y: this.idleZone.y + this.idleZone.h / 2, name: "掛機回收區" }
       ];
@@ -77,7 +103,43 @@
       return cx >= 0 && cy >= 0 && cx < COLS && cy < ROWS;
     },
 
-    /* 靜態阻擋格（以格心是否落在 blockedRect 內判定；邊界外一律阻擋） */
+    pointInPolygon: function (x, y, points) {
+      var inside = false;
+      for (var i = 0, j = points.length - 1; i < points.length; j = i++) {
+        var xi = points[i][0], yi = points[i][1];
+        var xj = points[j][0], yj = points[j][1];
+        var crosses = ((yi > y) !== (yj > y)) &&
+          (x < (xj - xi) * (y - yi) / ((yj - yi) || 0.00001) + xi);
+        if (crosses) inside = !inside;
+      }
+      return inside;
+    },
+    pointInWalkable: function (x, y) {
+      if (x < 0 || y < 0 || x >= this.W || y >= this.H) return false;
+      var self = this;
+      var onLand = this.walkablePolygons.some(function (poly) {
+        return self.pointInPolygon(x, y, poly.points);
+      });
+      if (!onLand) return false;
+      return !this.blockedRects.some(function (r) {
+        return self.pointInRect(x, y, r);
+      });
+    },
+    circleInWalkable: function (x, y, radius) {
+      if (!this.pointInWalkable(x, y)) return false;
+      var sampleRadius = Math.max(0, radius || 0);
+      if (!sampleRadius) return true;
+      for (var i = 0; i < 12; i++) {
+        var angle = i * Math.PI * 2 / 12;
+        if (!this.pointInWalkable(
+          x + Math.cos(angle) * sampleRadius,
+          y + Math.sin(angle) * sampleRadius
+        )) return false;
+      }
+      return true;
+    },
+
+    /* 靜態阻擋格：四角都必須落在底圖可行走區，避免建築壓到岸邊。 */
     _staticGrid: null,
     staticBlocked: function (cx, cy) {
       if (!this.inBounds(cx, cy)) return true;
@@ -89,9 +151,13 @@
       for (var cy = 0; cy < ROWS; cy++) {
         for (var cx = 0; cx < COLS; cx++) {
           var c = this.cellCenter(cx, cy);
-          grid[cy * COLS + cx] = this.blockedRects.some(function (r) {
-            return c.x >= r.x && c.x < r.x + r.w && c.y >= r.y && c.y < r.y + r.h;
-          });
+          var inset = CELL / 2 - 3;
+          grid[cy * COLS + cx] = !(
+            this.pointInWalkable(c.x - inset, c.y - inset) &&
+            this.pointInWalkable(c.x + inset, c.y - inset) &&
+            this.pointInWalkable(c.x - inset, c.y + inset) &&
+            this.pointInWalkable(c.x + inset, c.y + inset)
+          );
         }
       }
       this._staticGrid = grid;
@@ -164,6 +230,29 @@
       }
       nx = Math.max(radius, Math.min(LobbyWorld.W - radius, nx));
       ny = Math.max(radius, Math.min(LobbyWorld.H - radius, ny));
+
+      /* 不規則海岸線：先嘗試分軸滑動，再沿移動向量逼近可行走邊界。 */
+      if (!LobbyWorld.circleInWalkable(nx, ny, radius)) {
+        if (LobbyWorld.circleInWalkable(nx, prevY, radius)) {
+          ny = prevY;
+        } else if (LobbyWorld.circleInWalkable(prevX, ny, radius)) {
+          nx = prevX;
+        } else if (LobbyWorld.circleInWalkable(prevX, prevY, radius)) {
+          var lo = 0, hi = 1;
+          for (var step = 0; step < 8; step++) {
+            var mid = (lo + hi) / 2;
+            var mx = prevX + (nx - prevX) * mid;
+            var my = prevY + (ny - prevY) * mid;
+            if (LobbyWorld.circleInWalkable(mx, my, radius)) lo = mid;
+            else hi = mid;
+          }
+          nx = prevX + (nx - prevX) * lo;
+          ny = prevY + (ny - prevY) * lo;
+        } else {
+          nx = prevX;
+          ny = prevY;
+        }
+      }
       return { x: nx, y: ny };
     },
 

@@ -8,13 +8,13 @@
    ============================================================ */
 (function (global) {
 
-  /* 大廳角色比例：背景圖中的門約 100 world px 高，
-     角色以 AVATAR_WORLD 繪製才不會像小人國。速度略高於戰鬥基礎值,
-     補償較大的角色與較廣的視野（不套任何被動 / 商店 / 建築加成）。 */
-  var AVATAR_WORLD = 100;         /* 角色繪製尺寸（world px） */
-  var LOBBY_SPEED = 205;          /* 大廳固定移動速度 */
+  /* 大廳比例依底圖的橋寬與石階重新校準，避免角色與固定設施顯得過大。 */
+  var AVATAR_WORLD = 88;          /* 角色繪製尺寸（world px） */
+  var LOBBY_SPEED = 185;          /* 大廳固定移動速度 */
   var AVATAR_RADIUS = 20;         /* 腳底碰撞圓半徑 */
   var SAVE_POS_INTERVAL = 4;      /* 秒；行走時定期保存位置 */
+  var CAMERA_FOLLOW_RATE = 4.8;   /* 每秒追蹤率；以 dt 計算，避免高幀率鏡頭過快 */
+  var BUILD_PAN_SENSITIVITY = 0.55;
   var GUIDE_STEPS = [
     {
       visual: "↟",
@@ -200,7 +200,11 @@
       this.nearestInteraction = null;
 
       global.LobbyEconomy.ensureDaily();
-      global.LobbyEconomy.leaveZone();
+      if (global.LobbyEconomy.isCollecting() && W().inIdleZone(x, y)) {
+        global.LobbyEconomy.update(Date.now());
+      } else {
+        global.LobbyEconomy.leaveZone();
+      }
 
       if (this.dom.hud) this.dom.hud.classList.remove("hidden");
       this.hideBuildDom();
@@ -223,13 +227,15 @@
     },
 
     /* 離開大廳（進戰鬥 / 開子畫面）。保存位置、關 HUD、停止迴圈。 */
-    stop: function () {
+    stop: function (options) {
+      options = options || {};
       if (!this.running && !this._looping) {
         if (this.dom.hud) this.dom.hud.classList.add("hidden");
+        if (!options.preserveIdleEconomy) global.LobbyEconomy.leaveZone();
         return;
       }
       this.savePosition(true);
-      global.LobbyEconomy.leaveZone();
+      if (!options.preserveIdleEconomy) global.LobbyEconomy.leaveZone();
       this.running = false;
       this.mode = "idle";
       this.ghost = null;
@@ -274,7 +280,7 @@
 
       if (this._guideOpen) {
         if (av.animator) av.animator.update(dt, 0, 0);
-        this.updateCamera(false);
+        this.updateCamera(false, dt);
         return;
       }
 
@@ -314,7 +320,7 @@
       }
       this._floaters = this._floaters.filter(function (f) { return f.age < f.life; });
 
-      this.updateCamera(false);
+      this.updateCamera(false, dt);
     },
 
     /* ---------------- 互動偵測（傳送門 / 工作台） ---------------- */
@@ -919,8 +925,8 @@
 
     panCamera: function (dx, dy) {
       this._cameraPan = this._cameraPan || { x: 0, y: 0 };
-      this._cameraPan.x += dx;
-      this._cameraPan.y += dy;
+      this._cameraPan.x += dx * BUILD_PAN_SENSITIVITY;
+      this._cameraPan.y += dy * BUILD_PAN_SENSITIVITY;
     },
 
     clampWorldLabelX: function (worldX, margin) {
@@ -935,7 +941,7 @@
       return this.camera.x + screenX / z;
     },
 
-    updateCamera: function (snap) {
+    updateCamera: function (snap, dt) {
       var z = W().ZOOM;
       var vw = this.canvas.width / z, vh = this.canvas.height / z;
       var target = this.avatar || W().spawn;
@@ -955,8 +961,10 @@
       ty = Math.max(0, Math.min(W().H - vh, ty));
       if (snap) { this.camera.x = tx; this.camera.y = ty; }
       else {
-        this.camera.x += (tx - this.camera.x) * 0.18;
-        this.camera.y += (ty - this.camera.y) * 0.18;
+        var frameDt = Math.max(0, Math.min(0.05, dt || 1 / 60));
+        var follow = 1 - Math.exp(-CAMERA_FOLLOW_RATE * frameDt);
+        this.camera.x += (tx - this.camera.x) * follow;
+        this.camera.y += (ty - this.camera.y) * follow;
       }
     },
 
@@ -978,7 +986,7 @@
       ctx.scale(z, z);
       ctx.translate(-cam.x, -cam.y);
 
-      /* 背景：1280x720 圖等比放大鋪滿 1600x900 世界（直載原圖，不經 bake） */
+      /* 背景：以原生 1600x1000 尺寸繪製，讓固定裝置座標與底圖一致。 */
       if (this._bgImage) {
         try { ctx.drawImage(this._bgImage, 0, 0, W().W, W().H); } catch (e) { this.drawFallbackGround(ctx); }
       } else {
@@ -1045,18 +1053,18 @@
       var t = this.time;
       var near = this.nearestInteraction && this.nearestInteraction.kind === "portal";
 
-      /* 石台（尺寸對齊 100px 角色比例） */
+      /* 石台與底圖階梯寬度對齊。 */
       ctx.save();
       ctx.fillStyle = "rgba(20,40,46,0.4)";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y + 46, 70, 21, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(p.x, p.y + 43, 61, 18, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#8b95a0";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y + 41, 62, 17, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(p.x, p.y + 38, 54, 15, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#a9b3bd";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y + 36, 54, 13, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(p.x, p.y + 34, 47, 11, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
 
-      var portalDrawn = this.drawAnimatedStation(ctx, "lobby_portal_", 6, 5, p.x, p.y - 22, 132, 132);
-      if (!portalDrawn) portalDrawn = !!(global.Assets && global.Assets.drawCentered(ctx, "lobby_portal", p.x, p.y - 22, 132, 132));
+      var portalDrawn = this.drawAnimatedStation(ctx, "lobby_portal_", 6, 5, p.x, p.y - 18, 116, 116);
+      if (!portalDrawn) portalDrawn = !!(global.Assets && global.Assets.drawCentered(ctx, "lobby_portal", p.x, p.y - 18, 116, 116));
       if (!portalDrawn) {
         /* fallback：旋轉的雙色能量環 */
         ctx.save();
@@ -1085,10 +1093,10 @@
         ctx.strokeStyle = "rgba(255,212,92," + (0.5 + Math.sin(t * 5) * 0.3) + ")";
         ctx.lineWidth = 3;
         ctx.setLineDash([8, 6]);
-        ctx.beginPath(); ctx.ellipse(p.x, p.y + 41, 70, 22, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(p.x, p.y + 38, 61, 19, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
       }
-      if (global.UI_THEME) global.UI_THEME.drawOutlinedText(ctx, "行動傳送門", this.clampWorldLabelX(p.x, 96), p.y - 92, { fontSize: 16, fill: "#c9f5ec", strokeWidth: 3 });
+      if (global.UI_THEME) global.UI_THEME.drawOutlinedText(ctx, "行動傳送門", this.clampWorldLabelX(p.x, 96), Math.max(18, p.y - 92), { fontSize: 16, fill: "#c9f5ec", strokeWidth: 3 });
     },
 
     drawWorkbench: function (ctx) {
@@ -1096,8 +1104,8 @@
       var near = this.nearestInteraction && this.nearestInteraction.kind === "workbench";
       ctx.save();
       ctx.fillStyle = "rgba(20,40,46,0.35)";
-      ctx.beginPath(); ctx.ellipse(wb.x, wb.y + 32, 56, 16, 0, 0, Math.PI * 2); ctx.fill();
-      if (!(global.Assets && global.Assets.drawCentered(ctx, "lobby_workbench", wb.x, wb.y - 10, 108, 108))) {
+      ctx.beginPath(); ctx.ellipse(wb.x, wb.y + 29, 50, 14, 0, 0, Math.PI * 2); ctx.fill();
+      if (!(global.Assets && global.Assets.drawCentered(ctx, "lobby_workbench", wb.x, wb.y - 8, 96, 96))) {
         /* fallback：木作工作台（放大 1.4 對齊角色比例） */
         ctx.save();
         ctx.translate(wb.x, wb.y);
@@ -1152,8 +1160,8 @@
 
       /* 中央回收標誌（三箭頭旋轉） */
       var cx = zone.x + zone.w / 2, cy = zone.y + zone.h / 2;
-      var stationDrawn = this.drawAnimatedStation(ctx, "lobby_recycle_", 4, active ? 5 : 2, cx, cy, 96, 96);
-      if (!stationDrawn) stationDrawn = !!(global.Assets && global.Assets.drawCentered(ctx, "lobby_recycle_station", cx, cy, 96, 96, 0.95));
+      var stationDrawn = this.drawAnimatedStation(ctx, "lobby_recycle_", 4, active ? 5 : 2, cx, cy, 88, 88);
+      if (!stationDrawn) stationDrawn = !!(global.Assets && global.Assets.drawCentered(ctx, "lobby_recycle_station", cx, cy, 88, 88, 0.95));
       if (!stationDrawn) {
         ctx.save();
         ctx.translate(cx, cy);
@@ -1413,7 +1421,7 @@
     drawAvatar: function (ctx, alpha) {
       var av = this.avatar;
       alpha = alpha == null ? 1 : alpha;
-      var ps = AVATAR_WORLD;   /* 對齊背景圖比例，不用戰鬥的 RENDER_SIZES */
+      var ps = AVATAR_WORLD;   /* 對齊底圖橋寬，不用戰鬥的 RENDER_SIZES */
 
       ctx.save();
       ctx.globalAlpha = 0.3 * alpha;
