@@ -10292,6 +10292,7 @@ html.is-mobile:is(.short-visible,.mobile-low-scale) .account-heading .screen-des
 }
 .education-class-tab{
   flex:0 0 auto;
+  min-width:44px;
   min-height:44px;
   padding:7px 14px;
   color:#bcdcd3;
