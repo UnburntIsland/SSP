@@ -1,14 +1,13 @@
 /* ============================================================
-   data/taiwanRegions.js  -  台灣區域地圖（Phase 1）
-   地圖節點只選擇既有 stageId，不另建關卡或解鎖規則。
-   東部目前只作地理標示；完成 east_valley 前不建立可點節點。
+   data/taiwanRegions.js  -  台灣區域地圖
+   地圖節點只選擇既有 stageId，解鎖規則仍由關卡資料統一管理。
    ============================================================ */
 (function (global) {
   global.GameData = global.GameData || {};
 
   global.GameData.taiwanMap = {
-    version: 1,
-    imagePath: "assets/images/maps/taiwan_overview/taiwan_region_map.png?v=taiwan-map-1",
+    version: 2,
+    imagePath: "assets/images/maps/taiwan_overview/taiwan_region_map.webp?v=taiwan-map-20260730a",
     regions: [
       {
         id: "north",
@@ -41,10 +40,9 @@
         id: "east",
         name: "東部",
         countyLabel: "花蓮縣・花東山海",
-        stageId: null,
+        stageId: "east_ridge",
         stageTitle: "花蓮山海溪谷",
         learningFocus: "山林、河川與海洋是相連的系統",
-        status: "planned",
         mapNode: { xPercent: 70, yPercent: 54 }
       }
     ]

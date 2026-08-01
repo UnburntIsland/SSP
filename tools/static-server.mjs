@@ -87,7 +87,7 @@ async function runFromCli() {
   process.once("SIGTERM", close);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (typeof process !== "undefined" && process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   runFromCli().catch((error) => {
     console.error(error);
     process.exit(1);

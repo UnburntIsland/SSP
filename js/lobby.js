@@ -11,7 +11,8 @@
   /* 大廳比例依底圖的橋寬與石階重新校準，避免角色與固定設施顯得過大。 */
   var AVATAR_WORLD = 88;          /* 角色繪製尺寸（world px） */
   var LOBBY_SPEED = 185;          /* 大廳固定移動速度 */
-  var AVATAR_RADIUS = 20;         /* 腳底碰撞圓半徑 */
+  var AVATAR_RADIUS = 15;         /* 只包住雙腳，不以整張角色圖判定 */
+  var AVATAR_COLLISION_OFFSET_Y = 30;
   var SAVE_POS_INTERVAL = 4;      /* 秒；行走時定期保存位置 */
   var CAMERA_FOLLOW_RATE = 4.8;   /* 每秒追蹤率；以 dt 計算，避免高幀率鏡頭過快 */
   var BUILD_PAN_SENSITIVITY = 0.55;
@@ -35,12 +36,16 @@
 
   function W() { return global.LobbyWorld; }
   function P() { return global.LobbyPlacement; }
+  function collisionDebugEnabled() {
+    try { return new URLSearchParams(global.location.search).get("debugLobbyCollision") === "1"; }
+    catch (e) { return false; }
+  }
   function formatNumber(value) {
     return Math.max(0, Math.floor(Number(value) || 0)).toLocaleString("zh-TW");
   }
 
   /* ---------------- 大廳素材（缺圖自動 fallback 程式繪製） ---------------- */
-  var LOBBY_ASSET_VERSION = "lobby-gpt-20260726a";
+  var LOBBY_ASSET_VERSION = "lobby-gpt-20260730c";
   var LOBBY_ASSETS = {
     lobby_bg:              "assets/images/lobby/ground/lobby_map.png?v=" + LOBBY_ASSET_VERSION,
     lobby_portal:          "assets/images/lobby/portal/portal_idle_0.png?v=" + LOBBY_ASSET_VERSION,
@@ -60,6 +65,7 @@
     _savePosTimer: 0,
     _catalogTab: "functional",
     _guideOpen: false,
+    _guidePending: false,
     _guideStep: 0,
 
     /* ---------------- 初始化（App.boot 呼叫一次） ---------------- */
@@ -74,10 +80,14 @@
 
       var A = global.Assets;
       if (A && A.register) {
+        var buildingAssetKeys = [];
         Object.keys(LOBBY_ASSETS).forEach(function (key) { A.register(key, [LOBBY_ASSETS[key]]); });
         (global.GameData.lobbyBuildings || []).forEach(function (def) {
-          A.register("lobbybld_" + def.id, [def.assetBasePath + "idle_0.png?v=" + LOBBY_ASSET_VERSION]);
+          var key = "lobbybld_" + def.id;
+          A.register(key, [def.assetBasePath + "idle_0.png?v=" + LOBBY_ASSET_VERSION]);
+          buildingAssetKeys.push(key);
         });
+        if (A.load) A.load(buildingAssetKeys);
         /* 傳送門待機 6 幀、掛機回收裝置 4 幀；有幾幀用幾幀，
            一幀都沒有 → 靜態單圖 → 仍缺 → 程式繪製 fallback */
         for (var pf = 0; pf < 6; pf++) {
@@ -125,12 +135,20 @@
         buildRecycleProgress: document.getElementById("build-recycle-progress"),
         ghostBar: document.getElementById("build-ghost-bar"),
         ghostHint: document.getElementById("ghost-hint"),
+        ghostControlsHint: document.getElementById("ghost-controls-hint"),
+        ghostConfirm: document.getElementById("ghost-confirm"),
         editPanel: document.getElementById("build-edit"),
         editName: document.getElementById("build-edit-name"),
         editEffect: document.getElementById("build-edit-effect")
       };
       this.bindDom();
       this.bindPointer();
+      if (!this._rotateHintListenerBound) {
+        this._rotateHintListenerBound = true;
+        global.addEventListener("mobile-rotate-hint-closed", function () {
+          self.resumeGuideAfterRotateHint();
+        });
+      }
     },
 
     bindDom: function () {
@@ -178,7 +196,7 @@
       var x = pos && pos.x ? pos.x : spawn.x;
       var y = pos && pos.y ? pos.y : spawn.y;
       /* 存檔位置若落在阻擋內（例如配置更新後），退回出生點 */
-      var fixed = P().resolveCircle(x, y, spawn.x, spawn.y, AVATAR_RADIUS, P().collisionRects());
+      var fixed = this.resolveAvatarPosition(x, y, spawn.x, spawn.y);
       if (Math.abs(fixed.x - x) > 48 || Math.abs(fixed.y - y) > 48) { x = spawn.x; y = spawn.y; }
       else { x = fixed.x; y = fixed.y; }
 
@@ -253,6 +271,18 @@
       global.Storage.setLobbyPlayerPosition(this.avatar.x, this.avatar.y, dir, immediate !== false);
     },
 
+    resolveAvatarPosition: function (x, y, prevX, prevY) {
+      var solved = P().resolveCircle(
+        x,
+        y + AVATAR_COLLISION_OFFSET_Y,
+        prevX,
+        prevY + AVATAR_COLLISION_OFFSET_Y,
+        AVATAR_RADIUS,
+        P().collisionRects()
+      );
+      return { x: solved.x, y: solved.y - AVATAR_COLLISION_OFFSET_Y };
+    },
+
     /* ---------------- 主迴圈 ----------------
        _looping 的意義是「已排定下一幀」。進入 loop 先清旗標、
        結尾要繼續才重新排定；因此就算 stop() 是在 update() 內部
@@ -290,7 +320,7 @@
         if (mv.x || mv.y) {
           av.x += mv.x * LOBBY_SPEED * dt;
           av.y += mv.y * LOBBY_SPEED * dt;
-          var solved = P().resolveCircle(av.x, av.y, prevX, prevY, AVATAR_RADIUS, P().collisionRects());
+          var solved = this.resolveAvatarPosition(av.x, av.y, prevX, prevY);
           av.x = solved.x; av.y = solved.y;
           av.bobT += dt;
         }
@@ -383,7 +413,9 @@
           (stage ? stage.name : "海廢潮間帶") + "」";
       }
       if (this.dom.objectiveControl) {
-        this.dom.objectiveControl.textContent = touch ? "拖曳畫面移動" : "WASD / 方向鍵移動";
+        this.dom.objectiveControl.textContent = touch
+          ? "拖曳畫面移動"
+          : (global.Input && global.Input.getMovementLabel ? global.Input.getMovementLabel() : "WASD / 方向鍵移動");
       }
     },
 
@@ -393,6 +425,30 @@
       catch (error) {}
       if (global.TestMode && global.TestMode.enabled && !forceGuide) return;
       if (!forceGuide && global.Storage.isLobbyGuideCompleted && global.Storage.isLobbyGuideCompleted()) return;
+      if (global.MobileFit &&
+          global.MobileFit.shouldShowRotateHint &&
+          global.MobileFit.shouldShowRotateHint()) {
+        this._guidePending = true;
+        this._guideOpen = false;
+        if (this.dom.guideOverlay) {
+          this.dom.guideOverlay.classList.add("hidden");
+          this.dom.guideOverlay.setAttribute("aria-hidden", "true");
+        }
+        return;
+      }
+      this.openGuide();
+    },
+
+    resumeGuideAfterRotateHint: function () {
+      if (!this._guidePending || !this.running) return;
+      if (global.MobileFit &&
+          global.MobileFit.shouldShowRotateHint &&
+          global.MobileFit.shouldShowRotateHint()) return;
+      this.openGuide();
+    },
+
+    openGuide: function () {
+      this._guidePending = false;
       this._guideStep = 0;
       this._guideOpen = true;
       this.renderGuide();
@@ -427,6 +483,7 @@
     },
 
     hideGuide: function () {
+      this._guidePending = false;
       this._guideOpen = false;
       if (this.dom && this.dom.guideOverlay) {
         this.dom.guideOverlay.classList.add("hidden");
@@ -653,11 +710,27 @@
       var ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       var key = "lobbybld_" + def.id;
-      if (global.Assets && global.Assets.drawInRect && global.Assets.drawInRect(ctx, key, 6, 6, 84, 84)) return;
+      var assets = global.Assets;
+      var drawReadyAsset = function () {
+        if (!assets || !assets.ready || !assets.ready(key) || !assets.drawInRect) return false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return assets.drawInRect(ctx, key, 6, 6, 84, 84);
+      };
+      if (drawReadyAsset()) return;
       var size = P().footprintSize(def, 0);
       var scale = Math.min(72 / (size.w * 24), 72 / (size.h * 30), 1.6);
       var w = size.w * 24 * scale, h = size.h * 24 * scale;
       this.drawBuildingShape(ctx, def, (96 - w) / 2, 96 - 14 - h, w, h, 1);
+
+      if (assets && assets.ensure && !assets.failed(key)) {
+        assets.ensure(key);
+        var attempts = 0;
+        var retry = function () {
+          if (!canvas.isConnected || attempts++ >= 40 || assets.failed(key)) return;
+          if (!drawReadyAsset()) global.setTimeout(retry, 100);
+        };
+        global.setTimeout(retry, 100);
+      }
     },
 
     /* ---------------- Ghost 擺放 ---------------- */
@@ -679,9 +752,46 @@
         valid: false, reasons: []
       };
       this.validateGhost();
+      if (!this.ghost.valid) this.moveGhostToNearestValidCell();
       if (this.dom.buildSheet) this.dom.buildSheet.classList.add("hidden");
       if (this.dom.ghostBar) this.dom.ghostBar.classList.remove("hidden");
+      var firstPlacement = global.Storage && global.Storage.isPlacementHelpCompleted
+        ? !global.Storage.isPlacementHelpCompleted()
+        : true;
+      if (this.dom.ghostControlsHint) {
+        this.dom.ghostControlsHint.classList.toggle("hidden", !firstPlacement);
+      }
+      if (this.dom.ghostBar) this.dom.ghostBar.classList.toggle("first-placement", firstPlacement);
       this.updateGhostHint();
+    },
+
+    moveGhostToNearestValidCell: function () {
+      var g = this.ghost;
+      if (!g) return false;
+      var originX = g.cellX;
+      var originY = g.cellY;
+      for (var radius = 1; radius <= 10; radius++) {
+        for (var dy = -radius; dy <= radius; dy++) {
+          for (var dx = -radius; dx <= radius; dx++) {
+            if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+            var testX = originX + dx;
+            var testY = originY + dy;
+            var result = P().validate({
+              def: g.def, rotation: g.rotation, cellX: testX, cellY: testY,
+              excludeInstanceId: g.excludeInstanceId,
+              playerX: this.avatar.x, playerY: this.avatar.y,
+              mode: g.mode
+            });
+            if (!result.ok) continue;
+            g.cellX = testX;
+            g.cellY = testY;
+            g.valid = true;
+            g.reasons = [];
+            return true;
+          }
+        }
+      }
+      return false;
     },
 
     validateGhost: function () {
@@ -705,6 +815,11 @@
       this.dom.ghostHint.innerHTML = g.valid
         ? "<strong>" + name + "</strong><span class='ghost-ok'>可以放置</span>"
         : "<strong>" + name + "</strong><span class='ghost-bad'>" + (g.reasons[0] || "不可放置") + "</span>";
+      if (this.dom.ghostConfirm) {
+        this.dom.ghostConfirm.disabled = !g.valid;
+        this.dom.ghostConfirm.setAttribute("aria-disabled", String(!g.valid));
+        this.dom.ghostConfirm.title = g.valid ? "確認放置" : (g.reasons[0] || "請先移到可放置的位置");
+      }
     },
 
     moveGhostTo: function (worldX, worldY) {
@@ -759,9 +874,11 @@
       }
       this.addFloater(x + 40, y - 8, g.mode === "buy" ? "建造完成！" : "放置完成！", "#ffd45c");
       if (global.AudioManager) global.AudioManager.playSfx("click");
+      if (global.Storage && global.Storage.completePlacementHelp) global.Storage.completePlacementHelp();
       this.ghost = null;
       this.mode = "catalog";
       if (this.dom.ghostBar) this.dom.ghostBar.classList.add("hidden");
+      if (this.dom.ghostControlsHint) this.dom.ghostControlsHint.classList.add("hidden");
       if (this.dom.buildSheet) this.dom.buildSheet.classList.remove("hidden");
       this.buildCatalog();
       this.updateHud();
@@ -772,6 +889,7 @@
       this.ghost = null;
       this.mode = "catalog";
       if (this.dom.ghostBar) this.dom.ghostBar.classList.add("hidden");
+      if (this.dom.ghostControlsHint) this.dom.ghostControlsHint.classList.add("hidden");
       if (this.dom.buildSheet) this.dom.buildSheet.classList.remove("hidden");
       this.buildCatalog();
     },
@@ -988,10 +1106,19 @@
 
       /* 背景：以原生 1600x1000 尺寸繪製，讓固定裝置座標與底圖一致。 */
       if (this._bgImage) {
-        try { ctx.drawImage(this._bgImage, 0, 0, W().W, W().H); } catch (e) { this.drawFallbackGround(ctx); }
+        try {
+          ctx.imageSmoothingEnabled = true;
+          if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(this._bgImage, 0, 0, W().W, W().H);
+          ctx.imageSmoothingEnabled = false;
+        } catch (e) {
+          ctx.imageSmoothingEnabled = false;
+          this.drawFallbackGround(ctx);
+        }
       } else {
         this.drawFallbackGround(ctx);
       }
+      if (collisionDebugEnabled()) this.drawCollisionDebug(ctx);
 
       this.drawIdleZone(ctx);
       this.drawWorkbench(ctx);
@@ -1013,6 +1140,7 @@
       }
       drawables.sort(function (a, b) { return a.baseY - b.baseY; });
       drawables.forEach(function (d) { d.draw(); });
+      if (collisionDebugEnabled()) this.drawCollisionFootDebug(ctx);
 
       if (this.mode === "ghost") this.drawGhost(ctx, cam, vw, vh);
 
@@ -1034,6 +1162,66 @@
       ctx.fillRect(0, 0, W().W, W().H);
       ctx.fillStyle = "rgba(84,140,90,0.35)";
       W().blockedRects.forEach(function (r) { ctx.fillRect(r.x, r.y, r.w, r.h); });
+    },
+
+    drawCollisionDebug: function (ctx) {
+      ctx.save();
+      W().walkablePolygons.forEach(function (poly) {
+        if (!poly.points.length) return;
+        ctx.beginPath();
+        ctx.moveTo(poly.points[0][0], poly.points[0][1]);
+        for (var i = 1; i < poly.points.length; i++) {
+          ctx.lineTo(poly.points[i][0], poly.points[i][1]);
+        }
+        ctx.closePath();
+        ctx.fillStyle = "rgba(45, 224, 139, 0.22)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(140, 255, 205, 0.95)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+      (W().blockedPolygons || []).forEach(function (poly) {
+        if (!poly.points.length) return;
+        ctx.beginPath();
+        ctx.moveTo(poly.points[0][0], poly.points[0][1]);
+        for (var i = 1; i < poly.points.length; i++) {
+          ctx.lineTo(poly.points[i][0], poly.points[i][1]);
+        }
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255, 71, 87, 0.34)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 225, 228, 0.95)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+      (W().fixedCollisionRects || []).forEach(function (rect) {
+        ctx.fillStyle = "rgba(255, 71, 87, 0.34)";
+        ctx.strokeStyle = "rgba(255, 210, 214, 0.95)";
+        ctx.lineWidth = 2;
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+        ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      });
+      ctx.restore();
+    },
+
+    drawCollisionFootDebug: function (ctx) {
+      if (!this.avatar) return;
+      var footY = this.avatar.y + AVATAR_COLLISION_OFFSET_Y;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.avatar.x, footY, AVATAR_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(43, 214, 255, 0.52)";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(this.avatar.x - 6, footY);
+      ctx.lineTo(this.avatar.x + 6, footY);
+      ctx.moveTo(this.avatar.x, footY - 6);
+      ctx.lineTo(this.avatar.x, footY + 6);
+      ctx.stroke();
+      ctx.restore();
     },
 
     /* ---------------- 固定設施 ---------------- */

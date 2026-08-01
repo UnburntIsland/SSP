@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>森循島：污染潮倖存者</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css?v=lobby-terrain-ui-20260727a" />
+  <link rel="stylesheet" href="css/style.css?v=mission-settings-polish-20260730b" />
 </head>
 <body>
   <!-- 手機直向時的轉向提示（js/mobile.js 控制顯示） -->
@@ -33,6 +33,8 @@
       <div class="hud-corner hud-tc">
         <div id="hud-timer" class="hud-timer">05:00</div>
         <div id="hud-objective" class="hud-sub">散落資源每 5 秒出現</div>
+        <div id="hud-mission" class="hud-mission hidden" aria-live="polite"></div>
+        <div id="hud-terrain" class="hud-terrain hidden" aria-live="polite"></div>
         <div id="hud-zone" class="hud-zone"></div>
       </div>
       <div class="hud-corner hud-tr">
@@ -59,6 +61,10 @@
         <span class="dash-icon" aria-hidden="true">»</span>
         <span id="dash-cooldown" class="dash-cooldown"></span>
       </button>
+      <div id="touch-joystick" class="touch-joystick hidden" aria-hidden="true">
+        <span class="touch-joystick-ring"></span>
+        <span id="touch-joystick-knob" class="touch-joystick-knob"></span>
+      </div>
     </div>
 
     <!-- ===== Run objective countdown ===== -->
@@ -101,6 +107,10 @@
       <div class="lobby-topright">
         <button class="btn lobby-btn" type="button" data-action="characters">角色</button>
         <button class="btn lobby-btn" type="button" data-action="build">建造</button>
+        <button class="btn lobby-btn mission-menu-button" type="button" data-action="missions" aria-label="環境任務">
+          <span class="btn-label">環境任務</span>
+          <span id="mission-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+        </button>
         <button class="btn lobby-btn" type="button" data-action="commerce-hub">商店/扭蛋</button>
         <button class="btn lobby-btn achievement-menu-button" type="button" data-action="records-hub" aria-label="圖鑑/成就">
           <span class="btn-label">圖鑑/成就</span>
@@ -143,8 +153,8 @@
         <div class="build-sheet-header">
           <div class="build-sheet-title">建造工作台</div>
           <div id="build-tabs" class="build-tabs" role="tablist" aria-label="建造分類">
-            <button id="build-tab-functional" type="button" class="build-tab active" role="tab" aria-selected="true" aria-controls="build-list" tabindex="0" data-build-tab="functional">功能建築</button>
-            <button id="build-tab-decoration" type="button" class="build-tab" role="tab" aria-selected="false" aria-controls="build-list" tabindex="-1" data-build-tab="decoration">裝飾</button>
+            <button id="build-tab-functional" type="button" class="build-tab active" role="tab" aria-selected="true" aria-controls="build-list" tabindex="0" data-build-tab="functional"><span class="build-tab-icon build-tab-icon-functional" aria-hidden="true"></span><span>功能建築</span></button>
+            <button id="build-tab-decoration" type="button" class="build-tab" role="tab" aria-selected="false" aria-controls="build-list" tabindex="-1" data-build-tab="decoration"><span class="build-tab-icon build-tab-icon-decoration" aria-hidden="true"></span><span>裝飾</span></button>
           </div>
           <div class="build-sheet-wallet">⬢ <span id="build-materials">0</span></div>
           <button class="btn build-close" type="button" data-action="build-close">完成</button>
@@ -159,11 +169,16 @@
         <div id="build-list" class="build-list" role="tabpanel" aria-labelledby="build-tab-functional" tabindex="0"></div>
       </div>
       <div id="build-ghost-bar" class="build-ghost-bar hidden">
-        <div id="ghost-hint" class="ghost-hint"></div>
+        <div class="ghost-copy">
+          <div id="ghost-hint" class="ghost-hint"></div>
+          <div id="ghost-controls-hint" class="ghost-controls-hint hidden" role="note">
+            電腦：移動滑鼠定位，方向鍵微調；手機：單指拖曳物件、雙指平移畫面。
+          </div>
+        </div>
         <div class="ghost-actions">
           <button class="btn ghost-btn" type="button" data-action="ghost-rotate">旋轉<span class="key-hint">R</span></button>
           <button class="btn ghost-btn" type="button" data-action="ghost-cancel">取消<span class="key-hint">Esc</span></button>
-          <button class="btn btn-primary ghost-btn" type="button" data-action="ghost-confirm">確認放置</button>
+          <button id="ghost-confirm" class="btn btn-primary ghost-btn" type="button" data-action="ghost-confirm">確認放置</button>
         </div>
       </div>
       <div id="build-edit" class="build-edit hidden" role="dialog" aria-label="建築編輯">
@@ -188,13 +203,13 @@
       <div id="taiwan-portal-layout" class="taiwan-portal-layout">
         <div class="taiwan-map-column">
           <div id="taiwan-map-panel" class="taiwan-map-panel" tabindex="0" aria-label="台灣區域地圖；可使用左右方向鍵切換關卡">
-            <img id="taiwan-map-image" class="taiwan-map-image" src="assets/images/maps/taiwan_overview/taiwan_region_map.png?v=taiwan-map-1" alt="台灣北中南東四區像素地圖" />
+            <img id="taiwan-map-image" class="taiwan-map-image" data-src="assets/images/maps/taiwan_overview/taiwan_region_map.webp?v=taiwan-map-20260730a" alt="台灣北中南東四區像素地圖" />
             <div id="taiwan-map-nodes" class="taiwan-map-nodes"></div>
             <div class="taiwan-map-north" aria-hidden="true">北</div>
           </div>
           <div class="taiwan-map-status" aria-label="地圖狀態圖例">
             <span><i class="status-dot available"></i>可進入</span>
-            <span><i class="status-dot planned"></i>後續區域</span>
+            <span><i class="status-dot cleared"></i>已完成淨化</span>
           </div>
         </div>
 
@@ -207,7 +222,7 @@
           <div class="stage-carousel-shell">
             <button class="stage-arrow stage-arrow-prev" type="button" data-action="stage-prev" aria-label="上一張地圖">‹</button>
             <div id="stage-carousel-card" class="stage-carousel-card" tabindex="0" aria-live="polite">
-              <img id="stage-card-image" class="stage-card-image" src="assets/images/stages/tidal_flat_card.png?v=stages-20260711a" alt="海廢潮間帶地圖預覽" />
+              <img id="stage-card-image" class="stage-card-image" data-src="assets/images/stages/tidal_flat_card.webp?v=stages-20260730a" alt="海廢潮間帶地圖預覽" />
               <div id="stage-card-number" class="stage-card-number">第 1 關</div>
               <div id="stage-card-lock" class="stage-card-lock hidden"></div>
               <div class="stage-card-caption"><strong id="stage-card-name">海廢潮間帶</strong></div>
@@ -219,6 +234,14 @@
             <span id="stage-card-duration">5 分鐘</span>
             <span id="stage-card-difficulty">標準</span>
             <span id="stage-card-boss">BOSS：幽靈廢網</span>
+          </div>
+          <div id="run-mode-selector" class="run-mode-selector" role="group" aria-label="單局模式">
+            <button class="run-mode-option active" type="button" data-action="run-mode" data-run-mode="normal" aria-pressed="true">
+              <strong>普通</strong><span>完整流程・100% 獎勵</span>
+            </button>
+            <button class="run-mode-option" type="button" data-action="run-mode" data-run-mode="quick" aria-pressed="false">
+              <strong>快速</strong><span>60% 時間・50% 獎勵</span>
+            </button>
           </div>
           <p id="stage-card-concept" class="stage-card-concept">清理被海廢占據的潮池，阻止幽靈廢網封鎖整片海岸。</p>
           <p id="stage-learning-focus" class="stage-learning-focus">本區學習：河川垃圾如何一路進入海洋</p>
@@ -264,6 +287,7 @@
       <div class="gacha-layout">
         <div class="gacha-machine-panel">
           <div id="gacha-collection" class="gacha-collection"></div>
+          <div id="gacha-rules" class="gacha-rules" aria-live="polite"></div>
           <div id="gacha-machine" class="gacha-machine" aria-live="polite">
             <div class="gacha-capsule"><span>?</span></div>
             <div id="gacha-result" class="gacha-result">準備好後轉動扭蛋機！</div>
@@ -296,6 +320,30 @@
       <div class="screen-footer paired-page-footer">
         <button class="btn btn-page-switch" type="button" data-action="gacha" aria-label="切換至生態扭蛋">扭蛋</button>
         <button class="btn" type="button" data-action="back">返回</button>
+      </div>
+    </section>
+
+    <!-- ===== Environment missions / challenge mode ===== -->
+    <section id="screen-missions" class="screen hidden">
+      <header class="mission-header">
+        <div>
+          <h2 class="screen-title">環境任務</h2>
+          <p class="screen-desc">完成每日與每週行動，或以指定角色、建築加成接受進階挑戰。</p>
+        </div>
+        <div class="mission-summary" aria-live="polite">
+          <span id="mission-period-label">每日任務・台灣時間 00:00 重置</span>
+          <strong id="mission-claimable-count">0 項可領取</strong>
+          <button id="mission-claim-all" class="mission-claim-all" type="button" data-action="mission-claim-all">一鍵領取全部</button>
+        </div>
+      </header>
+      <div class="mission-tabs" role="tablist" aria-label="環境任務分類">
+        <button id="mission-tab-daily" class="mission-tab active" type="button" role="tab" aria-selected="true" aria-controls="mission-list" tabindex="0" data-action="mission-tab" data-mission-view="daily">每日</button>
+        <button id="mission-tab-weekly" class="mission-tab" type="button" role="tab" aria-selected="false" aria-controls="mission-list" tabindex="-1" data-action="mission-tab" data-mission-view="weekly">每週</button>
+        <button id="mission-tab-challenges" class="mission-tab" type="button" role="tab" aria-selected="false" aria-controls="mission-list" tabindex="-1" data-action="mission-tab" data-mission-view="challenges">挑戰模式</button>
+      </div>
+      <div id="mission-list" class="mission-list" role="tabpanel" aria-labelledby="mission-tab-daily" aria-live="polite"></div>
+      <div class="screen-footer mission-footer">
+        <button class="btn" type="button" data-action="back">返回大廳</button>
       </div>
     </section>
 
@@ -365,6 +413,7 @@
         <div class="help-row"><span class="help-icon" aria-hidden="true">✦</span><div><strong>自動攻擊</strong><span>戰鬥中角色會自動攻擊附近污染物；你只需要移動、閃避並選擇升級。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">⬢</span><div><strong>取得再生材料</strong><span>站進大廳掛機回收區會定期取得材料，每天有上限；擊敗 BOSS 也有每日首勝材料。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">⌂</span><div><strong>使用建造區</strong><span>靠近工作台或點右上角「建造」，消耗再生材料放置建築與裝飾；功能建築會提供出擊加成。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true">✓</span><div><strong>環境任務與挑戰</strong><span>每日任務於台灣時間 00:00 重置、每週任務於週一重置；挑戰模式會檢查目前角色與大廳中已擺放的指定建築。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">5</span><div><strong>隨機資源</strong><span>遊戲開始後每 5 秒在附近隨機出現 1 個，不會在開局一次塞滿地圖。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">♻</span><div><strong>分類回收</strong><span>塑膠瓶、鋁罐、玻璃瓶與廢電池會提供不同的經驗與循環幣。</span></div></div>
         <div class="help-row"><span class="help-icon" aria-hidden="true">+</span><div><strong>自動拾取</strong><span>走近物件即可拾取；物件會立刻從地圖消失並顯示清理獎勵。</span></div></div>
@@ -508,6 +557,7 @@
   <script src="js/data/shop.js?v=balance-20260714a"></script>
   <script src="js/data/stages.js?v=stage-carousel-20260711a"></script>
   <script src="js/data/taiwanRegions.js?v=taiwan-map-20260726a"></script>
+  <script src="js/data/environmentMissions.js?v=missions-20260728a"></script>
   <script src="js/data/achievements.js?v=chemist-20260714a"></script>
   <script src="js/data/knowledge.js?v=codex-icons-20260712a"></script>
   <script src="js/data/lobbyBuildings.js?v=lobby-assets-20260726b"></script>
@@ -518,11 +568,12 @@
   <script src="js/stageRenderer.js?v=stage-tiles-20260726b"></script>
   <script src="js/storage.js?v=discovery-20260726b"></script>
   <script src="js/lobbyEconomy.js?v=lobby-20260725a"></script>
-  <script src="js/lobbyPlacement.js?v=lobby-terrain-20260727a"></script>
+  <script src="js/environmentMissions.js?v=missions-20260728a"></script>
+  <script src="js/lobbyPlacement.js?v=recycle-zone-20260730a"></script>
   <script src="js/achievements.js?v=chemist-20260714a"></script>
   <script src="js/gacha.js?v=chemist-20260714a"></script>
   <script src="js/audioManager.js?v=audio-pack-20260726b"></script>
-  <script src="js/assets.js?v=stage-tiles-20260726b"></script>
+  <script src="js/assets.js?v=settings-icons-20260730a"></script>
   <script src="js/effects.js?v=chemist-trail-fog-20260715a"></script>
   <script src="js/sprites.js?v=chemist-20260714a"></script>
   <script src="js/animation.js"></script>
@@ -531,9 +582,9 @@
   <script src="js/player.js?v=lobby-20260725a"></script>
   <script src="js/enemy.js?v=attack-fx-20260714a"></script>
   <script src="js/weapons.js?v=chemist-trail-fog-20260715a"></script>
-  <script src="js/ui.js?v=discovery-20260726b"></script>
+  <script src="js/ui.js?v=mission-settings-polish-20260730a"></script>
   <script src="js/game.js?v=discovery-20260726b"></script>
-  <script src="js/lobby.js?v=lobby-camera-scale-20260727a"></script>
+  <script src="js/lobby.js?v=lobby-gpt-catalog-20260730b"></script>
   <script src="js/debug.js"></script>
   <script src="js/test_mode.js?v=taiwan-map-20260726a"></script>
   <script src="js/main.js?v=discovery-20260726b"></script>

@@ -73,6 +73,12 @@
       "assets/images/enemies/compactor_golem/attacks/compactor_scrap_projectile.png?v=attack-fx-20260714a" ] },
     boss_compactor_barrage_telegraph: { label: "壓縮機甲十二向預警", paths: [
       "assets/images/enemies/compactor_golem/attacks/compactor_barrage_telegraph.png?v=attack-fx-20260714a" ] },
+    enemy_landslide_colossus: { label: "崩谷巨像 (Boss)", paths: [
+      "assets/images/enemies/landslide_colossus/enemy_landslide_colossus.png?v=east-boss-20260728a" ] },
+    boss_landslide_boulder_projectile: { label: "崩谷巨像土石彈", paths: [
+      "assets/images/enemies/landslide_colossus/landslide_boulder_projectile.png?v=east-boss-20260728a" ] },
+    boss_landslide_warning_telegraph: { label: "崩谷巨像崩塌預警", paths: [
+      "assets/images/enemies/landslide_colossus/landslide_warning_telegraph.png?v=east-boss-20260728a" ] },
 
     // -------- 永續圖鑑知識圖示（GPT-image） --------
     codex_knowledge_plastic:   { label: "塑膠袋與海洋", paths: ["assets/images/codex/knowledge/icon_plastic_ocean.png?v=codex1"] },
@@ -159,9 +165,9 @@
     passive_refill_snack:   { label: "補給點心", paths: ["assets/images/ui/passives/passive_refill_snack.png"] },
 
     // -------- 暫停 / 設定 / 確認 UI 素材（有圖用圖，缺圖 → CSS fallback）--------
-    ui_panel_pause:    { label: "暫停面板底圖",     paths: ["assets/images/ui/panel_pause.png"] },
-    ui_panel_settings: { label: "設定面板底圖",     paths: ["assets/images/ui/panel_settings.png?v=buttonless1"] },
-    ui_panel_confirm:  { label: "確認視窗底圖",     paths: ["assets/images/ui/panel_confirm.png?v=buttonless1"] },
+    ui_panel_pause:    { label: "暫停面板底圖",     paths: ["assets/images/ui/panel_pause.webp?v=optimized-20260730a"] },
+    ui_panel_settings: { label: "設定面板底圖",     paths: ["assets/images/ui/panel_settings.webp?v=optimized-20260730a"] },
+    ui_panel_confirm:  { label: "確認視窗底圖",     paths: ["assets/images/ui/panel_confirm.webp?v=optimized-20260730a"] },
     ui_button_normal:  { label: "空白按鈕(一般)",   paths: ["assets/images/ui/button_blank_normal.png"] },
     ui_button_hover:   { label: "空白按鈕(滑入)",   paths: ["assets/images/ui/button_blank_hover.png"] },
     ui_button_pressed: { label: "空白按鈕(按下)",   paths: ["assets/images/ui/button_blank_pressed.png"] },
@@ -175,6 +181,15 @@
     ui_icon_cancel:    { label: "取消圖示",         paths: ["assets/images/ui/icon_cancel.png"] },
     ui_icon_confirm:   { label: "確認圖示",         paths: ["assets/images/ui/icon_confirm.png"] },
     ui_icon_pause:     { label: "暫停圖示",         paths: ["assets/images/ui/icon_pause.png"] },
+    ui_icon_quality:   { label: "畫質效能圖示",     paths: ["assets/images/ui/settings/icon_quality.png?v=settings-icons-20260730a"] },
+    ui_icon_reduce_animations: { label: "減少動畫圖示", paths: ["assets/images/ui/settings/icon_reduce_animations.png?v=settings-icons-20260730a"] },
+    ui_icon_skip_enemy_intros: { label: "略過敵人介紹圖示", paths: ["assets/images/ui/settings/icon_skip_enemy_intros.png?v=settings-icons-20260730a"] },
+    ui_icon_floating_joystick: { label: "浮動搖桿圖示", paths: ["assets/images/ui/settings/icon_floating_joystick.png?v=settings-icons-20260730a"] },
+    ui_icon_haptics:   { label: "觸控震動圖示",     paths: ["assets/images/ui/settings/icon_haptics.png?v=settings-icons-20260730a"] },
+    ui_icon_text_size: { label: "文字大小圖示",     paths: ["assets/images/ui/settings/icon_text_size.png?v=settings-icons-20260730a"] },
+    ui_icon_color_mode:{ label: "色弱模式圖示",     paths: ["assets/images/ui/settings/icon_color_mode.png?v=settings-icons-20260730a"] },
+    ui_icon_key_layout:{ label: "按鍵配置圖示",     paths: ["assets/images/ui/settings/icon_key_layout.png?v=settings-icons-20260730a"] },
+    ui_icon_touch_sensitivity: { label: "觸控靈敏度圖示", paths: ["assets/images/ui/settings/icon_touch_sensitivity.png?v=settings-icons-20260730a"] },
     ui_slider_bar:     { label: "滑桿底條",         paths: ["assets/images/ui/slider_bar.png"] },
     ui_slider_knob:    { label: "滑桿握把",         paths: ["assets/images/ui/slider_knob.png"] },
 
@@ -235,31 +250,48 @@
     try { img.src = paths[idx]; } catch (e) { tryLoad(key, paths, idx + 1); }
   }
 
+  function ensureLoad(key) {
+    if (!hasDOM() || !key || store[key] || !MANIFEST[key]) return;
+    stats.total++;
+    tryLoad(key, MANIFEST[key].paths.slice(), 0);
+  }
+
   var Assets = {
     manifest: MANIFEST,
     stats: stats,
 
-    load: function () {
+    load: function (keys) {
       if (!hasDOM()) return;
-      for (var key in MANIFEST) {
-        stats.total++;
-        tryLoad(key, MANIFEST[key].paths.slice(), 0);
+      var requested = Array.isArray(keys) ? keys : Object.keys(MANIFEST);
+      for (var i = 0; i < requested.length; i++) {
+        ensureLoad(requested[i]);
       }
     },
 
-    ready: function (key) { var e = store[key]; return !!(e && e.ok); },
+    ensure: function (key) { ensureLoad(key); },
+    ready: function (key) {
+      ensureLoad(key);
+      var e = store[key];
+      return !!(e && e.ok);
+    },
     pending: function (key) { var e = store[key]; return !!(e && e.loading); },
     failed: function (key) { var e = store[key]; return !!(e && e.failed); },
-    get: function (key) { var e = store[key]; return (e && e.ok) ? e : null; },
-    path: function (key) { var e = store[key]; return (e && e.ok) ? e.path : null; },
+    get: function (key) {
+      ensureLoad(key);
+      var e = store[key];
+      return (e && e.ok) ? e : null;
+    },
+    path: function (key) {
+      ensureLoad(key);
+      var e = store[key];
+      return (e && e.ok) ? e.path : null;
+    },
 
     // 動態註冊素材 key（例如 8 方向動畫幀）；缺圖一樣走 fallback，不報錯
     register: function (key, paths) {
       if (!hasDOM()) return;
       if (store[key] || this.manifest[key]) return;
       this.manifest[key] = { label: key, paths: paths.slice() };
-      stats.total++;
-      tryLoad(key, paths.slice(), 0);
     },
 
     // 置中、等比例縮放繪入方框（世界繪製）；成功回傳 true
@@ -313,6 +345,5 @@
     }
   };
 
-  Assets.load();
   global.Assets = Assets;
 })(window);

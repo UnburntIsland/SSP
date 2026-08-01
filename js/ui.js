@@ -86,10 +86,51 @@
   }
 
   var SETTINGS_ROWS = [
-    { key: "master", iconId: "icon-master", label: "主音量", sliderId: "vol-master", valueId: "val-master", setter: "setMaster" },
-    { key: "music", iconId: "icon-music", label: "音樂音量", sliderId: "vol-music", valueId: "val-music", setter: "setMusic" },
-    { key: "sfx", iconId: "icon-sfx", label: "音效音量", sliderId: "vol-sfx", valueId: "val-sfx", setter: "setSfx" },
-    { key: "mute", iconId: "icon-mute", label: "靜音", buttonId: "btn-mute", toggle: true }
+    { key: "master", iconId: "icon-master", iconKey: "ui_icon_settings", label: "主音量", sliderId: "vol-master", valueId: "val-master", setter: "setMaster", audio: true },
+    { key: "music", iconId: "icon-music", iconKey: "ui_icon_music", label: "音樂音量", sliderId: "vol-music", valueId: "val-music", setter: "setMusic", audio: true },
+    { key: "sfx", iconId: "icon-sfx", iconKey: "ui_icon_sfx", label: "音效音量", sliderId: "vol-sfx", valueId: "val-sfx", setter: "setSfx", audio: true },
+    { key: "mute", iconId: "icon-mute", iconKey: "ui_icon_mute", label: "靜音", buttonId: "btn-mute", toggle: true, audio: true },
+    {
+      key: "quality", iconId: "icon-quality", iconKey: "ui_icon_quality", label: "畫質／效能",
+      selectId: "pref-quality", preference: true,
+      options: [["high", "高畫質"], ["balanced", "平衡"], ["performance", "效能優先"]]
+    },
+    {
+      key: "reduceAnimations", iconId: "icon-reduce-animations", iconKey: "ui_icon_reduce_animations", label: "減少動畫",
+      buttonId: "pref-reduce-animations", toggle: true, preference: true
+    },
+    {
+      key: "skipSeenEnemyIntros", iconId: "icon-skip-enemy-intros", iconKey: "ui_icon_skip_enemy_intros", label: "略過已看過的敵人介紹",
+      buttonId: "pref-skip-enemy-intros", toggle: true, preference: true
+    },
+    {
+      key: "floatingJoystick", iconId: "icon-floating-joystick", iconKey: "ui_icon_floating_joystick", label: "浮動觸控搖桿",
+      buttonId: "pref-floating-joystick", toggle: true, preference: true
+    },
+    {
+      key: "haptics", iconId: "icon-haptics", iconKey: "ui_icon_haptics", label: "觸控震動回饋",
+      buttonId: "pref-haptics", toggle: true, preference: true
+    },
+    {
+      key: "textSize", iconId: "icon-text-size", iconKey: "ui_icon_text_size", label: "文字大小",
+      selectId: "pref-text-size", preference: true,
+      options: [["normal", "標準"], ["large", "大"], ["xlarge", "特大"]]
+    },
+    {
+      key: "colorMode", iconId: "icon-color-mode", iconKey: "ui_icon_color_mode", label: "色弱模式",
+      selectId: "pref-color-mode", preference: true,
+      options: [["default", "標準"], ["deuteranopia", "綠色弱"], ["protanopia", "紅色弱"], ["tritanopia", "藍黃色弱"]]
+    },
+    {
+      key: "keyLayout", iconId: "icon-key-layout", iconKey: "ui_icon_key_layout", label: "按鍵配置",
+      selectId: "pref-key-layout", preference: true,
+      options: [["wasd", "WASD"], ["arrows", "方向鍵"], ["ijkl", "IJKL"]]
+    },
+    {
+      key: "touchSensitivity", iconId: "icon-touch-sensitivity", iconKey: "ui_icon_touch_sensitivity", label: "觸控靈敏度",
+      sliderId: "pref-touch-sensitivity", valueId: "val-touch-sensitivity",
+      min: 50, max: 150, preference: true
+    }
   ];
 
   var UI_LAYOUT = {
@@ -105,6 +146,7 @@
         "#screen-gacha .btn",
         "#screen-achievements .screen-footer .btn",
         "#screen-achievements .achievement-claim",
+        "#screen-missions .btn",
         "#screen-help .screen-footer .btn",
         "#screen-settings .screen-footer .btn",
         "#overlay-pause .btn",
@@ -128,6 +170,9 @@
     "confirm-ok": "ui_icon_confirm",
     "confirm-character": "ui_icon_confirm",
     "achievement-claim-all": "ui_icon_confirm",
+    "mission-claim": "ui_icon_confirm",
+    "challenge-claim": "ui_icon_confirm",
+    "challenge-start": "ui_icon_confirm",
     back: "ui_icon_back",
     start: "ui_icon_confirm",
     menu: "ui_icon_home"
@@ -213,6 +258,7 @@
     if (!row || !def) return;
     row.className = "setting-row";
     row.dataset.setting = def.key;
+    row.dataset.control = def.toggle ? "toggle" : (def.selectId ? "select" : "slider");
 
     var icon = row.querySelector(".setting-icon");
     if (!icon) {
@@ -221,6 +267,7 @@
     }
     icon.id = def.iconId;
     icon.setAttribute("aria-hidden", "true");
+    icon.textContent = def.symbol || "";
 
     var label = row.querySelector(".setting-label");
     if (!label) {
@@ -240,6 +287,8 @@
         row.appendChild(slider);
       }
       slider.id = def.sliderId;
+      slider.min = String(def.min == null ? 0 : def.min);
+      slider.max = String(def.max == null ? 100 : def.max);
       slider.setAttribute("aria-label", def.label);
       label.setAttribute("for", def.sliderId);
     } else if (slider) {
@@ -258,6 +307,27 @@
       value.remove();
     }
 
+    var select = def.selectId ? row.querySelector(".setting-select") : null;
+    if (def.selectId) {
+      if (!select) {
+        select = document.createElement("select");
+        select.className = "setting-select";
+        row.appendChild(select);
+      }
+      select.id = def.selectId;
+      select.setAttribute("aria-label", def.label);
+      select.innerHTML = "";
+      (def.options || []).forEach(function (option) {
+        var node = document.createElement("option");
+        node.value = option[0];
+        node.textContent = option[1];
+        select.appendChild(node);
+      });
+      label.setAttribute("for", def.selectId);
+    } else if (select) {
+      select.remove();
+    }
+
     var button = def.buttonId ? row.querySelector(".toggle") : null;
     if (def.toggle) {
       if (!button) {
@@ -270,6 +340,39 @@
     } else if (button) {
       button.remove();
     }
+  }
+
+  function characterUnlockHint(characterId) {
+    if (characterId === "mechanic") return "完成第 2 關固定解鎖，也可從生態扭蛋提前取得";
+    if (characterId === "chemist") return "完成第 3 關固定解鎖，也可從生態扭蛋提前取得";
+    return "可從生態扭蛋解鎖";
+  }
+
+  function applyGamePreferences(preferences) {
+    var prefs = preferences || (global.Storage && global.Storage.getPreferences
+      ? global.Storage.getPreferences()
+      : {
+        quality: "balanced", reduceAnimations: false, skipSeenEnemyIntros: true,
+        floatingJoystick: true, haptics: true, textSize: "normal",
+        colorMode: "default", keyLayout: "wasd", touchSensitivity: 100
+      });
+    var root = document.documentElement;
+    ["high", "balanced", "performance"].forEach(function (value) {
+      root.classList.toggle("quality-" + value, prefs.quality === value);
+    });
+    ["normal", "large", "xlarge"].forEach(function (value) {
+      root.classList.toggle("text-size-" + value, prefs.textSize === value);
+    });
+    ["default", "deuteranopia", "protanopia", "tritanopia"].forEach(function (value) {
+      root.classList.toggle("color-mode-" + value, prefs.colorMode === value);
+    });
+    root.classList.toggle("reduce-animations", !!prefs.reduceAnimations);
+    root.style.setProperty("--user-text-scale", prefs.textSize === "xlarge" ? "1.25" : (prefs.textSize === "large" ? "1.12" : "1"));
+    if (global.Input && global.Input.setKeyLayout) global.Input.setKeyLayout(prefs.keyLayout);
+    if (global.Input && global.Input.setTouchSensitivity) global.Input.setTouchSensitivity(prefs.touchSensitivity);
+    if (global.Input && global.Input.setFloatingJoystick) global.Input.setFloatingJoystick(prefs.floatingJoystick);
+    if (global.Input && global.Input.setHaptics) global.Input.setHaptics(prefs.haptics);
+    return prefs;
   }
 
   function focusWithoutScroll(target) {
@@ -359,6 +462,7 @@
         characterList: $("character-list"),
         characterDetail: $("character-detail"),
         gachaCollection: $("gacha-collection"),
+        gachaRules: $("gacha-rules"),
         gachaMachine: $("gacha-machine"),
         gachaResult: $("gacha-result"),
         gachaPool: $("gacha-pool"),
@@ -378,11 +482,17 @@
         achievementMenuBadge: $("achievement-menu-badge"),
         achievementCodexBadge: $("achievement-codex-badge"),
         achievementClaimAll: $("achievement-claim-all"),
+        missionList: $("mission-list"),
+        missionPeriodLabel: $("mission-period-label"),
+        missionClaimableCount: $("mission-claimable-count"),
+        missionClaimAll: $("mission-claim-all"),
+        missionMenuBadge: $("mission-menu-badge"),
         codexList: $("codex-list"), codexDesc: $("codex-view-desc"),
         hud: $("hud"),
         hpFill: $("hp-fill"), hpText: $("hp-text"),
-        timer: $("hud-timer"), objective: $("hud-objective"), zone: $("hud-zone"),
+        timer: $("hud-timer"), objective: $("hud-objective"), mission: $("hud-mission"), terrain: $("hud-terrain"), zone: $("hud-zone"),
         runIntroOverlay: $("overlay-run-intro"), runIntroGoal: $("run-intro-goal"),
+        runIntroDesc: document.querySelector("#overlay-run-intro .run-intro-desc"),
         runIntroCountdown: $("run-intro-countdown"), runIntroSkipHint: $("run-intro-skip-hint"),
         enemyIntroOverlay: $("overlay-enemy-intro"), enemyIntroCard: $("enemy-intro-card"),
         enemyIntroEyebrow: $("enemy-intro-eyebrow"), enemyIntroPortrait: $("enemy-intro-portrait"),
@@ -425,6 +535,7 @@
       this._passiveHudSig = null;
       installDialogFocusTrap();
       this.initSettings();
+      this.applyPreferences();
       if (this.dom.dashButton) {
         this.dom.dashButton.addEventListener("pointerdown", function (e) {
           e.preventDefault();
@@ -498,10 +609,24 @@
           focusWithoutScroll(tabs[next]);
         });
       });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-mission-view]"), function (tab) {
+        tab.addEventListener("keydown", function (e) {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+          var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-mission-view]"));
+          var current = tabs.indexOf(tab);
+          var next = e.key === "Home" ? 0 : (e.key === "End" ? tabs.length - 1 : current + (e.key === "ArrowRight" ? 1 : -1));
+          next = (next + tabs.length) % tabs.length;
+          e.preventDefault();
+          uiSelf.app.openEnvironmentMissions(tabs[next].dataset.missionView);
+          focusWithoutScroll(tabs[next]);
+        });
+      });
       this._achievementGroup = "all";
+      this._missionView = "daily";
       this.applyUiAssets();
       this.updateHomeCharacterPreview(app && app.selectedCharacterId);
       this.updateAchievementMenuBadge();
+      this.updateEnvironmentMissionBadge();
       this.scheduleUiAssetRefresh();
     },
 
@@ -696,12 +821,12 @@
         card.setAttribute("role", "button");
         card.setAttribute("tabindex", "0");
         card.setAttribute("aria-pressed", ch.id === selectedId ? "true" : "false");
-        card.setAttribute("aria-label", ch.name + "，" + (owned ? ch.role : "尚未解鎖，需從扭蛋取得") + (progress.availablePoints > 0 ? "，可用技能點 " + progress.availablePoints : ""));
+        card.setAttribute("aria-label", ch.name + "，" + (owned ? ch.role : "尚未解鎖，" + characterUnlockHint(ch.id)) + (progress.availablePoints > 0 ? "，可用技能點 " + progress.availablePoints : ""));
         var portrait = makeCharacterVisual(ch, global.Storage.getEquippedSkin(ch.id), "char-portrait", 4);
         card.appendChild(portrait);
         var brief = el("div", "guardian-list-copy");
         brief.appendChild(el("div", "char-name", ch.name));
-        brief.appendChild(el("div", "char-role", owned ? ch.role : "🔒 扭蛋取得"));
+        brief.appendChild(el("div", "char-role", owned ? ch.role : "🔒 " + characterUnlockHint(ch.id)));
         card.appendChild(brief);
         if (progress.availablePoints > 0) card.appendChild(el("span", "guardian-point-badge", String(progress.availablePoints)));
         if (self.app.selectedCharacterId === ch.id) card.appendChild(el("span", "guardian-current-mark", "使用中"));
@@ -732,7 +857,7 @@
       showcase.appendChild(el("div", "guardian-role", "定位：" + selected.role));
       showcase.appendChild(el("div", "guardian-skill", "初始技能：" + (skill ? skill.name : selected.startingSkill)));
       showcase.appendChild(el("div", "guardian-passive", "被動：" + selected.passiveText));
-      if (!owned) showcase.appendChild(el("div", "guardian-unlock-hint", "可從生態扭蛋解鎖；已抽到的 Skin 會先保留。"));
+      if (!owned) showcase.appendChild(el("div", "guardian-unlock-hint", characterUnlockHint(selected.id) + "；挑戰模式可免費租借指定角色，已抽到的 Skin 會先保留。"));
       detail.appendChild(showcase);
 
       var manage = el("div", "guardian-manage");
@@ -882,6 +1007,7 @@
         bonus = result.skin.statName + " +10%";
         accent = result.skin.accent || "#4dd0c4";
       }
+      if (result.guaranteed) desc += "　本次觸發新獎勵保底。";
 
       if (d.gachaRewardPanel) {
         d.gachaRewardPanel.classList.remove("new-character", "duplicate-character", "new-skin");
@@ -930,6 +1056,15 @@
       var ownedSkins = global.Storage.data.ownedSkins.length;
       var ownedCharacters = global.GameData.characters.filter(function (ch) { return global.Storage.isCharacterOwned(ch.id); }).length;
       this.dom.gachaCollection.innerHTML = "<span>角色 " + ownedCharacters + "/" + global.GameData.characters.length + "</span><span>Skin " + ownedSkins + "/" + global.GameData.skins.length + "</span><span>獎池 " + pool.length + " 項</span>";
+      var pity = global.Gacha.getPityStatus();
+      if (this.dom.gachaRules) {
+        this.dom.gachaRules.innerHTML =
+          "<strong>重複補償</strong> 已擁有角色會轉換為該角色技能點 +1。" +
+          (pity.hasNewReward
+            ? "<span>新獎勵保底 " + pity.sinceNew + " / " + pity.guaranteeAt +
+              "（最晚再 " + pity.pullsUntilGuarantee + " 抽）</span>"
+            : "<span>新獎勵已全數收藏；後續角色抽取會轉換為技能點。</span>");
+      }
       this.dom.gachaPool.innerHTML = "";
       pool.forEach(function (item) {
         var row = el("div", "gacha-pool-item " + item.type);
@@ -1063,6 +1198,247 @@
           self._shopIconRefreshTimer = null;
         }
       }, 100);
+    },
+
+    setEnvironmentMissionView: function (view) {
+      if (view !== "weekly" && view !== "challenges") view = "daily";
+      this._missionView = view;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-mission-view]"), function (tab) {
+        var active = tab.dataset.missionView === view;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+      if (this.dom.missionList) {
+        this.dom.missionList.setAttribute("aria-labelledby", "mission-tab-" + view);
+      }
+      this.buildEnvironmentMissions(view);
+    },
+
+    updateEnvironmentMissionBadge: function () {
+      if (!this.dom || !global.EnvironmentMissions) return;
+      var count = global.EnvironmentMissions.getClaimableCount();
+      var badge = this.dom.missionMenuBadge;
+      if (badge) {
+        badge.textContent = count > 99 ? "99+" : String(count);
+        badge.classList.toggle("hidden", count <= 0);
+        badge.setAttribute("aria-hidden", String(count <= 0));
+        var button = badge.closest("button");
+        if (button) button.setAttribute("aria-label", count ? ("環境任務，有 " + count + " 項獎勵可領取") : "環境任務");
+      }
+      if (this.dom.missionClaimableCount) {
+        this.dom.missionClaimableCount.textContent = count + " 項可領取";
+      }
+      if (this.dom.missionClaimAll) this.dom.missionClaimAll.disabled = count <= 0;
+    },
+
+    updateEnvironmentMissionCountdown: function (view) {
+      if (!this.dom || !this.dom.missionPeriodLabel || !global.EnvironmentMissions) return;
+      if (view === "challenges") {
+        this.dom.missionPeriodLabel.textContent = "挑戰紀錄永久保留・首次通關獎勵僅可領取一次";
+        return;
+      }
+      var info = global.EnvironmentMissions.getResetInfo(view);
+      var seconds = Math.max(0, Math.ceil(info.remainingMs / 1000));
+      var days = Math.floor(seconds / 86400);
+      var hours = Math.floor((seconds % 86400) / 3600);
+      var minutes = Math.floor((seconds % 3600) / 60);
+      var shortTime = (days ? days + "天 " : "") +
+        String(hours).padStart(2, "0") + ":" +
+        String(minutes).padStart(2, "0");
+      this.dom.missionPeriodLabel.textContent =
+        (view === "daily" ? "每日任務" : "每週任務") + "・剩餘 " + shortTime + " 後重置";
+    },
+
+    scheduleEnvironmentMissionCountdown: function (view) {
+      clearInterval(this._missionCountdownTimer);
+      this.updateEnvironmentMissionCountdown(view);
+      if (view === "challenges") return;
+      var self = this;
+      this._missionCountdownTimer = setInterval(function () {
+        var screen = document.getElementById("screen-missions");
+        if (!screen || screen.classList.contains("hidden")) {
+          clearInterval(self._missionCountdownTimer);
+          self._missionCountdownTimer = null;
+          return;
+        }
+        self.updateEnvironmentMissionCountdown(self._missionView);
+      }, 30000);
+    },
+
+    buildEnvironmentMissions: function (view) {
+      var list = this.dom && this.dom.missionList;
+      if (!list || !global.EnvironmentMissions) return;
+      if (view !== "weekly" && view !== "challenges") view = "daily";
+      this._missionView = view;
+      list.innerHTML = "";
+      this.scheduleEnvironmentMissionCountdown(view);
+
+      if (view === "challenges") {
+        global.EnvironmentMissions.getChallenges().forEach(function (challenge) {
+          var stateClass = challenge.completed
+            ? (challenge.claimed ? "is-claimed" : "is-claimable")
+            : (challenge.ready ? "is-ready" : "is-locked");
+          var card = el("article", "mission-card challenge-card " + stateClass);
+          card.dataset.challengeId = challenge.id;
+
+          var heading = el("div", "mission-card-heading");
+          var titleWrap = el("div");
+          titleWrap.appendChild(el("span", "mission-scope-label", "挑戰關卡・" + challenge.stageName));
+          titleWrap.appendChild(el("h3", "mission-title", challenge.title));
+          heading.appendChild(titleWrap);
+          heading.appendChild(el("span", "mission-status", challenge.completed
+            ? (challenge.claimed ? "已完成" : "獎勵待領")
+            : (challenge.ready ? "可出擊" : "條件不足")));
+          card.appendChild(heading);
+          card.appendChild(el("p", "mission-description", challenge.description));
+
+          var requirements = el("div", "challenge-requirements");
+          if (challenge.requiredCharacterName) {
+            var characterReady = challenge.characterSelected;
+            var characterLabel = "角色：" + challenge.requiredCharacterName;
+            if (challenge.characterRental) characterLabel += "（免費租借）";
+            requirements.appendChild(el("span", "challenge-chip " + (characterReady ? "ready" : "unmet"), characterLabel));
+          }
+          if (challenge.requiredBuildingName) {
+            var buildingReady = challenge.buildingPlaced;
+            requirements.appendChild(el("span", "challenge-chip " + (buildingReady ? "ready" : "unmet"), "建築：" + challenge.requiredBuildingName));
+          }
+          requirements.appendChild(el("span", "challenge-chip goal", "目標：" + global.EnvironmentMissions.goalText(challenge.goal)));
+          card.appendChild(requirements);
+
+          var modifier = el("div", "challenge-modifier");
+          modifier.appendChild(el("strong", "", "額外條件"));
+          modifier.appendChild(el("span", "", challenge.modifierText || "標準難度"));
+          card.appendChild(modifier);
+          if (challenge.reasons.length) {
+            card.appendChild(el("p", "challenge-reason", challenge.reasons.join("；")));
+          }
+
+          if (challenge.attempts > 0) {
+            var best = challenge.best || {};
+            var records = el("div", "challenge-best");
+            records.appendChild(el("strong", "challenge-best-title", "個人最佳"));
+            var recordGrid = el("div", "challenge-best-grid");
+            recordGrid.appendChild(el("span", "", "淨化數 " + Math.max(0, best.purified | 0)));
+            recordGrid.appendChild(el("span", "", "清理數 " + Math.max(0, best.mapCleaned | 0)));
+            recordGrid.appendChild(el("span", "", "存活 " + fmtTime(Math.floor(best.survived || 0))));
+            records.appendChild(recordGrid);
+            var goalList = el("div", "challenge-goal-results");
+            (challenge.goalResults || []).forEach(function (goalResult) {
+              goalList.appendChild(el(
+                "span",
+                "challenge-goal-result " + (goalResult.met ? "met" : "unmet"),
+                (goalResult.met ? "✓ " : "○ ") + goalResult.label + "：" + goalResult.value
+              ));
+            });
+            records.appendChild(goalList);
+            card.appendChild(records);
+          }
+
+          if (!challenge.ready) {
+            var helpers = el("div", "challenge-helper-actions");
+            if (!challenge.stageUnlocked) {
+              var unlockButton = el("button", "btn challenge-helper", "查看解鎖方式");
+              unlockButton.type = "button";
+              unlockButton.dataset.action = "challenge-unlock";
+              unlockButton.dataset.challengeId = challenge.id;
+              helpers.appendChild(unlockButton);
+            }
+            if (challenge.requiredCharacterId && challenge.characterOwned && !challenge.characterSelected) {
+              var characterButton = el("button", "btn challenge-helper", "切換角色");
+              characterButton.type = "button";
+              characterButton.dataset.action = "challenge-character";
+              characterButton.dataset.challengeId = challenge.id;
+              helpers.appendChild(characterButton);
+            }
+            if (challenge.requiredBuildingId && !challenge.buildingPlaced) {
+              var buildButton = el("button", "btn challenge-helper", "前往建造");
+              buildButton.type = "button";
+              buildButton.dataset.action = "challenge-build";
+              buildButton.dataset.challengeId = challenge.id;
+              helpers.appendChild(buildButton);
+            }
+            if (helpers.children.length) card.appendChild(helpers);
+          }
+
+          var footer = el("div", "mission-card-footer");
+          footer.appendChild(el(
+            "strong",
+            "mission-reward",
+            "首次通關獎勵 " + challenge.rewardLabel + (challenge.claimed ? "（已領取）" : "")
+          ));
+          footer.appendChild(el("span", "challenge-attempts", "嘗試 " + challenge.attempts + " 次"));
+          var action;
+          if (challenge.completed && !challenge.claimed) {
+            action = el("button", "btn btn-primary", "領取獎勵");
+            action.dataset.action = "challenge-claim";
+          } else {
+            var challengeActionLabel = challenge.claimed ? "再次挑戰" :
+              (challenge.characterRental ? "租借角色並開始" : "開始挑戰");
+            action = el("button", "btn" + (challenge.ready ? " btn-primary" : ""), challengeActionLabel);
+            action.dataset.action = "challenge-start";
+            action.disabled = !challenge.ready;
+          }
+          action.type = "button";
+          action.dataset.challengeId = challenge.id;
+          footer.appendChild(action);
+          card.appendChild(footer);
+          list.appendChild(card);
+        });
+      } else {
+        global.EnvironmentMissions.getMissions(view).forEach(function (mission) {
+          var stateClass = mission.claimed ? "is-claimed" : (mission.complete ? "is-claimable" : "is-progressing");
+          var card = el("article", "mission-card " + stateClass);
+          card.dataset.missionId = mission.id;
+          var heading = el("div", "mission-card-heading");
+          var titleWrap = el("div");
+          titleWrap.appendChild(el("span", "mission-scope-label", view === "daily" ? "每日行動" : "每週行動"));
+          titleWrap.appendChild(el("h3", "mission-title", mission.title));
+          heading.appendChild(titleWrap);
+          heading.appendChild(el("span", "mission-status", mission.claimed ? "已領取" : (mission.complete ? "可領取" : "進行中")));
+          card.appendChild(heading);
+          card.appendChild(el("p", "mission-description", mission.description));
+
+          var progressRow = el("div", "mission-progress-row");
+          var progress = el("div", "mission-progress");
+          progress.setAttribute("role", "progressbar");
+          progress.setAttribute("aria-valuemin", "0");
+          progress.setAttribute("aria-valuemax", String(mission.target));
+          progress.setAttribute("aria-valuenow", String(mission.progress));
+          progress.setAttribute("aria-label", mission.title + "進度");
+          progress.setAttribute("aria-valuetext", mission.progress + " / " + mission.target);
+          var fill = el("span");
+          fill.style.width = Math.min(100, mission.progress / mission.target * 100) + "%";
+          progress.appendChild(fill);
+          progressRow.appendChild(progress);
+          progressRow.appendChild(el("strong", "mission-progress-value", mission.progress + " / " + mission.target));
+          card.appendChild(progressRow);
+
+          var footer = el("div", "mission-card-footer");
+          footer.appendChild(el("strong", "mission-reward", "獎勵 " + mission.rewardLabel));
+          var button = el("button", "btn btn-primary", mission.claimed ? "已領取" : (mission.complete ? "領取" : "進行中"));
+          button.type = "button";
+          button.dataset.action = "mission-claim";
+          button.dataset.missionScope = view;
+          button.dataset.missionId = mission.id;
+          button.disabled = mission.claimed || !mission.complete;
+          footer.appendChild(button);
+          var trackButton = el("button", "btn mission-track-button", mission.tracked ? "取消追蹤" : "追蹤到 HUD");
+          trackButton.type = "button";
+          trackButton.dataset.action = "mission-track";
+          trackButton.dataset.missionScope = view;
+          trackButton.dataset.missionId = mission.id;
+          trackButton.setAttribute("aria-pressed", String(!!mission.tracked));
+          footer.appendChild(trackButton);
+          card.appendChild(footer);
+          list.appendChild(card);
+        });
+      }
+      if (!list.children.length) list.appendChild(el("p", "mission-empty", "目前沒有可顯示的任務。"));
+      this.updateEnvironmentMissionBadge();
+      this.normalizeActionButtons();
+      this.applyUiAssets();
     },
 
     setAchievementGroup: function (group) {
@@ -1390,24 +1766,57 @@
       var d = this.dom;
       d.hpFill.style.width = Math.max(0, (p.hp / p.maxHp) * 100) + "%";
       d.hpText.textContent = Math.ceil(p.hp) + " / " + p.maxHp;
-      var remaining = Math.max(0, game.stage.duration - game.time);
+      var overtimeActive = !!game.overtimeActive;
+      var remaining = overtimeActive
+        ? Math.max(0, game.overtimeRemaining)
+        : Math.max(0, (game.runDuration || game.stage.duration) - game.time);
       var finalCountdown = !game.runIntroActive && remaining > 0 && remaining <= 10;
-      d.timer.textContent = fmtTime(Math.ceil(remaining));
+      d.timer.textContent = (overtimeActive ? "暴走 " : "") + fmtTime(Math.ceil(remaining));
       d.timer.classList.toggle("final-countdown", finalCountdown);
+      d.timer.classList.toggle("overtime", overtimeActive);
       d.timer.setAttribute("aria-live", finalCountdown ? "assertive" : "off");
-      d.timer.setAttribute("aria-label", finalCountdown ? "最後 " + Math.ceil(remaining) + " 秒" : "剩餘時間 " + d.timer.textContent);
+      d.timer.setAttribute(
+        "aria-label",
+        overtimeActive
+          ? "污染暴走延長賽，剩餘 " + Math.ceil(remaining) + " 秒"
+          : (finalCountdown ? "最後 " + Math.ceil(remaining) + " 秒" : "剩餘時間 " + d.timer.textContent)
+      );
       if (d.objective) {
-        if (remaining <= 0 && game.stage.bossId && !game.bossDefeated) {
-          d.objective.textContent = "時間到：擊敗 " + (game.stage.bossName || "BOSS") + "！";
-        } else if (finalCountdown) d.objective.textContent = "最後 " + Math.ceil(remaining) + " 秒，撐住！";
-        else if (game.runIntroActive) d.objective.textContent = "準備迎接污染潮";
+        if (game.runIntroActive) d.objective.textContent = "準備迎接污染潮";
         else if (game.mapObjectiveStatus) d.objective.textContent = game.mapObjectiveStatus();
-        d.objective.classList.toggle("final-warning", finalCountdown);
+        d.objective.classList.toggle("final-warning", finalCountdown || overtimeActive);
+      }
+      if (d.terrain) {
+        d.terrain.textContent = game.terrainStatus || "";
+        d.terrain.classList.toggle("hidden", !game.terrainStatus);
+      }
+      if (d.mission && global.EnvironmentMissions && global.EnvironmentMissions.getTrackedMission) {
+        var trackedMission = global.EnvironmentMissions.getTrackedMission();
+        d.mission.textContent = trackedMission
+          ? ("追蹤｜" + trackedMission.title + " " + trackedMission.progress + "/" + trackedMission.target)
+          : "";
+        d.mission.classList.toggle("hidden", !trackedMission);
       }
       if (d.runIntroOverlay) {
         d.runIntroOverlay.classList.toggle("hidden", !game.runIntroActive);
         if (game.runIntroActive) {
-          if (d.runIntroGoal) d.runIntroGoal.textContent = game.stage.objective || objectiveTimeLabel(game.stage.duration);
+          if (d.runIntroGoal) {
+            d.runIntroGoal.textContent = game.challenge
+              ? ("挑戰模式：" + game.challenge.title)
+              : ((game.runMode === "quick" ? "快速模式：" : "") +
+                objectiveTimeLabel(game.runDuration || game.stage.duration) +
+                (game.stage.bossId ? "並擊敗" + game.stage.bossName : ""));
+          }
+          if (d.runIntroDesc) {
+            var introDescription = game.challenge
+              ? (global.EnvironmentMissions.goalText(game.challenge.goal) + "；" + (game.challenge.modifierText || "進階條件啟用"))
+              : (game.stage.terrainHint || "撐到計時歸零並擊敗本關 BOSS，兩項條件都完成才算通關。");
+            if (game.stage.bossId) {
+              introDescription += "；時間到但 BOSS 尚未淨化時，將進入 " +
+                Math.round(game.overtimeDuration || 30) + " 秒污染暴走延長賽。";
+            }
+            d.runIntroDesc.textContent = introDescription;
+          }
           if (d.runIntroCountdown) d.runIntroCountdown.textContent = Math.max(1, Math.ceil(game.runIntroRemaining || 0));
         }
       }
@@ -1643,15 +2052,21 @@
 
     /* ---------------- 暫停選單 ---------------- */
     showPause: function (show) {
-      if (show) { this.normalizeActionButtons(); this.applyUiAssets(); }
-      if (show) openDialog(this.dom.overlayPause, '[data-action="resume"]');
+      if (show) {
+        this.normalizeActionButtons();
+        openDialog(this.dom.overlayPause, '[data-action="resume"]');
+        this.applyUiAssets("pause");
+      }
       else closeDialog(this.dom.overlayPause);
     },
 
     /* ---------------- 確認視窗 ---------------- */
     showConfirm: function (show) {
-      if (show) { this.normalizeActionButtons(); this.applyUiAssets(); }
-      if (show) openDialog(this.dom.overlayConfirm, '[data-action="confirm-cancel"]');
+      if (show) {
+        this.normalizeActionButtons();
+        openDialog(this.dom.overlayConfirm, '[data-action="confirm-cancel"]');
+        this.applyUiAssets("confirm");
+      }
       else closeDialog(this.dom.overlayConfirm);
     },
     setConfirm: function (title, desc, okLabel) {
@@ -1676,10 +2091,7 @@
         attempts++;
         self.applyUiAssets();
         var root = document.getElementById("game-root");
-        var coreReady = root && root.classList.contains("has-ui-buttons") &&
-          $("pause-panel") && $("pause-panel").classList.contains("has-asset") &&
-          $("settings-panel") && $("settings-panel").classList.contains("has-asset") &&
-          $("confirm-panel") && $("confirm-panel").classList.contains("has-asset");
+        var coreReady = root && root.classList.contains("has-ui-buttons");
         if (coreReady || attempts >= 20) {
           if (self.app && self.app.selectedCharacterId) self.updateHomeCharacterPreview(self.app.selectedCharacterId);
           clearInterval(self._assetRefreshTimer);
@@ -1755,7 +2167,8 @@
           label: rectInfo(row ? row.querySelector(".setting-label") : null),
           slider: rectInfo(def.sliderId ? $(def.sliderId) : null),
           value: rectInfo(def.valueId ? $(def.valueId) : null),
-          toggle: rectInfo(def.buttonId ? $(def.buttonId) : null)
+          toggle: rectInfo(def.buttonId ? $(def.buttonId) : null),
+          select: rectInfo(def.selectId ? $(def.selectId) : null)
         };
       });
 
@@ -1816,8 +2229,10 @@
         }
 
         if (r.slider) {
-          sliderXs.push(r.slider.x);
-          sliderRights.push(r.slider.right);
+          if (key === "master" || key === "music" || key === "sfx") {
+            sliderXs.push(r.slider.x);
+            sliderRights.push(r.slider.right);
+          }
           if (panel && (r.slider.x < panel.x || r.slider.right > panel.right)) errors.push(key + " slider is outside panel");
           if (!responsiveGrid && Math.abs(r.slider.centerY - r.row.centerY) > 3) errors.push(key + " slider center is not aligned with row");
           if (root.classList.contains("is-mobile") && r.slider.height < 44) errors.push(key + " slider touch area is below 44px");
@@ -1829,6 +2244,10 @@
         }
         if (r.toggle && root.classList.contains("is-mobile") && r.toggle.height < 44) {
           errors.push(key + " toggle touch area is below 44px");
+        }
+        if (r.select) {
+          if (panel && (r.select.x < panel.x || r.select.right > panel.right)) errors.push(key + " select is outside panel");
+          if (root.classList.contains("is-mobile") && r.select.height < 44) errors.push(key + " select touch area is below 44px");
         }
       });
 
@@ -1995,6 +2414,10 @@
       return { ok: errors.length === 0, errors: errors, checks: checks };
     },
 
+    applyPreferences: function (preferences) {
+      return applyGamePreferences(preferences);
+    },
+
     initSettings: function () {
       var self = this;
       var A = global.AudioManager;
@@ -2008,8 +2431,41 @@
         slider.addEventListener("change", function () { if (A) A.playSfx("click"); });
       }
       SETTINGS_ROWS.forEach(function (def) {
-        if (!def.sliderId) return;
-        bind($(def.sliderId), $(def.valueId), def.setter);
+        if (def.audio && def.sliderId) bind($(def.sliderId), $(def.valueId), def.setter);
+        if (!def.preference) return;
+        var select = def.selectId ? $(def.selectId) : null;
+        var slider = def.sliderId ? $(def.sliderId) : null;
+        var button = def.buttonId ? $(def.buttonId) : null;
+        if (select) {
+          select.addEventListener("change", function () {
+            var patch = {};
+            patch[def.key] = select.value;
+            self.applyPreferences(global.Storage.setPreferences(patch));
+            self.refreshSettings();
+            if (A) A.playSfx("click");
+          });
+        }
+        if (slider) {
+          slider.addEventListener("input", function () {
+            var patch = {};
+            patch[def.key] = parseInt(slider.value, 10) || 100;
+            var prefs = global.Storage.setPreferences(patch);
+            var value = def.valueId ? $(def.valueId) : null;
+            if (value) value.textContent = prefs[def.key] + "%";
+            self.applyPreferences(prefs);
+          });
+          slider.addEventListener("change", function () { if (A) A.playSfx("click"); });
+        }
+        if (button) {
+          button.addEventListener("click", function () {
+            var current = global.Storage.getPreferences();
+            var patch = {};
+            patch[def.key] = !current[def.key];
+            self.applyPreferences(global.Storage.setPreferences(patch));
+            self.refreshSettings();
+            if (A) A.playSfx("click");
+          });
+        }
       });
       if (this.dom.btnMute) {
         this.dom.btnMute.addEventListener("click", function () {
@@ -2024,6 +2480,7 @@
       this.applyUiAssets();
       var A = global.AudioManager;
       var s = A ? A.getSettings() : { master: 80, music: 70, sfx: 80, mute: false };
+      var prefs = global.Storage && global.Storage.getPreferences ? global.Storage.getPreferences() : null;
       var d = this.dom;
       if (d.volMaster) { d.volMaster.value = s.master; d.valMaster.textContent = s.master; }
       if (d.volMusic) { d.volMusic.value = s.music; d.valMusic.textContent = s.music; }
@@ -2033,10 +2490,28 @@
         d.btnMute.classList.toggle("on", !!s.mute);
         d.btnMute.setAttribute("aria-pressed", String(!!s.mute));
       }
+      if (prefs) {
+        SETTINGS_ROWS.forEach(function (def) {
+          if (!def.preference) return;
+          var select = def.selectId ? $(def.selectId) : null;
+          var slider = def.sliderId ? $(def.sliderId) : null;
+          var value = def.valueId ? $(def.valueId) : null;
+          var button = def.buttonId ? $(def.buttonId) : null;
+          if (select) select.value = prefs[def.key];
+          if (slider) slider.value = prefs[def.key];
+          if (value) value.textContent = prefs[def.key] + "%";
+          if (button) {
+            button.textContent = prefs[def.key] ? "已開啟" : "已關閉";
+            button.classList.toggle("on", !!prefs[def.key]);
+            button.setAttribute("aria-pressed", String(!!prefs[def.key]));
+          }
+        });
+        this.applyPreferences(prefs);
+      }
     },
 
     /* ---------------- UI 圖片素材：有圖用圖、缺圖回退 CSS ---------------- */
-    applyUiAssets: function () {
+    applyUiAssets: function (scope) {
       var A = global.Assets;
       if (!A || !A.applyBg) return;
       this.normalizeActionButtons();
@@ -2047,14 +2522,15 @@
         return "url('" + new URL(path, global.location.href).href.replace(/'/g, "%27") + "')";
       }
 
-      A.applyBg("pause-panel", "ui_panel_pause");
-      A.applyBg("settings-panel", "ui_panel_settings");
-      A.applyBg("confirm-panel", "ui_panel_confirm");
+      var settingsScreen = $("screen-settings");
+      var settingsVisible = settingsScreen && !settingsScreen.classList.contains("hidden");
+      if (scope === "pause") A.applyBg("pause-panel", "ui_panel_pause");
+      if (scope === "confirm") A.applyBg("confirm-panel", "ui_panel_confirm");
+      if (scope === "settings" || settingsVisible) A.applyBg("settings-panel", "ui_panel_settings");
 
-      A.applyBg("icon-master", "ui_icon_settings", ICON);
-      A.applyBg("icon-music", "ui_icon_music", ICON);
-      A.applyBg("icon-sfx", "ui_icon_sfx", ICON);
-      A.applyBg("icon-mute", "ui_icon_mute", ICON);
+      SETTINGS_ROWS.forEach(function (def) {
+        if (def.iconKey) A.applyBg(def.iconId, def.iconKey, ICON);
+      });
 
       A.applyBg("ic-presettings", "ui_icon_settings", ICON);
       A.applyBg("ic-restart", "ui_icon_restart", ICON);
@@ -2108,7 +2584,22 @@
         return r;
       }
       if (stats.stageName) box.appendChild(row("行動地點", stats.stageName));
+      if (stats.runMode === "quick") {
+        box.appendChild(row("單局模式", "快速模式（60% 時間、50% 獎勵）"));
+      }
+      if (stats.characterRental) box.appendChild(row("挑戰角色", "本局免費租借"));
+      if (stats.challengeTitle) {
+        box.appendChild(row("挑戰模式", stats.challengeTitle + (stats.challengeCompleted ? "（完成）" : "（未達成）")));
+      }
       if (stats.bossName) box.appendChild(row("關卡 BOSS", stats.bossName + (stats.bossDefeated ? "（已淨化）" : "（未淨化）")));
+      if (stats.overtimeEntered) {
+        box.appendChild(row(
+          "污染暴走",
+          stats.overtimeExpired
+            ? Math.round(stats.overtimeDuration || 30) + " 秒耗盡（挑戰失敗）"
+            : Math.ceil(stats.overtimeSurvived || 0) + " 秒內解除"
+        ));
+      }
       box.appendChild(row("存活時間", fmtTime(stats.survived)));
       box.appendChild(row("淨化污染物", formatNumber(stats.purified) + " 個"));
       box.appendChild(row("清理地圖物件", formatNumber(stats.mapCleaned || 0) + " 個"));
@@ -2123,8 +2614,20 @@
       if (stats.winBonus > 0) box.appendChild(row("通關獎勵", "♻ " + formatNumber(stats.winBonus)));
       if (stats.bossMaterialBonus > 0) box.appendChild(row("BOSS 每日首勝", "再生材料 ⬢ +" + formatNumber(stats.bossMaterialBonus)));
       if (stats.unlockedStage) box.appendChild(row("新關卡解鎖", stats.unlockedStage.name));
+      if (stats.unlockedCharacters && stats.unlockedCharacters.length) {
+        box.appendChild(row("固定角色解鎖", stats.unlockedCharacters.map(function (id) {
+          var character = global.GameData.getCharacter(id);
+          return character ? character.name : id;
+        }).join("、")));
+      }
       if (stats.newAchievements && stats.newAchievements.length) {
         box.appendChild(row("本局完成成就", stats.newAchievements.length + " 項（可至成就頁領取）"));
+      }
+      if (stats.newMissionRewards > 0) {
+        box.appendChild(row("環境任務", stats.newMissionRewards + " 項獎勵可領取"));
+      }
+      if (stats.challengeFirstCompletion) {
+        box.appendChild(row("挑戰紀錄", "首次完成，可至環境任務領取獎勵"));
       }
       if (stats.multiplier > 1) box.appendChild(row("回收分類加成", "×" + stats.multiplier.toFixed(2)));
       if (stats.lobbySources && stats.lobbySources.length) {

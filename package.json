@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node tools/build-production.mjs",
     "serve": "node tools/static-server.mjs",
     "test": "npm run test:smoke",
     "test:smoke": "node tests/smoke.mjs"

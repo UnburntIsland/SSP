@@ -123,22 +123,56 @@
 
   /* ---------------- 轉向提示（可關閉，不強制擋遊戲） ---------------- */
   var hintDismissed = false;
+  var rotateHintBlocking = false;
+  function shouldShowRotateHint() {
+    var hint = document.getElementById("rotate-hint");
+    return !!hint &&
+      isTouchDevice() &&
+      global.innerHeight > global.innerWidth &&
+      !hintDismissed &&
+      hint.dataset.dismissed !== "true";
+  }
+  function emitRotateHintEvent(name) {
+    try { global.dispatchEvent(new CustomEvent(name)); }
+    catch (error) {
+      var event = document.createEvent("Event");
+      event.initEvent(name, false, false);
+      global.dispatchEvent(event);
+    }
+  }
+  function focusRotateHint(hint) {
+    var close = hint && hint.querySelector(".rotate-hint-close");
+    if (!close || !close.focus) return;
+    try { close.focus({ preventScroll: true }); }
+    catch (error) { close.focus(); }
+  }
   function updateRotateHint() {
     var hint = document.getElementById("rotate-hint");
     if (!hint) return;
-    var portrait = global.innerHeight > global.innerWidth;
-    var show = portrait && !hintDismissed && hint.dataset.dismissed !== "true";
+    var show = shouldShowRotateHint();
+    var wasVisible = !hint.classList.contains("hidden");
+    var wasBlocking = rotateHintBlocking;
+    rotateHintBlocking = show;
     hint.classList.toggle("hidden", !show);
     hint.setAttribute("aria-hidden", String(!show));
+    if (show && !wasVisible) {
+      focusRotateHint(hint);
+      emitRotateHintEvent("mobile-rotate-hint-opened");
+    } else if (!show && (wasVisible || wasBlocking)) {
+      emitRotateHintEvent("mobile-rotate-hint-closed");
+    }
   }
   function setupRotateHintDismiss() {
     var hint = document.getElementById("rotate-hint");
     if (!hint) return;
     function dismiss() {
+      var wasBlocking = rotateHintBlocking || shouldShowRotateHint();
       hintDismissed = true;
+      rotateHintBlocking = false;
       hint.dataset.dismissed = "true";
       hint.classList.add("hidden");
       hint.setAttribute("aria-hidden", "true");
+      if (wasBlocking) emitRotateHintEvent("mobile-rotate-hint-closed");
     }
     var tip = document.createElement("button");
     tip.type = "button";
@@ -418,6 +452,7 @@
     if (!isTouchDevice()) return;            // 其餘僅觸控裝置
     document.documentElement.classList.add("is-mobile");
     if (document.body) document.body.classList.add("is-mobile");
+    rotateHintBlocking = shouldShowRotateHint();
     onViewportChange();
     setupMobileLobby();
     setupFullscreenButton();
@@ -462,6 +497,7 @@
     getViewportSize: getViewportSize,
     getVisibleGameRect: getVisibleGameRect,
     getCanvasPointerPosition: getCanvasPointerPosition,
+    shouldShowRotateHint: shouldShowRotateHint,
     enterFullscreen: enterFullscreen,
     UI_SAFE_MARGIN: UI_SAFE_MARGIN,
     MOBILE_CANVAS_SCALE_MODE: MOBILE_CANVAS_SCALE_MODE

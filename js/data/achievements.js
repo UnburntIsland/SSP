@@ -1,6 +1,6 @@
 /* ============================================================
    data/achievements.js  —  成就資料定義
-   只以五名正式角色與三個主要關卡交叉生成，Skin 不會進入角色成就。
+   只以五名正式角色與四個主要關卡交叉生成，Skin 不會進入角色成就。
    ============================================================ */
 (function (global) {
   "use strict";
@@ -16,10 +16,10 @@
     purify: "assets/images/achievements/achievement_purify.png?v=achievements-20260714i",
     learning: "assets/images/achievements/achievement_learning.png?v=achievements-20260714i"
   };
-  var TIERS = ["bronze", "silver", "gold"];
+  var TIERS = ["bronze", "silver", "gold", "gold"];
   var ROMAN = ["I", "II", "III"];
   var CHARACTER_IDS = ["ranger", "beachcomber", "solar", "mechanic", "chemist"];
-  var STAGE_IDS = ["tidal_flat", "recycle_works", "blackwater_plant"];
+  var STAGE_IDS = ["tidal_flat", "recycle_works", "blackwater_plant", "east_ridge"];
 
   function reward(coins, skillPoints) {
     var value = { coins: coins };
@@ -48,7 +48,7 @@
 
   var characters = selectByIds(GD.characters, CHARACTER_IDS);
   var stages = selectByIds(GD.stages, STAGE_IDS);
-  var guardianCoins = [150, 350, 750];
+  var guardianCoins = [150, 350, 750, 1200];
 
   characters.forEach(function (character) {
     stages.forEach(function (stage, stageIndex) {
@@ -66,7 +66,7 @@
         target: 1,
         characterId: character.id,
         stageId: stage.id,
-        reward: reward(guardianCoins[stageIndex], stageIndex === 2 ? {
+        reward: reward(guardianCoins[stageIndex], stageIndex >= 2 ? {
           amount: 1,
           characterId: character.id
         } : null),
@@ -99,7 +99,7 @@
     });
   });
 
-  var flawlessCoins = [250, 600, 1200];
+  var flawlessCoins = [250, 600, 1200, 1800];
   stages.forEach(function (stage, stageIndex) {
     add({
       id: "challenge_flawless_" + stage.id,
@@ -115,7 +115,7 @@
       target: 1,
       characterId: null,
       stageId: stage.id,
-      reward: reward(flawlessCoins[stageIndex], stageIndex === 2 ? {
+      reward: reward(flawlessCoins[stageIndex], stageIndex >= 2 ? {
         amount: 1,
         targetPolicy: "unlockingCharacter"
       } : null),

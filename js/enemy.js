@@ -46,6 +46,14 @@
       telegraphSpin: -0.22,
       telegraphExclusive: true
     },
+    landslide_barrage: {
+      projectile: "boss_landslide_boulder_projectile",
+      telegraph: "boss_landslide_warning_telegraph",
+      projectileScale: 6.4,
+      telegraphPadding: 126,
+      telegraphSpin: 0.12,
+      telegraphExclusive: true
+    },
     oil_barrage: {
       projectile: "boss_oil_barrage_projectile",
       telegraph: "boss_oil_barrage_telegraph",
@@ -281,7 +289,7 @@
     ctx.fillRect(bx - 2, by - 2, w + 4, h + 4);
     ctx.fillStyle = "#3a1416";
     ctx.fillRect(bx, by, w, h);
-    ctx.fillStyle = "#e8534e";
+    ctx.fillStyle = this.overtimeEnraged ? "#ff7b32" : "#e8534e";
     ctx.fillRect(bx, by, w * (this.hp / this.maxHp), h);
   };
 

@@ -1,4 +1,5 @@
 node_modules/
+dist/
 output/smoke-failures/
 output/smoke-test-results.json
 .tmp-smoke-profile-*/

@@ -6,6 +6,11 @@
 (function (global) {
 
   var MAX_WEAPONS = 6;
+  var DEFAULT_OVERTIME_DURATION = 30;
+  var OVERTIME_BOSS_SPEED_MULT = 1.2;
+  var OVERTIME_BOSS_DAMAGE_MULT = 1.25;
+  var OVERTIME_BOSS_COOLDOWN_MULT = 0.75;
+  var OVERTIME_BOSS_PROJECTILE_SPEED_MULT = 1.15;
   var VIEW_W = (global.Config ? global.Config.GAME_WIDTH : 1280);
   var VIEW_H = (global.Config ? global.Config.GAME_HEIGHT : 720);
   function ZOOM() { return global.Config ? global.Config.CAMERA_ZOOM : 1.8; }   // 世界層放大倍率（UI 不受影響）
@@ -98,10 +103,21 @@
     },
 
     /* ---------------- 開始一局 ---------------- */
-    start: function (stageId, player) {
+    start: function (stageId, player, challenge, options) {
+      options = options || {};
       this.stage = global.GameData.getStage(stageId);
+      this.runMode = options.mode === "quick" ? "quick" : "normal";
+      this.runDuration = this.runMode === "quick"
+        ? Math.max(60, Math.round(this.stage.duration * 0.6))
+        : this.stage.duration;
+      this.timelineScale = this.runDuration / this.stage.duration;
+      this.rewardMultiplier = this.runMode === "quick" ? 0.5 : 1;
+      this.characterRental = !!options.characterRental;
       this.world = { w: this.stage.world.w, h: this.stage.world.h };
       this.player = player;
+      this.challenge = challenge || null;
+      this.challengeModifiers = this.challenge && this.challenge.modifiers
+        ? this.challenge.modifiers : {};
 
       this.enemies = [];
       this.projectiles = [];
@@ -115,6 +131,11 @@
       this.floaters = [];
 
       this.time = 0;
+      this.overtimeDuration = Math.max(1, Number(this.stage.overtimeDuration) || DEFAULT_OVERTIME_DURATION);
+      this.overtimeRemaining = this.overtimeDuration;
+      this.overtimeActive = false;
+      this.overtimeStarted = false;
+      this.overtimeExpired = false;
       this.runCoins = 0;
       this._coinsCommitted = false;
       this.purifiedCount = 0;
@@ -145,9 +166,16 @@
       this.firedEvents = {};
       this.spawnAcc = 0;
       this.mapObjectSpawnAcc = 0;
-      this.mapObjectSpawnInterval = 5;
+      this.mapObjectSpawnInterval = 5 *
+        Math.max(0.35, Number(this.challengeModifiers.mapSpawnIntervalMult) || 1) *
+        (this.timelineScale || 1);
       this.nearestMapObjective = null;
       this.zoneDamageTimer = 0;
+      this.terrainDamageTimer = 0;
+      this.terrainStatus = "";
+      this.terrainKind = "";
+      this.terrainSeconds = {};
+      this.mapRewardMult = 1;
       this.contamination = this.makeContaminationState();
 
       this.camera = { x: 0, y: 0 };
@@ -199,6 +227,8 @@
       this.pendingLevelUps = 0; this.knowledgePaused = false; this.knowledgeQueue = [];
       this.enemyIntroPaused = false; this.enemyIntroQueue = []; this.seenEnemyIntros = {}; this.activeEnemyIntro = null;
       this.runIntroActive = false; this.runIntroRemaining = 0; this.time = 0;
+      this.overtimeActive = false; this.overtimeStarted = false; this.overtimeExpired = false;
+      this.overtimeRemaining = this.overtimeDuration || DEFAULT_OVERTIME_DURATION;
       this.bossDefeated = false; this.bossSpawned = false;
       if (this.app && this.app.ui && this.app.ui.hideEnemyIntro) this.app.ui.hideEnemyIntro(false);
       return banked;
@@ -326,6 +356,7 @@
     /* ---------------- 更新 ---------------- */
     update: function (dt) {
       this.time += dt;
+      if (!this.updateOvertime(dt)) return;
 
       this.spawnEnemies(dt);
       this.handleEvents();
@@ -407,13 +438,69 @@
 
       // 勝負判定
       if (this.player.hp <= 0) { this.end("defeat"); return; }
-      if (this.time >= this.stage.duration && (!this.stage.bossId || this.bossDefeated)) {
+      if (this.time >= this.runDuration && (!this.stage.bossId || this.bossDefeated)) {
         this.end("victory");
         return;
       }
 
       // 升級暫停放在死亡判定後，避免同一幀同時開啟問答與結算畫面。
       if (this.pendingLevelUps > 0 && !this.paused) this.triggerLevelUp();
+    },
+
+    updateOvertime: function (dt) {
+      if (this.time < this.runDuration || !this.stage.bossId || this.bossDefeated) return true;
+      if (!this.overtimeStarted) this.beginOvertime();
+      this.overtimeRemaining = Math.max(0, this.overtimeRemaining - Math.max(0, Number(dt) || 0));
+      if (this.overtimeRemaining > 0) return true;
+      this.overtimeExpired = true;
+      this.end("defeat");
+      return false;
+    },
+
+    beginOvertime: function () {
+      if (this.overtimeStarted || this.ended) return false;
+      this.overtimeStarted = true;
+      this.overtimeActive = true;
+      this.overtimeRemaining = this.overtimeDuration;
+      this.spawnAcc = 0;
+      for (var i = 0; i < this.enemies.length; i++) this.enrageOvertimeBoss(this.enemies[i]);
+      if (this.app && this.app.showToast) {
+        this.app.showToast(
+          "污染暴走・" + Math.round(this.overtimeDuration) + " 秒延長賽",
+          (this.stage.bossName || "BOSS") + "速度 +20%、傷害 +25%，最終污染波將持續湧入！"
+        );
+      }
+      return true;
+    },
+
+    enrageOvertimeBoss: function (enemy) {
+      if (!enemy || !enemy.isBoss || enemy.dead || enemy.overtimeEnraged) return false;
+      if (this.stage.bossId && enemy.id !== this.stage.bossId) return false;
+      enemy.overtimeEnraged = true;
+      enemy.speed *= OVERTIME_BOSS_SPEED_MULT;
+      enemy.contact *= OVERTIME_BOSS_DAMAGE_MULT;
+      if (enemy.ranged) {
+        enemy.ranged = Object.assign({}, enemy.ranged);
+        enemy.ranged.cooldown = Math.max(0.45, (Number(enemy.ranged.cooldown) || 2.5) * OVERTIME_BOSS_COOLDOWN_MULT);
+        enemy.ranged.projectileDamage = Math.max(
+          1,
+          (Number(enemy.ranged.projectileDamage) || 6) * OVERTIME_BOSS_DAMAGE_MULT
+        );
+        enemy.ranged.projectileSpeed = Math.max(
+          1,
+          (Number(enemy.ranged.projectileSpeed) || 120) * OVERTIME_BOSS_PROJECTILE_SPEED_MULT
+        );
+        enemy.attackTimer = Math.min(enemy.attackTimer, enemy.ranged.cooldown);
+      }
+      this.floaters.push({
+        x: enemy.x,
+        y: enemy.y - enemy.radius - 18,
+        age: 0,
+        life: 1.8,
+        text: "污染暴走！",
+        color: "#ff6b63"
+      });
+      return true;
     },
 
     makeCtx: function () {
@@ -454,6 +541,7 @@
         this.damageTaken += taken;
         this.hitCount += 1;
         if (global.AudioManager) global.AudioManager.playSfx("hurt");
+        if (global.Input && global.Input.haptic) global.Input.haptic("hurt");
       }
       // 循環防護站格擋成功 → 飄字回饋（不影響任何數值）
       if (!damaged && this.player.consumeBlockEvent && this.player.consumeBlockEvent()) {
@@ -471,7 +559,9 @@
       if (!def) return null;
       var startsAt = def.startsAt || 0;
       if (global.TestMode && global.TestMode.enabled) {
-        startsAt = Math.min(startsAt, this.stage.duration * 0.48);
+        startsAt = Math.min(startsAt, this.runDuration * 0.48);
+      } else {
+        startsAt *= this.timelineScale || 1;
       }
       return {
         def: def,
@@ -589,8 +679,12 @@
       prop.collected = true;
       this.mapCleanedCount += 1;
 
-      if (prop.xp > 0) this.pickups.push(new global.Pickup("xp", prop.x, prop.y, prop.xp));
-      var coinCount = prop.coins || 0;
+      var rewardMult = Math.max(1, Number(this.mapRewardMult) || 1);
+      var xpReward = prop.xp > 0 ? Math.ceil(prop.xp * rewardMult) : 0;
+      if (xpReward > 0) this.pickups.push(new global.Pickup("xp", prop.x, prop.y, xpReward));
+      var coinReward = (prop.coins || 0) * rewardMult;
+      var coinCount = Math.floor(coinReward);
+      if (Math.random() < coinReward - coinCount) coinCount += 1;
       if (prop.coinChance && Math.random() < prop.coinChance) coinCount += 1;
       for (var c = 0; c < coinCount; c++) {
         this.pickups.push(new global.Pickup("coin", prop.x + (c * 8), prop.y, 1));
@@ -607,9 +701,47 @@
       });
     },
 
-    updateMapInteractions: function () {
+    updateMapInteractions: function (dt) {
       this.player.environmentSpeedMult = 1;
+      this.mapRewardMult = 1;
+      this.terrainStatus = "";
+      this.terrainKind = "";
       var renderer = global.StageRenderer;
+      var terrain = renderer && renderer.getTerrainEffectAt
+        ? renderer.getTerrainEffectAt(this.player.x, this.player.y)
+        : null;
+      if (terrain) {
+        this.terrainKind = terrain.kind || "";
+        if (this.terrainKind) {
+          this.terrainSeconds[this.terrainKind] =
+            (Number(this.terrainSeconds[this.terrainKind]) || 0) + Math.max(0, Number(dt) || 0);
+        }
+        this.player.environmentSpeedMult = terrain.speedMult || 1;
+        this.mapRewardMult = terrain.rewardMult || 1;
+        this.terrainStatus = terrain.status || "";
+        if (terrain.pushX) this.player.x += terrain.pushX * (dt || 0);
+        if (terrain.pushY) this.player.y += terrain.pushY * (dt || 0);
+        if (terrain.damage) {
+          this.terrainDamageTimer -= dt || 0;
+          if (this.terrainDamageTimer <= 0) {
+            this.terrainDamageTimer = terrain.damageInterval || 1;
+            if (this.damagePlayer(terrain.damage)) {
+              this.floaters.push({
+                x: this.player.x,
+                y: this.player.y - 24,
+                age: 0,
+                life: 0.7,
+                text: (terrain.kind === "landslide" ? "落石 -" : "油污 -") + terrain.damage,
+                color: "#d86fb3"
+              });
+            }
+          }
+        } else {
+          this.terrainDamageTimer = 0;
+        }
+      } else {
+        this.terrainDamageTimer = 0;
+      }
       var props = renderer && renderer.props;
       if (!props) return;
 
@@ -630,6 +762,17 @@
     },
 
     mapObjectiveStatus: function () {
+      if (this.challenge) {
+        var goal = this.challenge.goal || {};
+        var parts = [];
+        if (goal.mapCleaned) parts.push("清理 " + this.mapCleanedCount + "/" + goal.mapCleaned);
+        if (goal.purified) parts.push("淨化 " + this.purifiedCount + "/" + goal.purified);
+        if (goal.quizCorrect) parts.push("答對 " + this.quizCorrect + "/" + goal.quizCorrect);
+        if (goal.noDamage) parts.push(this.hitCount ? "無傷條件已失敗" : "維持無傷");
+        if (this.overtimeActive) parts.push("擊敗 " + (this.stage.bossName || "BOSS"));
+        if (parts.length) return "挑戰｜" + parts.join("・");
+      }
+      if (this.overtimeActive) return "污染暴走｜擊敗 " + (this.stage.bossName || "BOSS");
       var target = this.nearestMapObjective;
       if (!target || !target.prop) {
         var wait = Math.max(0, Math.ceil(this.mapObjectSpawnInterval - this.mapObjectSpawnAcc));
@@ -648,12 +791,20 @@
       if (!global.EnemyProjectile) return;
       if (this.enemyProjectiles.length >= 220) return;
       var r = attack.config;
-      var count = r.kind === "radial" ? (r.count || 8) : 1;
-      var baseAngle = r.kind === "radial" ? this.time * 0.35 : Math.atan2(attack.aimY, attack.aimX);
+      var radial = r.kind === "radial";
+      var landslide = r.kind === "landslide";
+      var count = radial ? (r.count || 8) : (landslide ? (r.count || 9) : 1);
+      var baseAngle = radial ? this.time * 0.35 : Math.atan2(attack.aimY, attack.aimX);
+      var spread = Math.max(0.2, Number(r.spread) || 1.8);
       for (var i = 0; i < count; i++) {
         if (this.enemyProjectiles.length >= 220) break;
-        var angle = r.kind === "radial" ? baseAngle + i * Math.PI * 2 / count : baseAngle;
+        var angle = radial
+          ? baseAngle + i * Math.PI * 2 / count
+          : (landslide && count > 1
+            ? baseAngle + (i - (count - 1) / 2) * spread / (count - 1)
+            : baseAngle);
         var speed = r.projectileSpeed || 140;
+        if (landslide) speed *= i % 2 === 0 ? 1.06 : 0.82;
         var radius = r.projectileRadius || 7;
         this.enemyProjectiles.push(new global.EnemyProjectile(
           enemy.x + Math.cos(angle) * (enemy.radius + radius + 2),
@@ -685,6 +836,10 @@
     spawnEffect: function (effectId, groupName, x, y, opt) {
       if (!global.SkillEffectRenderer || !global.SkillEffectRenderer.VisualEffect) return false;
       if (!global.SkillEffectRenderer.ready(effectId, groupName)) return false;
+      var prefs = global.Storage && global.Storage.getPreferences ? global.Storage.getPreferences() : null;
+      var effectLimit = !prefs || prefs.quality === "high" ? 80 : (prefs.quality === "performance" ? 18 : 40);
+      if (prefs && prefs.reduceAnimations) effectLimit = Math.min(effectLimit, 12);
+      if (this.effects.length >= effectLimit) return false;
       this.effects.push(new global.SkillEffectRenderer.VisualEffect(effectId, groupName, x, y, opt || {}));
       return true;
     },
@@ -848,11 +1003,24 @@
     /* ---------------- 生成 ---------------- */
     queueEnemyIntro: function (def) {
       if (!def || this.ended) return false;
-      if (global.Storage && global.Storage.markEnemyEncountered) {
-        global.Storage.markEnemyEncountered(def.id);
-      }
       if (this.seenEnemyIntros[def.id]) return false;
       this.seenEnemyIntros[def.id] = true;
+      var wasEncountered = !!(global.Storage && global.Storage.isEnemyEncountered &&
+        global.Storage.isEnemyEncountered(def.id));
+      var preferences = global.Storage && global.Storage.getPreferences
+        ? global.Storage.getPreferences() : { skipSeenEnemyIntros: true };
+      if (!wasEncountered && global.Storage && global.Storage.markEnemyEncountered) {
+        global.Storage.markEnemyEncountered(def.id);
+      }
+      if (wasEncountered && preferences.skipSeenEnemyIntros !== false) {
+        if (this.app && this.app.showToast) {
+          this.app.showToast(
+            (def.isBoss ? "再次遭遇 BOSS" : "再次遭遇污染物") + "・" + def.name,
+            def.introHint || "已收錄於污染物圖鑑，本次不暫停遊戲。"
+          );
+        }
+        return false;
+      }
       this.enemyIntroQueue.push({
         id: def.id,
         name: def.name,
@@ -896,15 +1064,21 @@
     spawnEnemies: function (dt) {
       if (this.enemies.length >= this.stage.maxEnemies) return;
       var wave = null;
-      for (var i = 0; i < this.stage.waves.length; i++) {
-        var w = this.stage.waves[i];
-        if (this.time >= w.from && this.time < w.to) { wave = w; break; }
+      if (this.overtimeActive && this.stage.waves.length) {
+        wave = this.stage.waves[this.stage.waves.length - 1];
+      } else {
+        for (var i = 0; i < this.stage.waves.length; i++) {
+          var w = this.stage.waves[i];
+          var scale = this.timelineScale || 1;
+          if (this.time >= w.from * scale && this.time < w.to * scale) { wave = w; break; }
+        }
       }
       if (!wave) return;
 
       this.spawnAcc += dt;
-      while (this.spawnAcc >= wave.interval) {
-        this.spawnAcc -= wave.interval;
+      var spawnInterval = wave.interval * (this.overtimeActive ? 1 : (this.timelineScale || 1));
+      while (this.spawnAcc >= spawnInterval) {
+        this.spawnAcc -= spawnInterval;
         for (var b = 0; b < wave.batch; b++) {
           if (this.enemies.length >= this.stage.maxEnemies) break;
           this.spawnOne(this.pickType(wave.types));
@@ -941,11 +1115,17 @@
       x = Math.max(20, Math.min(this.world.w - 20, x));
       y = Math.max(20, Math.min(this.world.h - 20, y));
       // 隨時間略微提升血量，維持挑戰性
-      var hpScale = 1 + (this.time / this.stage.duration) * 0.6;
+      var hpScale = 1 + (this.time / this.runDuration) * 0.6;
       if (def.isBoss) hpScale = this.stage.bossHpMultiplier || 1;
+      hpScale *= Math.max(0.1, Number(this.challengeModifiers.enemyHpMult) || 1);
       var enemy = new global.Enemy(def, x, y, hpScale);
+      enemy.speed *= Math.max(0.1, Number(this.challengeModifiers.enemySpeedMult) || 1);
+      enemy.contact *= Math.max(0.1, Number(this.challengeModifiers.enemyContactMult) || 1);
       this.enemies.push(enemy);
-      if (def.isBoss && (!this.stage.bossId || def.id === this.stage.bossId)) this.bossSpawned = true;
+      if (def.isBoss && (!this.stage.bossId || def.id === this.stage.bossId)) {
+        this.bossSpawned = true;
+        if (this.overtimeActive) this.enrageOvertimeBoss(enemy);
+      }
       this.queueEnemyIntro(def);
       return enemy;
     },
@@ -954,7 +1134,7 @@
       var evs = this.stage.events || [];
       for (var i = 0; i < evs.length; i++) {
         var ev = evs[i];
-        if (!this.firedEvents[i] && this.time >= ev.at) {
+        if (!this.firedEvents[i] && this.time >= ev.at * (this.timelineScale || 1)) {
           this.firedEvents[i] = true;
           for (var c = 0; c < (ev.count || 1); c++) this.spawnOne(ev.enemy, true);
           if (ev.announce && this.app) this.app.showToast("警報", ev.announce);
@@ -1132,6 +1312,7 @@
       } else if (choice.kind === "stat") {
         this.applyPassiveUpgrade(choice.id);
       }
+      if (global.Input && global.Input.haptic) global.Input.haptic("level");
       this.pendingLevelUps -= 1;
       if (this.pendingLevelUps > 0) {
         // 還有待處理的升級，連續再選
@@ -1163,10 +1344,10 @@
 
       var collected = this.runCoins;
       var purifyBonus = Math.floor(this.purifiedCount * 0.5);
-      var timeBonus = Math.floor(Math.min(this.time, this.stage.duration) / 10);
+      var timeBonus = Math.floor(Math.min(this.time, this.runDuration) / 10);
       var winBonus = (result === "victory") ? 30 : 0;
       var subtotal = collected + purifyBonus + timeBonus + winBonus;
-      var total = Math.floor(subtotal * this.player.coinMult);
+      var total = Math.floor(subtotal * this.player.coinMult * this.rewardMultiplier);
 
       var stats = {
         result: result,
@@ -1177,6 +1358,15 @@
         bossName: this.stage.bossName || "BOSS",
         bossDefeated: !!this.bossDefeated,
         survived: this.time,
+        runMode: this.runMode,
+        runDuration: this.runDuration,
+        rewardMultiplier: this.rewardMultiplier,
+        characterRental: this.characterRental,
+        overtimeEntered: !!this.overtimeStarted,
+        overtimeDuration: this.overtimeDuration,
+        overtimeSurvived: this.overtimeStarted
+          ? Math.max(0, this.overtimeDuration - this.overtimeRemaining) : 0,
+        overtimeExpired: !!this.overtimeExpired,
         purified: this.purifiedCount,
         mapCleaned: this.mapCleanedCount,
         quizCorrect: this.quizCorrect,
@@ -1188,6 +1378,7 @@
         damageTaken: this.damageTaken,
         hitCount: this.hitCount,
         noDamage: this.hitCount === 0 && this.damageTaken <= 0,
+        terrainSeconds: Object.assign({}, this.terrainSeconds),
         eliteRewardLevel: this.eliteRewardLevel,
         level: this.player.level,
         collected: collected,
@@ -1195,7 +1386,11 @@
         timeBonus: timeBonus,
         winBonus: winBonus,
         multiplier: this.player.coinMult,
-        total: total
+        total: total,
+        challengeId: this.challenge ? this.challenge.id : null,
+        challengeTitle: this.challenge ? this.challenge.title : null,
+        challengeGoal: this.challenge ? this.challenge.goal : null,
+        challengeModifierText: this.challenge ? this.challenge.modifierText : null
       };
 
       this.commitRunCoins(total);

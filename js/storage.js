@@ -8,6 +8,39 @@
   var DEFAULT_COINS = 1000000; // 測試期間：新存檔與重置後的預設循環幣
   var STARTING_RECYCLED = 10; // 新手可立即完成第一個小型裝飾建造
   var OFFICIAL_CHARACTER_IDS = ["ranger", "beachcomber", "solar", "mechanic", "chemist"];
+  var PREFERENCE_DEFAULTS = {
+    quality: "balanced",
+    reduceAnimations: false,
+    skipSeenEnemyIntros: true,
+    floatingJoystick: true,
+    haptics: true,
+    textSize: "normal",
+    colorMode: "default",
+    keyLayout: "wasd",
+    touchSensitivity: 100
+  };
+
+  function normalizePreferences(value) {
+    var source = isRecord(value) ? value : {};
+    var preferences = {};
+    preferences.quality = ["high", "balanced", "performance"].indexOf(source.quality) !== -1
+      ? source.quality : PREFERENCE_DEFAULTS.quality;
+    preferences.reduceAnimations = source.reduceAnimations === true;
+    preferences.skipSeenEnemyIntros = source.skipSeenEnemyIntros !== false;
+    preferences.floatingJoystick = source.floatingJoystick !== false;
+    preferences.haptics = source.haptics !== false;
+    preferences.textSize = ["normal", "large", "xlarge"].indexOf(source.textSize) !== -1
+      ? source.textSize : PREFERENCE_DEFAULTS.textSize;
+    preferences.colorMode = ["default", "deuteranopia", "protanopia", "tritanopia"].indexOf(source.colorMode) !== -1
+      ? source.colorMode : PREFERENCE_DEFAULTS.colorMode;
+    preferences.keyLayout = ["wasd", "arrows", "ijkl"].indexOf(source.keyLayout) !== -1
+      ? source.keyLayout : PREFERENCE_DEFAULTS.keyLayout;
+    var sensitivity = Math.round(Number(source.touchSensitivity));
+    preferences.touchSensitivity = Number.isFinite(sensitivity)
+      ? Math.max(50, Math.min(150, sensitivity))
+      : PREFERENCE_DEFAULTS.touchSensitivity;
+    return preferences;
+  }
 
   function normalizeCharacterId(id) {
     if (!id) return "ranger";
@@ -166,9 +199,10 @@
     /* -------- 大廳（schema 4 新增）預設值 -------- */
     _defaultLobby: function () {
       return {
-        version: 2,
+        version: 3,
         playerPosition: { x: 0, y: 0, direction: "S" },   /* 0,0 = 尚未存過 → 用出生點 */
         guideCompleted: false,
+        placementHelpCompleted: false,
         materials: { recycled: STARTING_RECYCLED },
         daily: { dateKey: null, idleEarned: 0, dailyBossClaims: {} },
         inventory: {},          /* { buildingId: 數量 }（已購買但收納中） */
@@ -191,6 +225,7 @@
         if (typeof raw.playerPosition.direction === "string") out.playerPosition.direction = raw.playerPosition.direction;
       }
       out.guideCompleted = raw.guideCompleted === true;
+      out.placementHelpCompleted = raw.placementHelpCompleted === true;
       if (isRecord(raw.materials)) out.materials.recycled = nonNegativeInteger(raw.materials.recycled);
       if (isRecord(raw.daily)) {
         out.daily.dateKey = typeof raw.daily.dateKey === "string" ? raw.daily.dateKey : null;
@@ -247,7 +282,7 @@
 
     _default: function () {
       return {
-        schemaVersion: 5,
+        schemaVersion: 8,
         coins: DEFAULT_COINS,
         shop: {},        // { upgradeId: level }
         knowledge: [],   // 已解鎖的 knowledge id
@@ -256,15 +291,24 @@
         equippedSkins: {},
         characterProgress: {},
         gachaHistory: [],
+        gachaPity: { sinceNew: 0, totalPulls: 0, guaranteeAt: 10 },
         selectedCharacterId: "ranger",
         lastChar: "ranger",
         selectedStageId: "tidal_flat",
         clearedStages: [],
         encounteredEnemies: [],
         achievements: achievementDefaults(),
+        environmentMissions: {
+          version: 2,
+          daily: { periodKey: null, activeIds: [], previousIds: [], progress: {}, claimed: {} },
+          weekly: { periodKey: null, activeIds: [], previousIds: [], progress: {}, claimed: {} },
+          challenges: {},
+          tracked: null
+        },
         lobby: this._defaultLobby(),
         // 音量設定（0~100；mute 為布林）—— 單一來源，audioManager 由此讀寫
-        audio: { master: 80, music: 70, sfx: 80, mute: false }
+        audio: { master: 80, music: 70, sfx: 80, mute: false },
+        preferences: normalizePreferences(null)
       };
     },
 
@@ -278,8 +322,8 @@
       var savedSchemaVersion = d.schemaVersion | 0;
       // 「測試經濟補幣」只在升到 schema 3 之前做一次；schema 3 → 4 不再補幣。
       var requiresCoinTopUp = savedSchemaVersion < 3;
-      var requiresLobbySave = !isRecord(d.lobby) || nonNegativeInteger(d.lobby.version) < 2;
-      var requiresSchemaSave = savedSchemaVersion < 5 || requiresLobbySave;
+      var requiresLobbySave = !isRecord(d.lobby) || nonNegativeInteger(d.lobby.version) < 3;
+      var requiresSchemaSave = savedSchemaVersion < 8 || requiresLobbySave;
       // 補齊缺漏欄位（含舊存檔沒有的 audio）
       var def = this._default();
       var legacyCharacterSave = !d.ownedCharacters || typeof d.ownedCharacters !== "object";
@@ -319,8 +363,30 @@
       });
       if (!Array.isArray(d.gachaHistory)) d.gachaHistory = [];
       d.gachaHistory = d.gachaHistory.slice(0, 30);
+      if (!isRecord(d.gachaPity)) d.gachaPity = {};
+      d.gachaPity.sinceNew = nonNegativeInteger(d.gachaPity.sinceNew);
+      d.gachaPity.totalPulls = nonNegativeInteger(d.gachaPity.totalPulls);
+      d.gachaPity.guaranteeAt = 10;
       if (!Array.isArray(d.clearedStages)) d.clearedStages = [];
       if (!Array.isArray(d.encounteredEnemies)) d.encounteredEnemies = [];
+      if (!isRecord(d.environmentMissions)) d.environmentMissions = def.environmentMissions;
+      if (!isRecord(d.environmentMissions.daily)) {
+        d.environmentMissions.daily = { periodKey: null, activeIds: [], previousIds: [], progress: {}, claimed: {} };
+      }
+      if (!isRecord(d.environmentMissions.weekly)) {
+        d.environmentMissions.weekly = { periodKey: null, activeIds: [], previousIds: [], progress: {}, claimed: {} };
+      }
+      if (!Array.isArray(d.environmentMissions.daily.activeIds)) d.environmentMissions.daily.activeIds = [];
+      if (!Array.isArray(d.environmentMissions.daily.previousIds)) d.environmentMissions.daily.previousIds = [];
+      if (!Array.isArray(d.environmentMissions.weekly.activeIds)) d.environmentMissions.weekly.activeIds = [];
+      if (!Array.isArray(d.environmentMissions.weekly.previousIds)) d.environmentMissions.weekly.previousIds = [];
+      if (!isRecord(d.environmentMissions.daily.progress)) d.environmentMissions.daily.progress = {};
+      if (!isRecord(d.environmentMissions.daily.claimed)) d.environmentMissions.daily.claimed = {};
+      if (!isRecord(d.environmentMissions.weekly.progress)) d.environmentMissions.weekly.progress = {};
+      if (!isRecord(d.environmentMissions.weekly.claimed)) d.environmentMissions.weekly.claimed = {};
+      if (!isRecord(d.environmentMissions.challenges)) d.environmentMissions.challenges = {};
+      if (!isRecord(d.environmentMissions.tracked)) d.environmentMissions.tracked = null;
+      d.environmentMissions.version = 2;
       var normalizedEnemyIds = [];
       function rememberEnemy(id) {
         id = normalizeEnemyId(id);
@@ -348,7 +414,7 @@
       // schema 4：大廳存檔。舊存檔沒有 lobby 時補預設值；
       // schema 5：污染物遭遇圖鑑。兩者皆不改角色、經濟與關卡解鎖。
       d.lobby = this._normalizeLobby(d.lobby);
-      d.schemaVersion = 5;
+      d.schemaVersion = 8;
       d.achievements = normalizeAchievementData(d.achievements);
       if (!d.selectedStageId || !global.GameData || !global.GameData.getStage || !global.GameData.getStage(d.selectedStageId)) {
         d.selectedStageId = "tidal_flat";
@@ -356,6 +422,7 @@
       // audio 子欄位也補齊
       if (!d.audio || typeof d.audio !== "object") d.audio = def.audio;
       for (var ak in def.audio) { if (!(ak in d.audio)) d.audio[ak] = def.audio[ak]; }
+      d.preferences = normalizePreferences(d.preferences);
       this.data = d;
       if (requiresSchemaSave) this.save();
       return d;
@@ -557,6 +624,25 @@
       if (shouldSave !== false) this.save();
     },
 
+    getGachaPity: function () {
+      if (!this.data) this.load();
+      if (!isRecord(this.data.gachaPity)) {
+        this.data.gachaPity = { sinceNew: 0, totalPulls: 0, guaranteeAt: 10 };
+      }
+      this.data.gachaPity.sinceNew = nonNegativeInteger(this.data.gachaPity.sinceNew);
+      this.data.gachaPity.totalPulls = nonNegativeInteger(this.data.gachaPity.totalPulls);
+      this.data.gachaPity.guaranteeAt = 10;
+      return this.data.gachaPity;
+    },
+
+    recordGachaPull: function (receivedNewReward, shouldSave) {
+      var pity = this.getGachaPity();
+      pity.totalPulls += 1;
+      pity.sinceNew = receivedNewReward ? 0 : pity.sinceNew + 1;
+      if (shouldSave !== false) this.save();
+      return pity;
+    },
+
     /* -------- 成就進度與獎勵 -------- */
     getAchievementData: function () {
       if (!this.data.achievements || typeof this.data.achievements !== "object") {
@@ -637,7 +723,7 @@
       } catch (cloneError) {
         return { ok: false, reason: "storage" };
       }
-      next.schemaVersion = 5;
+      next.schemaVersion = 8;
       next.coins = nonNegativeInteger(next.coins) + coins;
       next.achievements = normalizeAchievementData(next.achievements);
       if (points) {
@@ -691,9 +777,22 @@
       var next = global.GameData.getNextStage ? global.GameData.getNextStage(id) : null;
       var nextWasUnlocked = next ? this.isStageUnlocked(next.id) : false;
       if (!this.isStageCleared(id)) this.data.clearedStages.push(id);
+      this._lastFixedCharacterUnlocks = [];
+      var fixedCharacterId = id === "recycle_works"
+        ? "mechanic"
+        : (id === "blackwater_plant" ? "chemist" : null);
+      if (fixedCharacterId && !this.isCharacterOwned(fixedCharacterId)) {
+        this.unlockCharacter(fixedCharacterId, false);
+        this._lastFixedCharacterUnlocks.push(fixedCharacterId);
+      }
       var nextIsUnlocked = next ? this.isStageUnlocked(next.id) : false;
       this.save();
       return next && !nextWasUnlocked && nextIsUnlocked ? next : null;
+    },
+    consumeFixedCharacterUnlocks: function () {
+      var unlocked = (this._lastFixedCharacterUnlocks || []).slice();
+      this._lastFixedCharacterUnlocks = [];
+      return unlocked;
     },
     loadSelectedStage: function () {
       var id = (this.data && this.data.selectedStageId) || "tidal_flat";
@@ -712,6 +811,19 @@
     },
 
     /* -------- 音量設定（重整後保留；商店升級/存檔不受重新開始影響） -------- */
+    getPreferences: function () {
+      if (!this.data) this.load();
+      this.data.preferences = normalizePreferences(this.data.preferences);
+      return this.data.preferences;
+    },
+
+    setPreferences: function (changes, shouldSave) {
+      var next = Object.assign({}, this.getPreferences(), changes || {});
+      this.data.preferences = normalizePreferences(next);
+      if (shouldSave !== false) this.save();
+      return this.data.preferences;
+    },
+
     getAudioSettings: function () {
       if (!this.data) return { master: 80, music: 70, sfx: 80, mute: false };
       if (!this.data.audio || typeof this.data.audio !== "object") {
@@ -742,6 +854,15 @@
 
     completeLobbyGuide: function () {
       this.getLobby().guideCompleted = true;
+      this.save();
+    },
+
+    isPlacementHelpCompleted: function () {
+      return this.getLobby().placementHelpCompleted === true;
+    },
+
+    completePlacementHelp: function () {
+      this.getLobby().placementHelpCompleted = true;
       this.save();
     },
 

@@ -66,6 +66,41 @@
   var Input = {
     // 內部座標的滑鼠位置（0..canvas.width, 0..canvas.height）
     mouse: { x: 0, y: 0, clientX: 0, clientY: 0, inside: false, down: false },
+    keyLayout: "wasd",
+    touchSensitivity: 100,
+    floatingJoystick: true,
+    haptics: true,
+
+    setKeyLayout: function (layout) {
+      this.keyLayout = ["wasd", "arrows", "ijkl"].indexOf(layout) >= 0 ? layout : "wasd";
+    },
+
+    getMovementLabel: function () {
+      if (this.keyLayout === "arrows") return "方向鍵移動";
+      if (this.keyLayout === "ijkl") return "IJKL 移動";
+      return "WASD / 方向鍵移動";
+    },
+
+    setTouchSensitivity: function (value) {
+      value = Number(value);
+      this.touchSensitivity = Math.max(50, Math.min(150, isFinite(value) ? value : 100));
+    },
+
+    setFloatingJoystick: function (enabled) {
+      this.floatingJoystick = enabled !== false;
+      if (!this.floatingJoystick) this.hideTouchVisual();
+    },
+
+    setHaptics: function (enabled) {
+      this.haptics = enabled !== false;
+    },
+
+    haptic: function (kind) {
+      if (!this.haptics || !global.navigator || typeof global.navigator.vibrate !== "function") return false;
+      var pattern = kind === "hurt" ? [18, 18, 28] : (kind === "level" ? [12, 24, 18] : 12);
+      try { return !!global.navigator.vibrate(pattern); }
+      catch (e) { return false; }
+    },
 
     isDown: function (code) { return !!keys[norm(code)]; },
 
@@ -93,10 +128,15 @@
 
     getMoveVector: function () {
       var x = 0, y = 0;
-      if (keys["KeyW"] || keys["ArrowUp"]) y -= 1;
-      if (keys["KeyS"] || keys["ArrowDown"]) y += 1;
-      if (keys["KeyA"] || keys["ArrowLeft"]) x -= 1;
-      if (keys["KeyD"] || keys["ArrowRight"]) x += 1;
+      var layout = this.keyLayout || "wasd";
+      var up = layout === "ijkl" ? keys["KeyI"] : (layout === "arrows" ? keys["ArrowUp"] : (keys["KeyW"] || keys["ArrowUp"]));
+      var down = layout === "ijkl" ? keys["KeyK"] : (layout === "arrows" ? keys["ArrowDown"] : (keys["KeyS"] || keys["ArrowDown"]));
+      var left = layout === "ijkl" ? keys["KeyJ"] : (layout === "arrows" ? keys["ArrowLeft"] : (keys["KeyA"] || keys["ArrowLeft"]));
+      var right = layout === "ijkl" ? keys["KeyL"] : (layout === "arrows" ? keys["ArrowRight"] : (keys["KeyD"] || keys["ArrowRight"]));
+      if (up) y -= 1;
+      if (down) y += 1;
+      if (left) x -= 1;
+      if (right) x += 1;
       if (x !== 0 && y !== 0) {
         var inv = 1 / Math.sqrt(2);
         x *= inv; y *= inv;
@@ -118,10 +158,46 @@
       this.touch.active = false;
       this.touch.id = null;
       this.touch.ox = this.touch.oy = this.touch.x = this.touch.y = 0;
+      this.hideTouchVisual();
+    },
+
+    hideTouchVisual: function () {
+      var visual = document.getElementById("touch-joystick");
+      if (visual) visual.classList.add("hidden");
+    },
+
+    updateTouchVisual: function () {
+      var visual = document.getElementById("touch-joystick");
+      var knob = document.getElementById("touch-joystick-knob");
+      var stage = document.getElementById("stage");
+      var t = this.touch;
+      if (!visual || !knob || !stage || !this.floatingJoystick || !t.active) {
+        this.hideTouchVisual();
+        return;
+      }
+      var rect = stage.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      var scale = rect.width / Math.max(1, stage.offsetWidth || rect.width);
+      var localX = (t.ox - rect.left) / scale;
+      var localY = (t.oy - rect.top) / scale;
+      var dx = t.x - t.ox;
+      var dy = t.y - t.oy;
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var visualDistance = Math.min(36, len);
+      var knobX = dx / len * visualDistance / scale;
+      var knobY = dy / len * visualDistance / scale;
+      visual.style.left = localX + "px";
+      visual.style.top = localY + "px";
+      visual.style.setProperty("--touch-ui-scale", String(1 / Math.max(0.05, scale)));
+      knob.style.transform = "translate(calc(-50% + " + knobX + "px), calc(-50% + " + knobY + "px))";
+      visual.classList.remove("hidden");
+      visual.classList.toggle("full-strength", len >= 64);
     },
 
     isTouchDevice: function () {
-      return ("ontouchstart" in global) || !!(global.navigator && navigator.maxTouchPoints > 0);
+      return ("ontouchstart" in global) ||
+        !!(global.navigator && navigator.maxTouchPoints > 0) ||
+        !!(document.documentElement && document.documentElement.classList.contains("is-mobile"));
     },
 
     attachTouch: function (canvas) {
@@ -140,6 +216,7 @@
         t.active = true; t.id = p.identifier;
         t.ox = p.clientX; t.oy = p.clientY;
         t.x = p.clientX; t.y = p.clientY;
+        Input.updateTouchVisual();
         e.preventDefault();
       }, { passive: false });
       canvas.addEventListener("touchmove", function (e) {
@@ -147,6 +224,7 @@
         var p = findTouch(e);
         if (!p) return;
         t.x = p.clientX; t.y = p.clientY;
+        Input.updateTouchVisual();
         e.preventDefault();
       }, { passive: false });
       function onEnd(e) {
@@ -154,6 +232,7 @@
         var p = findTouch(e);
         if (!p) return;
         t.active = false; t.id = null;
+        Input.hideTouchVisual();
       }
       canvas.addEventListener("touchend", onEnd);
       canvas.addEventListener("touchcancel", onEnd);
@@ -167,6 +246,7 @@
       var dx = t.x - t.ox, dy = t.y - t.oy;
       var len = Math.sqrt(dx * dx + dy * dy);
       if (len < DEAD) return { x: 0, y: 0 };
+      FULL = FULL / Math.max(0.5, (this.touchSensitivity || 100) / 100);
       var m = Math.min(1, (len - DEAD) / FULL);
       return { x: dx / len * m, y: dy / len * m };
     },

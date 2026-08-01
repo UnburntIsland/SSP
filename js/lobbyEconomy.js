@@ -16,7 +16,8 @@
   var BOSS_BONUS = {             /* 每關每日首勝的再生材料 */
     tidal_flat: 8,
     recycle_works: 12,
-    blackwater_plant: 18
+    blackwater_plant: 18,
+    east_ridge: 24
   };
 
   /* 測試模式（?test=1）允許縮短掛機間隔與預先給材料，方便 QA */
@@ -143,7 +144,7 @@
     },
 
     /* BOSS 每日首勝獎勵；未領 → 入帳並回傳 {amount}，已領 → null */
-    claimBossDaily: function (stageId, now) {
+    claimBossDaily: function (stageId, now, rewardMultiplier) {
       var S = global.Storage;
       if (!S || !S.getLobby || !BOSS_BONUS[stageId]) return null;
       var lobby = this.ensureDaily(now);
@@ -151,8 +152,11 @@
       var key = todayKey(now);
       if (lobby.daily.dailyBossClaims[stageId] === key) return null;
       lobby.daily.dailyBossClaims[stageId] = key;
-      S.addRecycled(BOSS_BONUS[stageId]);          /* 與掛機上限分開，不佔 60 份額度 */
-      return { amount: BOSS_BONUS[stageId] };
+      var multiplier = Number(rewardMultiplier);
+      if (!isFinite(multiplier) || multiplier <= 0) multiplier = 1;
+      var amount = Math.max(1, Math.floor(BOSS_BONUS[stageId] * multiplier));
+      S.addRecycled(amount);                       /* 與掛機上限分開，不佔 60 份額度 */
+      return { amount: amount, multiplier: multiplier };
     },
 
     bossBonusAmount: function (stageId) {

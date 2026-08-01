@@ -190,6 +190,7 @@
       this.dashTimer = this.dashDuration;
       this.dashCooldown = this.dashCooldownMax;
       this.invulnTimer = Math.max(this.invulnTimer, this.dashDuration + 0.08);
+      if (global.Input && global.Input.haptic) global.Input.haptic("dash");
     }
 
     var moveX = mv.x;

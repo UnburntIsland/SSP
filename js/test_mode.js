@@ -110,6 +110,7 @@
       gacha: "screen-gacha",
       shop: "screen-shop",
       achievements: "screen-achievements",
+      missions: "screen-missions",
       codex: "screen-codex",
       help: "screen-help",
       victory: "screen-victory",

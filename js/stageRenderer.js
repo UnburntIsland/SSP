@@ -22,7 +22,12 @@
       recyclePad: ['recycle_pad_01'],
       blackwaterPlatform: ['blackwater_platform_01'],
       oilChannel: ['oil_channel_01'],
-      hazardDeck: ['hazard_deck_01']
+      hazardDeck: ['hazard_deck_01'],
+      forestFloor: [],
+      riverCurrent: [],
+      gravelBar: [],
+      landslide: [],
+      estuaryShoal: []
     },
     props: {
       plasticBottle:   ['map_plastic_bottle_01'],
@@ -49,6 +54,50 @@
   }
 
   var SEA_H = 220, WET_H = 380;   // 海 / 濕沙 / 乾沙 分帶（世界座標 y）
+  function tidalSpawnTileKind(world, c, r, fallback) {
+    var centerC = Math.floor((world.w / 2) / TILE);
+    var centerR = Math.floor((world.h / 2) / TILE);
+    var key = (c - centerC) + "," + (r - centerR);
+    var inlet = {
+      "-2,-2": "ocean", "-1,-2": "ocean", "0,-2": "ocean", "1,-2": "ocean", "2,-2": "ocean",
+      "-3,-1": "shoreline", "-2,-1": "shoreline", "-1,-1": "shoreline",
+      "0,-1": "shoreline", "1,-1": "shoreline", "2,-1": "shoreline", "3,-1": "shoreline",
+      "-3,0": "tidePool", "3,0": "tidePool",
+      "-2,1": "tidePool", "2,1": "tidePool",
+      "-3,2": "tidePool", "3,2": "tidePool"
+    };
+    return inlet[key] || fallback;
+  }
+
+  function makeTidalLandmarks(world) {
+    var cx = world.w / 2;
+    var cy = world.h / 2;
+    return [
+      { type: "driftwood", x: cx - 196, y: cy + 86, rotation: -0.28, scale: 1.05 },
+      { type: "driftwood", x: cx + 238, y: cy - 58, rotation: 0.42, scale: 0.82 },
+      { type: "seaweed", x: cx - 276, y: cy - 34, rotation: -0.08, scale: 1.0 },
+      { type: "seaweed", x: cx + 288, y: cy + 128, rotation: 0.12, scale: 1.15 },
+      { type: "rockPool", x: cx + 176, y: cy + 154, rotation: 0, scale: 1.0 }
+    ];
+  }
+
+  function makeEastLandmarks(world) {
+    var cx = world.w / 2;
+    var cy = world.h / 2;
+    return [
+      { type: "riverMarker", x: cx - 238, y: cy - 145, rotation: -0.08, scale: 1.0 },
+      { type: "riverMarker", x: cx + 254, y: cy + 104, rotation: 0.12, scale: 0.92 },
+      { type: "mountainStone", x: cx - 312, y: cy + 158, rotation: 0.2, scale: 1.08 },
+      { type: "mountainStone", x: cx + 342, y: cy - 176, rotation: -0.16, scale: 0.9 },
+      { type: "driftwood", x: cx + 150, y: cy - 236, rotation: 0.55, scale: 0.88 },
+      { type: "driftwoodBlock", x: cx - 52, y: cy + 292, rotation: -0.35, scale: 1.1 },
+      { type: "driftwoodBlock", x: cx + 72, y: cy + 338, rotation: 0.38, scale: 0.92 },
+      { type: "forestBoundary", x: cx - 470, y: cy - 250, rotation: 0, scale: 1.1 },
+      { type: "forestBoundary", x: cx + 480, y: cy + 240, rotation: 0, scale: 1.0 },
+      { type: "cliffEdge", x: cx - 392, y: cy + 355, rotation: -0.25, scale: 1.1 },
+      { type: "landslideArrow", x: cx + 382, y: cy - 318, rotation: 0.72, scale: 1.0 }
+    ];
+  }
 
   var StageRenderer = {
     STAGE_ASSETS: STAGE_ASSETS,
@@ -80,11 +129,27 @@
             if ((c * 3 + r) % 11 === 0 || (r % 6 === 0 && c % 4 !== 0)) kind = 'oilChannel';
             else if ((c + r) % 8 === 0) kind = 'hazardDeck';
             else kind = 'blackwaterPlatform';
+          } else if (this.theme === 'east') {
+            var centerC = Math.floor(this.cols / 2);
+            var centerR = Math.floor(this.rows / 2);
+            var dc = c - centerC;
+            var dr = r - centerR;
+            var riverC = Math.floor(this.cols * 0.55 + Math.sin(r * 0.52) * 2.2);
+            var riverDistance = Math.abs(c - riverC);
+            var boundaryDistance = Math.min(c, r, this.cols - c - 1, this.rows - r - 1);
+            if (r >= this.rows - 4 && riverDistance <= 4) kind = 'estuaryShoal';
+            else if (boundaryDistance <= 1) kind = 'forestFloor';
+            else if (Math.abs(dc) <= 1 && Math.abs(dr) <= 1) kind = 'gravelBar';
+            else if (riverDistance <= 1) kind = 'riverCurrent';
+            else if (riverDistance <= 3 || (c * 5 + r * 3) % 17 === 0) kind = 'gravelBar';
+            else if (Math.abs(dc) > 3 && Math.abs(dr) > 2 && (c * 3 + r * 7) % 19 < 2) kind = 'landslide';
+            else kind = 'forestFloor';
           } else {
             if (y < SEA_H - TILE) kind = 'ocean';
             else if (y < SEA_H) kind = 'shoreline';
             else if (y < WET_H && rnd() < 0.14) kind = 'tidePool';
             else kind = 'sand';
+            kind = tidalSpawnTileKind(this.world, c, r, kind);
           }
           var list = STAGE_ASSETS.tiles[kind] || [];
           rowArr.push({ kind: kind, v: list.length ? (rnd() * list.length) | 0 : 0 });
@@ -94,8 +159,67 @@
 
       // 可拾取地圖物件由遊戲計時器逐一生成，不在開局一次塞滿場景。
       this.props = [];
+      this.landmarks = this.theme === 'tidal'
+        ? makeTidalLandmarks(this.world)
+        : (this.theme === 'east' ? makeEastLandmarks(this.world) : []);
       this.spawnSerial = 0;
       this.built = true;
+    },
+
+    getTileAt: function (x, y) {
+      if (!this.built || !this.tileMap || !this.tileMap.length) return null;
+      var c = Math.max(0, Math.min(this.cols - 1, Math.floor(x / TILE)));
+      var r = Math.max(0, Math.min(this.rows - 1, Math.floor(y / TILE)));
+      var tile = this.tileMap[r] && this.tileMap[r][c];
+      if (!tile) return null;
+      return { kind: tile.kind, c: c, r: r, x: c * TILE, y: r * TILE };
+    },
+
+    getTerrainEffectAt: function (x, y) {
+      var tile = this.getTileAt(x, y);
+      if (!tile) return null;
+      if (tile.kind === "tidePool") {
+        return { kind: tile.kind, speedMult: 0.72, status: "潮池：移動速度 -28%" };
+      }
+      if (tile.kind === "shoreline" || tile.kind === "ocean") {
+        return { kind: tile.kind, speedMult: 0.84, status: "淺水帶：移動速度 -16%" };
+      }
+      if (tile.kind === "conveyor") {
+        var direction = (tile.c + tile.r) % 2 === 0 ? 1 : -1;
+        return { kind: tile.kind, pushY: direction * 72, status: "輸送帶：持續推動" };
+      }
+      if (tile.kind === "recyclePad") {
+        return { kind: tile.kind, rewardMult: 1.5, status: "分類台：回收獎勵 +50%" };
+      }
+      if (tile.kind === "oilChannel") {
+        return { kind: tile.kind, damage: 3, damageInterval: 0.8, status: "油污渠道：持續受到傷害" };
+      }
+      if (tile.kind === "riverCurrent") {
+        var currentDirection = tile.r % 2 === 0 ? 1 : -1;
+        return {
+          kind: tile.kind,
+          speedMult: 0.82,
+          pushX: currentDirection * 26,
+          pushY: 86,
+          status: "溪流湍流：向下游推動、移動速度 -18%"
+        };
+      }
+      if (tile.kind === "gravelBar") {
+        return { kind: tile.kind, rewardMult: 1.25, status: "礫石回收區：回收獎勵 +25%" };
+      }
+      if (tile.kind === "estuaryShoal") {
+        return { kind: tile.kind, speedMult: 0.9, status: "河口淺灘：移動速度 -10%" };
+      }
+      if (tile.kind === "landslide") {
+        return {
+          kind: tile.kind,
+          speedMult: 0.68,
+          damage: 2,
+          damageInterval: 1.0,
+          status: "崩塌地：移動速度 -32%、持續受到傷害"
+        };
+      }
+      return null;
     },
 
     spawnRandomObject: function (player, forcedType, forcedPosition) {
@@ -203,6 +327,7 @@
       }
 
       // ---- props（世界座標；螢幕尺寸固定 = RENDER_SIZES ÷ zoom，與角色一致） ----
+      this.drawLandmarks(ctx, camX, camY, viewW, viewH);
       for (var i = 0; i < this.props.length; i++) {
         var p = this.props[i];
         if (p.collected) continue;
@@ -231,6 +356,87 @@
     },
 
     /* ---------------- fallback：程式繪製（僅缺圖時使用） ---------------- */
+    drawLandmarks: function (ctx, camX, camY, viewW, viewH) {
+      var landmarks = this.landmarks || [];
+      for (var i = 0; i < landmarks.length; i++) {
+        var landmark = landmarks[i];
+        if (landmark.x < camX - 100 || landmark.x > camX + viewW + 100 ||
+            landmark.y < camY - 100 || landmark.y > camY + viewH + 100) continue;
+        var scale = landmark.scale || 1;
+        ctx.save();
+        ctx.translate(landmark.x, landmark.y);
+        ctx.rotate(landmark.rotation || 0);
+        ctx.scale(scale, scale);
+        if (landmark.type === "driftwood") {
+          ctx.fillStyle = "rgba(39,25,18,.24)";
+          ctx.beginPath(); ctx.ellipse(2, 17, 48, 12, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#8d633d";
+          ctx.fillRect(-48, -8, 96, 18);
+          ctx.fillStyle = "#b48655";
+          ctx.fillRect(-41, -5, 74, 5);
+          ctx.strokeStyle = "#5e402b";
+          ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.moveTo(-25, -3); ctx.lineTo(-39, -25); ctx.moveTo(28, 2); ctx.lineTo(43, -19); ctx.stroke();
+        } else if (landmark.type === "seaweed") {
+          ctx.fillStyle = "rgba(20,64,48,.24)";
+          ctx.beginPath(); ctx.ellipse(0, 18, 34, 11, 0, 0, Math.PI * 2); ctx.fill();
+          var colors = ["#287f5d", "#3aa879", "#6dbb68", "#236f62"];
+          for (var s = 0; s < 7; s++) {
+            ctx.strokeStyle = colors[s % colors.length];
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(-24 + s * 8, 14);
+            ctx.quadraticCurveTo(-33 + s * 10, -6 - (s % 2) * 8, -21 + s * 7, -31 - (s % 3) * 7);
+            ctx.stroke();
+          }
+        } else if (landmark.type === "riverMarker") {
+          ctx.fillStyle = "rgba(20,44,38,.25)";
+          ctx.beginPath(); ctx.ellipse(0, 20, 36, 12, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#6f4f31"; ctx.fillRect(-4, -34, 8, 54);
+          ctx.fillStyle = "#d6c27f";
+          ctx.beginPath(); ctx.moveTo(-28, -30); ctx.lineTo(26, -25); ctx.lineTo(20, -5); ctx.lineTo(-28, -10); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "#4f7655"; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(-16, -21); ctx.lineTo(13, -18); ctx.stroke();
+        } else if (landmark.type === "mountainStone" || landmark.type === "cliffEdge") {
+          ctx.fillStyle = "rgba(23,39,30,.28)";
+          ctx.beginPath(); ctx.ellipse(0, 21, 48, 14, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = landmark.type === "cliffEdge" ? "#59665d" : "#6f806c";
+          ctx.beginPath(); ctx.moveTo(-44, 18); ctx.lineTo(-22, -24); ctx.lineTo(8, -36); ctx.lineTo(43, 8); ctx.lineTo(26, 24); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "#9aaa83";
+          ctx.beginPath(); ctx.moveTo(-22, -22); ctx.lineTo(8, -36); ctx.lineTo(3, -8); ctx.lineTo(-29, 7); ctx.closePath(); ctx.fill();
+        } else if (landmark.type === "driftwoodBlock") {
+          ctx.strokeStyle = "#6a472d"; ctx.lineWidth = 13; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(-58, -16); ctx.lineTo(54, 18); ctx.moveTo(-42, 22); ctx.lineTo(46, -23); ctx.stroke();
+          ctx.strokeStyle = "#aa7b4b"; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.moveTo(-54, -18); ctx.lineTo(50, 14); ctx.moveTo(-38, 19); ctx.lineTo(42, -20); ctx.stroke();
+        } else if (landmark.type === "forestBoundary") {
+          var treeColors = ["#194f37", "#276848", "#3f8052", "#6c9658"];
+          for (var tree = 0; tree < 7; tree++) {
+            ctx.fillStyle = treeColors[tree % treeColors.length];
+            ctx.beginPath();
+            ctx.arc(-48 + tree * 16, (tree % 2) * 10 - 9, 18 + (tree % 3) * 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (landmark.type === "landslideArrow") {
+          ctx.fillStyle = "rgba(255,190,75,.88)";
+          ctx.beginPath(); ctx.moveTo(0, 38); ctx.lineTo(-28, -2); ctx.lineTo(-10, -2); ctx.lineTo(-10, -34); ctx.lineTo(10, -34); ctx.lineTo(10, -2); ctx.lineTo(28, -2); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "#624727"; ctx.lineWidth = 4; ctx.stroke();
+        } else {
+          ctx.fillStyle = "rgba(24,78,83,.5)";
+          ctx.beginPath(); ctx.ellipse(0, 3, 42, 27, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "#718d7e";
+          ctx.lineWidth = 7;
+          for (var a = 0; a < 5; a++) {
+            var angle = a * Math.PI * 2 / 5;
+            ctx.beginPath();
+            ctx.arc(Math.cos(angle) * 31, Math.sin(angle) * 19, 10, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+    },
+
     fallbackTile: function (ctx, kind, x, y) {
       if (kind === 'factoryFloor') {
         ctx.fillStyle = '#3d5152'; ctx.fillRect(x, y, TILE, TILE);
@@ -271,6 +477,46 @@
         for (var hx = -TILE; hx < TILE * 2; hx += 28) {
           ctx.beginPath(); ctx.moveTo(x + hx, y + TILE); ctx.lineTo(x + hx + TILE, y); ctx.stroke();
         }
+      } else if (kind === 'forestFloor') {
+        ctx.fillStyle = '#446f4b'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = 'rgba(123,157,92,0.24)';
+        ctx.beginPath(); ctx.arc(x + 21, y + 27, 13, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 72, y + 64, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(37,81,54,0.34)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x + 8, y + 83); ctx.lineTo(x + 37, y + 56); ctx.moveTo(x + 59, y + 20); ctx.lineTo(x + 88, y + 8); ctx.stroke();
+      } else if (kind === 'riverCurrent') {
+        ctx.fillStyle = '#278fa7'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.strokeStyle = 'rgba(189,244,235,0.64)'; ctx.lineWidth = 4;
+        for (var rw = 14; rw < TILE; rw += 30) {
+          ctx.beginPath();
+          ctx.moveTo(x + 8, y + rw);
+          ctx.bezierCurveTo(x + 27, y + rw - 8, x + 55, y + rw + 8, x + 88, y + rw - 2);
+          ctx.stroke();
+        }
+      } else if (kind === 'estuaryShoal') {
+        ctx.fillStyle = '#79b9b2'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = 'rgba(211,218,174,.58)';
+        ctx.beginPath(); ctx.ellipse(x + 30, y + 34, 27, 15, -0.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x + 70, y + 68, 31, 18, 0.25, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(239,250,225,.62)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x + 3, y + 20); ctx.bezierCurveTo(x + 28, y + 9, x + 63, y + 31, x + 93, y + 18); ctx.stroke();
+      } else if (kind === 'gravelBar') {
+        ctx.fillStyle = '#a8a77e'; ctx.fillRect(x, y, TILE, TILE);
+        var gravelColors = ['#69786e', '#c6bd92', '#7f8f82', '#dad0a4'];
+        for (var gr = 0; gr < 9; gr++) {
+          ctx.fillStyle = gravelColors[gr % gravelColors.length];
+          ctx.beginPath();
+          ctx.ellipse(x + 10 + ((gr * 29) % 78), y + 13 + ((gr * 41) % 72), 5 + (gr % 3) * 2, 3 + (gr % 2) * 2, gr * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (kind === 'landslide') {
+        ctx.fillStyle = '#765f43'; ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = '#4d4837';
+        ctx.beginPath(); ctx.moveTo(x, y + 76); ctx.lineTo(x + 25, y + 17); ctx.lineTo(x + 54, y + 48); ctx.lineTo(x + 79, y + 8); ctx.lineTo(x + TILE, y + 61); ctx.lineTo(x + TILE, y + TILE); ctx.lineTo(x, y + TILE); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#a17c4e'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(x + 13, y + 21); ctx.lineTo(x + 83, y + 73); ctx.moveTo(x + 65, y + 15); ctx.lineTo(x + 34, y + 83); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,190,75,.86)';
+        ctx.beginPath(); ctx.moveTo(x + 70, y + 84); ctx.lineTo(x + 52, y + 57); ctx.lineTo(x + 62, y + 57); ctx.lineTo(x + 62, y + 38); ctx.lineTo(x + 78, y + 38); ctx.lineTo(x + 78, y + 57); ctx.lineTo(x + 88, y + 57); ctx.closePath(); ctx.fill();
       } else if (kind === 'ocean') {
         ctx.fillStyle = '#39b6be'; ctx.fillRect(x, y, TILE, TILE);
       } else if (kind === 'shoreline') {

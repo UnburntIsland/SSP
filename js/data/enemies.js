@@ -279,6 +279,36 @@
         color: "#9b73e8"
       },
       knowledgeId: "k_wetland"
+    },
+    landslide_colossus: {
+      id: "landslide_colossus",
+      name: "崩谷巨像",
+      spriteId: "enemy_landslide_colossus",
+      hp: 1850,
+      speed: 31,
+      radius: 46,
+      contact: 23,
+      xp: 85,
+      coinChance: 1,
+      coinAmount: 28,
+      isBoss: true,
+      runtimeAnimated: false,
+      introText: "土石、漂流木與廢棄物堵住溪谷，聚成沿著河道推進的崩谷巨像。",
+      introHint: "橙色崩塌預警亮起後避開扇形土石帶，利用礫石回收區拉開距離。",
+      ranged: {
+        kind: "landslide",
+        visualId: "landslide_barrage",
+        count: 9,
+        spread: 1.8,
+        range: 690,
+        cooldown: 3.0,
+        telegraph: 0.8,
+        projectileSpeed: 148,
+        projectileDamage: 12,
+        projectileRadius: 9,
+        color: "#9bc56d"
+      },
+      knowledgeId: "k_wetland"
     }
   };
 
@@ -332,7 +362,8 @@
     waste_battery_slime: "battery_slime",
     oil_blob: "oil_blob",
     oil_boss: "oil_blob",
-    oil_slick_mass: "oil_blob"
+    oil_slick_mass: "oil_blob",
+    landslide_colossus: "landslide_colossus"
   };
 
   global.GameData.resolveEnemyId = function (id) {

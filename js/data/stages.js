@@ -15,7 +15,8 @@
       difficulty: "標準",
       concept: "清理被海廢占據的潮池，阻止幽靈廢網封鎖整片海岸。",
       objective: "存活 5 分鐘並擊敗幽靈廢網",
-      previewImage: "assets/images/stages/tidal_flat_card.png?v=stages-20260711a",
+      previewImage: "assets/images/stages/tidal_flat_card.webp?v=stages-20260730a",
+      terrainHint: "潮池與淺水帶會降低移動速度；觀察漂流木、海草與水色辨認安全路線。",
       theme: "tidal",
       duration: 300,
       world: { w: 2400, h: 1600 },
@@ -88,7 +89,8 @@
       difficulty: "進階",
       concept: "深入失控的資源回收產線，重新啟動分類系統並擊倒壓縮機甲。",
       objective: "存活 8 分鐘並擊敗壓縮機甲",
-      previewImage: "assets/images/stages/recycle_works_card.png?v=stages-20260711a",
+      previewImage: "assets/images/stages/recycle_works_card.webp?v=stages-20260730a",
+      terrainHint: "輸送帶會推動角色；站上綠色分類台回收物件可獲得 50% 額外獎勵。",
       theme: "recycle",
       duration: 480,
       world: { w: 2600, h: 1750 },
@@ -163,7 +165,8 @@
       difficulty: "高危",
       concept: "穿越遭油污淹沒的能源站，在污染擴散前淨化最後的油污核心。",
       objective: "存活 12 分鐘並擊敗油污核心",
-      previewImage: "assets/images/stages/blackwater_plant_card.png?v=stages-20260711a",
+      previewImage: "assets/images/stages/blackwater_plant_card.webp?v=stages-20260730a",
+      terrainHint: "紫黑色油污渠道會持續造成傷害，請利用平台規劃移動路線。",
       theme: "blackwater",
       duration: 720,
       world: { w: 2800, h: 1800 },
@@ -227,6 +230,84 @@
       ],
       events: [
         { at: 600, enemy: "oil_blob", count: 1, announce: "最終污染源甦醒：油污核心正在擴張！" }
+      ]
+    },
+    {
+      id: "east_ridge",
+      order: 4,
+      unlockAfter: "blackwater_plant",
+      name: "花東山海溪谷",
+      shortName: "山海溪谷",
+      difficulty: "極限",
+      concept: "從花蓮縱谷沿溪流前進，在土石與廢棄物阻斷河道前恢復山林、河川與海洋的連結。",
+      objective: "存活 15 分鐘並擊敗崩谷巨像",
+      previewImage: "assets/images/stages/east_ridge_card.webp?v=east-ridge-20260730a",
+      terrainHint: "湍流會推動角色、崩塌地會持續造成傷害；礫石回收區則提供額外回收獎勵。",
+      theme: "east",
+      duration: 900,
+      world: { w: 3000, h: 1900 },
+      spawnRadius: 660,
+      maxEnemies: 380,
+      maxElites: 5,
+      fallbackEnemies: ["plastic_bag", "foam_crab", "ash_wisp"],
+      bossId: "landslide_colossus",
+      bossName: "崩谷巨像",
+      bossHpMultiplier: 1.9,
+      contaminationZone: {
+        startsAt: 240,
+        startRadius: 1220,
+        endRadius: 450,
+        steps: 7,
+        warningDuration: 13,
+        shrinkDuration: 9,
+        holdDuration: 34,
+        damagePerTick: 4,
+        tickInterval: 1.0
+      },
+      collectibleTypes: ["plasticBottle", "aluminumCan", "glassBottle", "discardedBattery"],
+      waves: [
+        {
+          from: 0, to: 180,
+          interval: 0.82, batch: 1,
+          types: [
+            { enemy: "plastic_bag", weight: 3 },
+            { enemy: "foam_crab", weight: 1.5 }
+          ]
+        },
+        {
+          from: 180, to: 390,
+          interval: 0.66, batch: 2,
+          types: [
+            { enemy: "plastic_bag", weight: 2.5 },
+            { enemy: "foam_crab", weight: 2 },
+            { enemy: "smog_drone", weight: 1.2 },
+            { enemy: "bottle_mite", weight: 0.8 }
+          ]
+        },
+        {
+          from: 390, to: 650,
+          interval: 0.55, batch: 2,
+          types: [
+            { enemy: "foam_crab", weight: 2.5 },
+            { enemy: "smog_drone", weight: 2 },
+            { enemy: "ash_wisp", weight: 1 },
+            { enemy: "bottle_mite", weight: 1.2 }
+          ]
+        },
+        {
+          from: 650, to: 900,
+          interval: 0.46, batch: 3,
+          types: [
+            { enemy: "plastic_bag", weight: 2 },
+            { enemy: "foam_crab", weight: 2.6 },
+            { enemy: "smog_drone", weight: 2.2 },
+            { enemy: "ash_wisp", weight: 1.4 },
+            { enemy: "bottle_mite", weight: 1.5 }
+          ]
+        }
+      ],
+      events: [
+        { at: 760, enemy: "landslide_colossus", count: 1, announce: "溪谷崩塌加劇：崩谷巨像堵住了出海口！" }
       ]
     }
   ];

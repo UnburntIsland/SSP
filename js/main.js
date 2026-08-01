@@ -16,6 +16,7 @@
     gacha: "screen-gacha",
     shop: "screen-shop",
     achievements: "screen-achievements",
+    missions: "screen-missions",
     codex: "screen-codex",
     help: "screen-help",
     settings: "screen-settings",
@@ -35,6 +36,10 @@
     taiwanMapEnabled: true,
     pendingCharacterStats: { attack: 0, speed: 0, hp: 0 },
     gachaDrawing: false,
+    missionView: "daily",
+    currentChallengeId: null,
+    runMode: "normal",
+    currentRunMode: "normal",
 
     boot: function () {
       global.Storage.load();
@@ -79,6 +84,7 @@
       this.bindKeys();
       this.ui.updateCoinLabels();
       if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
+      if (this.ui.updateEnvironmentMissionBadge) this.ui.updateEnvironmentMissionBadge();
       this.ui.updateHomeCharacterPreview(this.selectedCharacterId);
       this.updateStageSelector();
       this.ui.refreshSettings();
@@ -102,11 +108,17 @@
       if (global.AudioManager) global.AudioManager.playMusic("lobby");
       this.ui.updateCoinLabels();
       if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
+      if (this.ui.updateEnvironmentMissionBadge) this.ui.updateEnvironmentMissionBadge();
       this.setState("LOBBY");
     },
 
     openPortalSelect: function () {
       if (this.state !== "LOBBY") return;
+      var mapImage = document.getElementById("taiwan-map-image");
+      if (mapImage && !mapImage.getAttribute("src")) {
+        mapImage.src = mapImage.dataset.src ||
+          (global.GameData && global.GameData.taiwanMap && global.GameData.taiwanMap.imagePath) || "";
+      }
       this.showScreen("portal");
       this.updateStageSelector();
       this.setState("PORTAL_SELECT");
@@ -324,7 +336,7 @@
             if (!global.Lobby || !global.Lobby.handleEscape()) self.exitBuildMode();
             if (global.Lobby && global.Lobby.mode === "idle") self.setState("LOBBY");
           }
-          else if (st === "CHARACTER_SELECT" || st === "GACHA" || st === "SHOP" || st === "ACHIEVEMENTS" || st === "CODEX" || st === "HELP") { e.preventDefault(); self.handleAction("back"); }
+          else if (st === "CHARACTER_SELECT" || st === "GACHA" || st === "SHOP" || st === "ACHIEVEMENTS" || st === "ENVIRONMENT_MISSIONS" || st === "CODEX" || st === "HELP") { e.preventDefault(); self.handleAction("back"); }
         }
       });
     },
@@ -357,6 +369,17 @@
         case "shop":          this.showScreen("shop"); this.ui.buildShop(); this.ui.updateCoinLabels(); this.setState("SHOP"); break;
         case "achievements":  this.openAchievements(); break;
         case "achievement-claim-all": this.claimAllAchievements(); break;
+        case "missions":      this.openEnvironmentMissions(this.missionView); break;
+        case "mission-tab":   this.openEnvironmentMissions(source && source.dataset.missionView); break;
+        case "mission-claim": this.claimEnvironmentMission(source && source.dataset.missionScope, source && source.dataset.missionId); break;
+        case "mission-claim-all": this.claimAllEnvironmentMissions(); break;
+        case "mission-track": this.toggleEnvironmentMissionTracking(source && source.dataset.missionScope, source && source.dataset.missionId); break;
+        case "challenge-start": this.startChallenge(source && source.dataset.challengeId); break;
+        case "challenge-claim": this.claimEnvironmentChallenge(source && source.dataset.challengeId); break;
+        case "challenge-character": this.switchChallengeCharacter(source && source.dataset.challengeId); break;
+        case "challenge-build": this.openBuildForChallenge(source && source.dataset.challengeId); break;
+        case "challenge-unlock": this.showChallengeUnlockRoute(source && source.dataset.challengeId); break;
+        case "run-mode": this.setRunMode(source && source.dataset.runMode); break;
         case "records-hub":
         case "codex":         this.showScreen("codex"); this.ui.buildCodex(); this.setState("CODEX"); break;
         case "help":          this.showScreen("help"); this.setState("HELP"); break;
@@ -426,6 +449,110 @@
       if (this.ui.setAchievementGroup) this.ui.setAchievementGroup(this.ui._achievementGroup || "all");
       else if (this.ui.buildAchievements) this.ui.buildAchievements();
       this.setState("ACHIEVEMENTS");
+    },
+
+    openEnvironmentMissions: function (view) {
+      if (view !== "weekly" && view !== "challenges") view = "daily";
+      this.missionView = view;
+      this.showScreen("missions");
+      if (this.ui.setEnvironmentMissionView) this.ui.setEnvironmentMissionView(view);
+      else if (this.ui.buildEnvironmentMissions) this.ui.buildEnvironmentMissions(view);
+      this.setState("ENVIRONMENT_MISSIONS");
+    },
+
+    claimEnvironmentMission: function (scope, id) {
+      if (!global.EnvironmentMissions) return;
+      var result = global.EnvironmentMissions.claimMission(scope, id);
+      if (!result.ok) {
+        this.ui.showToast("目前無法領取", result.reason === "claimed" ? "這份獎勵已領取。" : "尚未完成任務目標。");
+      } else {
+        this.ui.showToast("環境任務獎勵已領取", result.rewardLabel);
+      }
+      this.ui.updateCoinLabels();
+      this.ui.buildEnvironmentMissions(this.missionView);
+    },
+
+    claimAllEnvironmentMissions: function () {
+      if (!global.EnvironmentMissions) return;
+      var result = global.EnvironmentMissions.claimAll();
+      this.ui.showToast(
+        result.ok ? "已領取全部任務獎勵" : "目前沒有可領取獎勵",
+        result.ok ? ("共領取 " + result.count + " 項獎勵。") : "完成任務後即可一鍵領取。"
+      );
+      this.ui.updateCoinLabels();
+      this.ui.buildEnvironmentMissions(this.missionView);
+    },
+
+    toggleEnvironmentMissionTracking: function (scope, id) {
+      if (!global.EnvironmentMissions) return;
+      var tracked = global.EnvironmentMissions.toggleTrackedMission(scope, id);
+      this.ui.showToast(tracked ? "已追蹤任務" : "已取消追蹤", tracked ? "進入關卡後會顯示在 HUD。" : "HUD 任務提示已移除。");
+      this.ui.buildEnvironmentMissions(this.missionView);
+    },
+
+    claimEnvironmentChallenge: function (id) {
+      if (!global.EnvironmentMissions) return;
+      var result = global.EnvironmentMissions.claimChallenge(id);
+      if (!result.ok) {
+        this.ui.showToast("目前無法領取", result.reason === "claimed" ? "這份獎勵已領取。" : "請先完成挑戰。");
+      } else {
+        this.ui.showToast("挑戰獎勵已領取", result.rewardLabel);
+      }
+      this.ui.updateCoinLabels();
+      this.ui.buildEnvironmentMissions("challenges");
+    },
+
+    startChallenge: function (id) {
+      if (!global.EnvironmentMissions) return false;
+      var validation = global.EnvironmentMissions.validateChallengeStart(id);
+      if (!validation.ok) {
+        this.ui.showToast("挑戰條件尚未達成", (validation.reasons || ["請檢查角色與建築條件。"]).join("；"));
+        if (this.ui.buildEnvironmentMissions) this.ui.buildEnvironmentMissions("challenges");
+        return false;
+      }
+      var challenge = global.GameData.getChallenge(id);
+      var stage = challenge && global.GameData.getStage(challenge.stageId);
+      if (!stage) return false;
+      this.currentChallengeId = challenge.id;
+      this.selectedStageId = stage.id;
+      if (global.Storage.saveSelectedStage) global.Storage.saveSelectedStage(stage.id);
+      var challengeCharacterId = challenge.requiredCharacterId || this.selectedCharacterId;
+      this.startRun(challengeCharacterId, stage.id, challenge.id);
+      return true;
+    },
+
+    switchChallengeCharacter: function (id) {
+      var challenge = global.GameData.getChallenge(id);
+      if (!challenge || !challenge.requiredCharacterId) return false;
+      if (!global.Storage.isCharacterOwned(challenge.requiredCharacterId)) {
+        this.ui.showToast("提供挑戰租借", "開始挑戰時會自動租借指定角色，不影響角色收藏。");
+        return true;
+      }
+      this.saveSelectedCharacter(challenge.requiredCharacterId);
+      this.ui.showToast("角色已切換", "已改用「" + global.GameData.getCharacter(challenge.requiredCharacterId).name + "」。");
+      this.openEnvironmentMissions("challenges");
+      return true;
+    },
+
+    openBuildForChallenge: function () {
+      this.enterLobby();
+      this.enterBuildMode();
+      return true;
+    },
+
+    showChallengeUnlockRoute: function (id) {
+      var challenge = global.GameData.getChallenge(id);
+      var stage = challenge && global.GameData.getStage(challenge.stageId);
+      if (!stage) return false;
+      this.enterLobby();
+      this.selectedStageId = stage.id;
+      this.openPortalSelect();
+      return true;
+    },
+
+    setRunMode: function (mode) {
+      this.runMode = mode === "quick" ? "quick" : "normal";
+      this.updateStageSelector();
     },
 
     claimAchievement: function (id) {
@@ -505,7 +632,9 @@
       var countyLabel = document.getElementById("stage-county-label");
       var learningFocus = document.getElementById("stage-learning-focus");
       if (image) {
-        image.src = stage.previewImage;
+        image.dataset.src = stage.previewImage;
+        var portal = document.getElementById("screen-portal");
+        if (portal && !portal.classList.contains("hidden")) image.src = stage.previewImage;
         image.alt = stage.name + "地圖與 " + stage.bossName + " 預覽";
       }
       if (number) {
@@ -520,7 +649,8 @@
       if (learningFocus) {
         learningFocus.textContent = region ? "本區學習：" + region.learningFocus : "";
       }
-      if (duration) duration.textContent = Math.round(stage.duration / 60) + " 分鐘";
+      var displayedDuration = this.runMode === "quick" ? stage.duration * 0.6 : stage.duration;
+      if (duration) duration.textContent = Math.round(displayedDuration / 60) + " 分鐘";
       if (difficulty) difficulty.textContent = stage.difficulty;
       if (boss) boss.textContent = "BOSS：" + stage.bossName;
       if (lock) {
@@ -535,8 +665,9 @@
       if (play) {
         play.disabled = !unlocked;
         var playLabel = play.querySelector(".btn-label");
-        if (playLabel) playLabel.textContent = "開始遊戲";
-        else play.textContent = "開始遊戲";
+        var startLabel = this.runMode === "quick" ? "開始快速行動" : "開始遊戲";
+        if (playLabel) playLabel.textContent = startLabel;
+        else play.textContent = startLabel;
         play.setAttribute("aria-label", unlocked ? "開始遊戲：" + stage.name : stage.name + "尚未解鎖");
       }
       var dots = document.getElementById("stage-carousel-dots");
@@ -552,6 +683,11 @@
           dots.appendChild(dot);
         }, this);
       }
+      Array.prototype.forEach.call(document.querySelectorAll("[data-run-mode]"), function (button) {
+        var active = button.dataset.runMode === this.runMode;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      }, this);
       this.updateTaiwanMap();
     },
 
@@ -563,7 +699,8 @@
         return false;
       }
       this.saveSelectedStage(stage.id);
-      this.startRun(this.selectedCharacterId, stage.id);
+      this.currentChallengeId = null;
+      this.startRun(this.selectedCharacterId, stage.id, null);
       return true;
     },
 
@@ -588,7 +725,9 @@
     confirmCharacterSelection: function () {
       var id = this.candidateCharacterId || this.selectedCharacterId || "ranger";
       if (!global.Storage.isCharacterOwned(id)) {
-        this.ui.showToast("角色尚未解鎖", "請從生態扭蛋取得這名守護者。");
+        var route = id === "mechanic" ? "完成第 2 關即可固定解鎖。" :
+          (id === "chemist" ? "完成第 3 關即可固定解鎖。" : "可從生態扭蛋取得。");
+        this.ui.showToast("角色尚未解鎖", route + " 指定挑戰中仍可免費租借。");
         return;
       }
       this.saveSelectedCharacter(id);
@@ -695,6 +834,7 @@
       this.currentChar = "ranger";
       this.selectedStageId = DEFAULT_STAGE_ID;
       this.currentStageId = DEFAULT_STAGE_ID;
+      this.currentChallengeId = null;
       this.ui.updateCoinLabels();
       this.ui.updateHomeCharacterPreview("ranger");
       this.updateStageSelector();
@@ -783,24 +923,33 @@
       this.ui.showConfirm(false);
       this.ui.showPause(false);
       global.Game.abort();
-      this.startRun(this.currentChar || this.selectedCharacterId, this.currentStageId);   // 不重置商店升級 / localStorage
+      this.startRun(this.currentChar || this.selectedCharacterId, this.currentStageId, this.currentChallengeId);   // 不重置商店升級 / localStorage
     },
 
     /* ---------------- 一局生命週期 ---------------- */
-    startRun: function (charId, stageId) {
+    startRun: function (charId, stageId, challengeId) {
+      var stage = global.GameData.getStage(stageId || this.selectedStageId) || global.GameData.getStage(DEFAULT_STAGE_ID);
+      var challenge = challengeId && global.GameData.getChallenge
+        ? global.GameData.getChallenge(challengeId) : null;
+      if (challenge && challenge.stageId !== stage.id) challenge = null;
       var baseCharacter = global.GameData.getCharacter(charId) || global.GameData.characters[0];
       var configuredTestCharacter = global.TestMode && global.TestMode.enabled && global.TestMode.characterId
         ? global.GameData.getCharacter(global.TestMode.characterId)
         : null;
       var allowTestCharacter = configuredTestCharacter && configuredTestCharacter.id === baseCharacter.id;
-      if (!allowTestCharacter && !global.Storage.isCharacterOwned(baseCharacter.id)) baseCharacter = global.GameData.getCharacter("ranger") || global.GameData.characters[0];
+      var isChallengeRental = !!(challenge && challenge.requiredCharacterId === baseCharacter.id &&
+        !global.Storage.isCharacterOwned(baseCharacter.id));
+      if (!allowTestCharacter && !isChallengeRental && !global.Storage.isCharacterOwned(baseCharacter.id)) {
+        baseCharacter = global.GameData.getCharacter("ranger") || global.GameData.characters[0];
+      }
       var equippedSkinId = global.Storage.getEquippedSkin(baseCharacter.id);
       var character = global.GameData.makePlayableCharacter
         ? global.GameData.makePlayableCharacter(baseCharacter.id, equippedSkinId)
         : baseCharacter;
       this.currentChar = baseCharacter.id;
-      var stage = global.GameData.getStage(stageId || this.selectedStageId) || global.GameData.getStage(DEFAULT_STAGE_ID);
       this.currentStageId = stage.id;
+      this.currentChallengeId = challenge ? challenge.id : null;
+      this.currentRunMode = challenge ? "normal" : (this.runMode === "quick" ? "quick" : "normal");
       var meta = global.Storage.getMetaBonuses();
       meta.characterGrowth = global.Storage.getCharacterBonuses(baseCharacter.id);
       // 大廳建築加成：進入關卡時建立快照；本局中移動 / 收納建築不影響進行中的戰鬥。
@@ -816,7 +965,8 @@
       this.ui._hudSig = "";
       this.ui._passiveHudSig = null;
       global.Game.resize();
-      global.Game.start(stage.id, player);
+      global.Game.start(stage.id, player, challenge, { mode: this.currentRunMode, characterRental: isChallengeRental });
+      if (this.ui.updateHUD) this.ui.updateHUD(global.Game);
       if (global.AudioManager) global.AudioManager.playMusic("stage");
       this.setState("PLAYING");
     },
@@ -824,7 +974,7 @@
     retryRun: function () {
       var characterId = this.currentChar || this.selectedCharacterId || "ranger";
       global.Game.abort();
-      this.startRun(characterId, this.currentStageId);
+      this.startRun(characterId, this.currentStageId, this.currentChallengeId);
     },
 
     onLevelUp: function (options, cb) {
@@ -844,7 +994,11 @@
         ? this.currentLobbyBonuses.sources.slice() : [];
       // BOSS 每日首勝再生材料（與掛機每日上限分開；每關每日一次）
       if (stats.result === "victory" && stats.bossDefeated && global.LobbyEconomy) {
-        var claim = global.LobbyEconomy.claimBossDaily(stats.stageId || this.currentStageId);
+        var claim = global.LobbyEconomy.claimBossDaily(
+          stats.stageId || this.currentStageId,
+          null,
+          stats.rewardMultiplier
+        );
         if (claim) stats.bossMaterialBonus = claim.amount;
       }
       if (stats.result === "victory" && global.Storage.markStageCleared) {
@@ -853,6 +1007,9 @@
           ? !global.Storage.isStageCleared(clearedStageId)
           : false;
         var unlocked = global.Storage.markStageCleared(clearedStageId);
+        stats.unlockedCharacters = global.Storage.consumeFixedCharacterUnlocks
+          ? global.Storage.consumeFixedCharacterUnlocks()
+          : [];
         if (unlocked) {
           stats.unlockedStage = unlocked;
           this.selectedStageId = unlocked.id;
@@ -865,10 +1022,20 @@
           ? achievementResult.unlockedAchievements
           : [];
       }
+      if (global.EnvironmentMissions && global.EnvironmentMissions.recordRun) {
+        var missionResult = global.EnvironmentMissions.recordRun(stats);
+        stats.newMissionRewards = missionResult ? missionResult.claimable : 0;
+        if (stats.challengeId) {
+          var challengeResult = global.EnvironmentMissions.recordChallenge(stats.challengeId, stats);
+          stats.challengeCompleted = !!(challengeResult && challengeResult.complete);
+          stats.challengeFirstCompletion = !!(challengeResult && challengeResult.firstCompletion);
+        }
+      }
       this.ui.buildResult(stats);
       this.showScreen(stats.result === "victory" ? "victory" : "gameover");
       this.ui.updateCoinLabels();
       if (this.ui.updateAchievementMenuBadge) this.ui.updateAchievementMenuBadge();
+      if (this.ui.updateEnvironmentMissionBadge) this.ui.updateEnvironmentMissionBadge();
       this.updateStageSelector();
       if (stats.newAchievements && stats.newAchievements.length) {
         this.ui.showToast("完成 " + stats.newAchievements.length + " 項新成就", "返回主畫面後可前往成就頁領取獎勵。");
