@@ -5,39 +5,39 @@
 (function (global) {
   var STEPS = [
     {
-      id: "move", event: "lobby-moved", screen: "LOBBY", icon: "↟",
+      id: "move", event: "lobby-moved", screen: "LOBBY", iconPath: "assets/images/ui/navigation/character.webp",
       title: "先走動看看",
       text: "使用 WASD／方向鍵；觸控裝置可拖曳畫面移動。走一小段路就會完成這一步。"
     },
     {
-      id: "recycle", event: "recycle-collected", screen: "LOBBY", icon: "♻",
+      id: "recycle", event: "recycle-collected", screen: "LOBBY", iconPath: "assets/images/ui/navigation/recycle.webp",
       title: "領取自動回收材料",
       text: "回收站會自己累積材料，不必站著掛機。走到右側回收站，按 E 或點互動提示一次領取。"
     },
     {
-      id: "build", event: "building-placed", screen: "LOBBY", icon: "🔨",
+      id: "build", event: "building-placed", screen: "LOBBY", iconPath: "assets/images/ui/navigation/build.webp",
       title: "用材料建造",
       text: "打開建造工作台，選擇一件物品並完成放置。建造會消耗再生材料。",
       target: '.lobby-topright [data-action="build"]'
     },
     {
-      id: "portal", event: "portal-opened", screen: "LOBBY", icon: "◎",
+      id: "portal", event: "portal-opened", screen: "LOBBY", iconPath: "assets/images/ui/navigation/portal.webp",
       title: "前往行動傳送門",
-      text: "走到中央傳送門互動，開啟台灣守護行動地圖。"
+      text: "走到大廳上方的傳送門互動，開啟台灣守護行動地圖。"
     },
     {
-      id: "play", event: "stage-started", screen: "PORTAL_SELECT", icon: "▶",
+      id: "play", event: "stage-started", screen: "PORTAL_SELECT", iconPath: "assets/images/ui/navigation/portal.webp",
       title: "開始第一場行動",
       text: "選擇已解鎖的地點並開始。戰鬥會自動攻擊，你只要移動、閃避並收集經驗。",
       target: '#screen-portal [data-action="play"]'
     },
     {
-      id: "quiz", event: "quiz-answered", screen: "PLAYING", icon: "?",
+      id: "quiz", event: "quiz-answered", screen: "PLAYING", iconPath: "assets/images/ui/navigation/help.webp",
       title: "升級時完成永續問答",
       text: "收集經驗升級後回答題目。作答後會顯示正確答案與詳解，答錯也能稍後訂正。"
     },
     {
-      id: "review", event: "review-opened", screen: "LOBBY", icon: "✓",
+      id: "review", event: "review-opened", screen: "LOBBY", iconPath: "assets/images/ui/navigation/records.webp",
       title: "回顧與訂正",
       text: "回到大廳後打開「圖鑑／成就」，切到「題目複習」。查看答對率並重新回答錯題。",
       target: '.lobby-topright [data-action="records-hub"]'
@@ -143,7 +143,14 @@
       if (title) title.textContent = step.title;
       if (text) text.textContent = step.text;
       if (progress) progress.textContent = "教學 " + (stepIndex + 1) + " / " + STEPS.length;
-      if (icon) icon.textContent = step.icon;
+      if (icon) {
+        icon.innerHTML = "";
+        var iconImage = document.createElement("img");
+        iconImage.src = step.iconPath;
+        iconImage.alt = "";
+        iconImage.decoding = "async";
+        icon.appendChild(iconImage);
+      }
       this.root.classList.remove("hidden");
       this.root.setAttribute("aria-hidden", "false");
 

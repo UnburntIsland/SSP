@@ -122,13 +122,14 @@
       if (!root) return;
       var level = this.getExpansionLevel();
       var materials = global.Storage.getRecycled();
-      var html = "<div class='land-catalog-intro'><div class='land-catalog-icon'>⌘</div><div><strong>擴張森循島</strong><span>購地後會永久增加可行走與可建造範圍，並開放新的互動空間。</span></div><b>進度 " + level + " / 2</b></div>";
+      var islandIcon = "<img src='assets/images/ui/navigation/island.webp' alt='' />";
+      var html = "<div class='land-catalog-intro'><div class='land-catalog-icon'>" + islandIcon + "</div><div><strong>擴張森循島</strong><span>購地後會永久增加可行走與可建造範圍，並開放新的互動空間。</span></div><b>進度 " + level + " / 2</b></div>";
       EXPANSIONS.forEach(function (entry) {
         var owned = level >= entry.level;
         var available = entry.level === level + 1;
         var enough = materials >= entry.cost;
         html += "<article class='land-expansion-card " + (owned ? "owned" : available ? "available" : "locked") + "'>" +
-          "<div class='land-expansion-icon' aria-hidden='true'>" + entry.icon + "</div><div class='land-expansion-copy'><span>土地階段 " + entry.level + "</span><h3>" + entry.name + "</h3><p>" + entry.description + "</p><small>開放：" + entry.unlocks + "</small></div>" +
+          "<div class='land-expansion-icon' aria-hidden='true'>" + islandIcon + "</div><div class='land-expansion-copy'><span>土地階段 " + entry.level + "</span><h3>" + entry.name + "</h3><p>" + entry.description + "</p><small>開放：" + entry.unlocks + "</small></div>" +
           "<button class='btn " + (available && enough ? "btn-primary" : "") + "' type='button' data-action='island-expand' data-expansion-level='" + entry.level + "' " + (available && enough ? "" : "disabled") + ">" +
           (owned ? "已擴張" : !available ? "先完成前一階段" : enough ? "擴張土地　⬢ " + entry.cost : "還差 ⬢ " + (entry.cost - materials)) + "</button></article>";
       });

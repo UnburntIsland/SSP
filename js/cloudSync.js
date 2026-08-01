@@ -592,7 +592,7 @@
         catch (error) { return this.fail(error); }
         finally { this.syncing = false; this.emit(); }
       }
-      this.setState("conflict", "尚未選擇版本；自動同步已暫停。 ");
+      this.setState("conflict", "尚未選擇要保留的進度；自動同步已暫停。 ");
       return null;
     },
 

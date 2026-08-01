@@ -699,10 +699,10 @@
       if (!state.configured) {
         root.innerHTML =
           '<article class="account-panel account-unavailable">' +
-            '<div class="account-panel-icon" aria-hidden="true">⌁</div>' +
+            '<div class="account-panel-icon" aria-hidden="true"><img src="assets/images/ui/navigation/account.webp" alt="" /></div>' +
             '<div><h3>目前使用本機存檔</h3>' +
-            '<p>你可以照常遊玩，所有進度都會保存在這台裝置。管理者完成 Supabase 設定後，這裡會自動開放登入與跨裝置同步。</p>' +
-            '<p class="account-note">正式環境只需填入 Project URL 與 publishable key；密碼與後端密鑰不會寫入遊戲存檔。</p></div>' +
+            '<p>你可以照常遊玩，所有進度都會保存在這台裝置。雲端登入開放後，就能在不同裝置接續遊玩。</p>' +
+            '<p class="account-note">目前不需要額外設定，也不會影響單機遊戲進度。</p></div>' +
           '</article>' + message;
         this.hideCloudConflict();
         return;
@@ -711,9 +711,9 @@
       if (!state.signedIn) {
         root.innerHTML =
           '<div class="account-grid guest">' +
-            '<article class="account-panel account-benefits"><span class="account-panel-icon" aria-hidden="true">☁</span>' +
+            '<article class="account-panel account-benefits"><span class="account-panel-icon" aria-hidden="true"><img src="assets/images/ui/navigation/account.webp" alt="" /></span>' +
               '<div><h3>一個帳號，同一份進度</h3><ul>' +
-                '<li>手機、平板與電腦接續遊玩</li><li>每次存檔後自動排程同步</li><li>離線時先存本機，連線後重試</li><li>兩台裝置衝突時由你選擇版本</li>' +
+                '<li>手機、平板與電腦接續遊玩</li><li>每次存檔後自動排程同步</li><li>離線時先存本機，連線後重試</li><li>兩台裝置衝突時由你選擇要保留的進度</li>' +
               '</ul></div></article>' +
             '<form class="account-panel account-form" onsubmit="return false" autocomplete="on">' +
               '<label for="cloud-email">Email</label>' +
@@ -744,8 +744,8 @@
             '<span class="account-eyebrow">已登入的守護者</span><h3>' + escapeHtml(user.email || "Google 玩家") + '</h3>' +
             '<div class="account-providers">' + providerLabels + '</div></div></article>' +
           '<article class="account-panel account-sync-card">' +
-            '<div class="account-sync-head"><div><span class="account-eyebrow">雲端存檔</span><h3>' + (state.status === "conflict" ? "需要選擇版本" : state.pending ? "等待上傳" : "進度已保護") + '</h3></div>' +
-            '<span class="account-revision">雲端版本 ' + formatNumber(state.baseRevision || 0) + '</span></div>' +
+            '<div class="account-sync-head"><div><span class="account-eyebrow">雲端存檔</span><h3>' + (state.status === "conflict" ? "需要選擇進度" : state.pending ? "等待上傳" : "進度已保護") + '</h3></div>' +
+            '<span class="account-revision">' + (state.pending ? "等待同步" : "同步完成") + '</span></div>' +
             '<dl class="account-sync-stats"><div><dt>上次同步</dt><dd>' + escapeHtml(cloudDate(state.lastSyncedAt)) + '</dd></div><div><dt>自動同步</dt><dd>' + (state.autoSync ? "開啟" : "關閉") + '</dd></div></dl>' +
             '<div class="account-form-actions"><button class="btn btn-primary" type="button" data-action="cloud-sync" ' + (busy || state.status === "conflict" ? "disabled" : "") + '>' + (state.syncing ? "同步中…" : "立即同步") + '</button>' +
             '<button class="btn" type="button" data-action="cloud-autosync" ' + (busy ? "disabled" : "") + '>自動同步：' + (state.autoSync ? "開" : "關") + '</button></div>' +
@@ -765,8 +765,7 @@
         save = save || {};
         return '<span><b>循環幣</b>' + formatNumber(save.coins || 0) + '</span>' +
           '<span><b>再生材料</b>' + formatNumber(save.materials || 0) + '</span>' +
-          '<span><b>已解鎖關卡</b>' + formatNumber(save.clearedStages || 0) + '</span>' +
-          '<span><b>遊戲版本</b>v' + formatNumber(save.schemaVersion || 0) + '</span>';
+          '<span><b>已解鎖關卡</b>' + formatNumber(save.clearedStages || 0) + '</span>';
       }
       if (this.dom.cloudConflictLocal) this.dom.cloudConflictLocal.innerHTML = summary(state.conflict.local);
       if (this.dom.cloudConflictCloud) this.dom.cloudConflictCloud.innerHTML = summary(state.conflict.cloud);
@@ -832,9 +831,9 @@
       var messageClass = state.error ? " warning" : "";
       var message = '<div class="education-message' + messageClass + '" role="status">' + escapeHtml(state.message || "") + '</div>';
       if (!state.configured || !state.signedIn || !state.profile) {
-        root.innerHTML = '<article class="education-empty-card"><span class="education-empty-icon" aria-hidden="true">班</span><div><h3>' +
+        root.innerHTML = '<article class="education-empty-card"><span class="education-empty-icon" aria-hidden="true"><img src="assets/images/ui/navigation/class.webp" alt="" /></span><div><h3>' +
           (!state.configured ? "班級雲端尚未啟用" : "請先登入守護者帳號") + '</h3><p>' +
-          (!state.configured ? "完成 Supabase v1.4 migration 後，即可使用班級代碼、作業與教師驗收。" : "班級與作業會綁定帳號，讓學生能在不同裝置接續完成。") +
+          (!state.configured ? "班級功能開放後，即可使用班級代碼、作業與教師驗收。" : "班級與作業會綁定帳號，讓學生能在不同裝置接續完成。") +
           '</p></div>' + (state.configured ? '<button class="btn btn-primary" type="button" data-action="education-open-account">前往登入</button>' : '') + '</article>' + message;
         return;
       }
@@ -873,8 +872,8 @@
         '<form class="join-class-form" onsubmit="return false"><label for="education-class-code">班級代碼</label><input id="education-class-code" maxlength="6" inputmode="text" autocomplete="off" placeholder="例如 CL0001" /><button class="btn btn-primary" type="button" data-action="education-join-class">加入班級</button></form></section>' +
         this.renderClassTabs(state) +
         (selected ? '<section class="selected-class-banner"><div><span>目前班級</span><h3>' + escapeHtml(selected.name) + '</h3></div><div class="class-code-display"><span>班級代碼</span><strong>' + escapeHtml(selected.code) + '</strong></div></section>' :
-          '<article class="education-empty-card compact"><span class="education-empty-icon" aria-hidden="true">＋</span><div><h3>還沒有加入班級</h3><p>向老師取得六位班級代碼後，在上方輸入即可加入。</p></div></article>') +
-        (selected ? '<div class="student-assignment-list">' + (cards || '<article class="education-empty-card compact"><span class="education-empty-icon" aria-hidden="true">✓</span><div><h3>目前沒有作業</h3><p>老師派發作業後會自動出現在這裡。</p></div></article>') + '</div>' : '') +
+          '<article class="education-empty-card compact"><span class="education-empty-icon" aria-hidden="true"><img src="assets/images/ui/navigation/class.webp" alt="" /></span><div><h3>還沒有加入班級</h3><p>向老師取得六位班級代碼後，在上方輸入即可加入。</p></div></article>') +
+        (selected ? '<div class="student-assignment-list">' + (cards || '<article class="education-empty-card compact"><span class="education-empty-icon" aria-hidden="true"><img src="assets/images/ui/navigation/missions.webp" alt="" /></span><div><h3>目前沒有作業</h3><p>老師派發作業後會自動出現在這裡。</p></div></article>') + '</div>' : '') +
         '</div>' + message;
     },
 
@@ -915,7 +914,7 @@
         '<section class="education-toolbar teacher"><div><span class="education-role-chip teacher">教師</span><strong>' + escapeHtml(state.profile.display_name || "老師") + '</strong></div><form class="create-class-form" onsubmit="return false"><label for="teacher-class-name">新增班級</label><input id="teacher-class-name" maxlength="60" placeholder="例如 五年三班" /><button class="btn btn-primary" type="button" data-action="education-create-class">建立班級</button></form></section>' +
         this.renderClassTabs(state) +
         (selected ? '<section class="teacher-class-summary"><div><span>目前班級</span><h3>' + escapeHtml(selected.name) + '</h3><div class="class-code-display"><span>學生加入代碼</span><strong>' + escapeHtml(selected.code) + '</strong></div></div><div class="teacher-kpis"><span><b>' + members.length + '</b>學生</span><span><b>' + assignments.length + '</b>作業</span><span><b>' + pending + '</b>待驗</span><span><b>' + accepted + '</b>通過</span></div></section>' :
-          '<article class="education-empty-card compact"><span class="education-empty-icon" aria-hidden="true">班</span><div><h3>先建立第一個班級</h3><p>系統會產生六位代碼，學生輸入後即可加入。</p></div></article>') +
+          '<article class="education-empty-card compact"><span class="education-empty-icon" aria-hidden="true"><img src="assets/images/ui/navigation/class.webp" alt="" /></span><div><h3>先建立第一個班級</h3><p>系統會產生六位代碼，學生輸入後即可加入。</p></div></article>') +
         (selected ? '<section class="teacher-assignment-create"><div class="teacher-section-title"><div><span>派作業</span><h3>建立學習任務</h3></div><small>學生達標後自動送驗</small></div><form class="assignment-create-grid" onsubmit="return false"><label>作業名稱<input id="teacher-assignment-title" maxlength="80" placeholder="例如 完成潮間帶行動" /></label><label>作業類型<select id="teacher-assignment-kind"><option value="stage">完成指定關卡</option><option value="quiz_count">累積答題次數</option><option value="correction_count">完成錯題訂正</option></select></label><label>指定關卡<select id="teacher-assignment-stage">' + stageOptions + '</select></label><label>目標數量<input id="teacher-assignment-count" type="number" min="1" max="100" value="5" /></label><label>期限（選填）<input id="teacher-assignment-due" type="datetime-local" /></label><label class="assignment-description-label">補充說明<textarea id="teacher-assignment-description" maxlength="300" rows="2" placeholder="給學生的提醒"></textarea></label><button class="btn btn-primary assignment-create-button" type="button" data-action="education-create-assignment">派發作業</button></form></section>' : '') +
         (selected ? '<section class="teacher-section"><div class="teacher-section-title"><div><span>完成驗收</span><h3>作業清單</h3></div><small>' + pending + ' 份等待處理</small></div><div class="teacher-assignment-list">' + (assignmentCards || '<div class="teacher-review-empty">尚未派發作業</div>') + '</div></section>' : '') +
         (selected ? '<section class="teacher-section class-overview"><div class="teacher-section-title"><div><span>班級總覽</span><h3>學生完成情況</h3></div><small>' + members.length + ' 位學生</small></div><div class="class-matrix-wrap"><table class="class-matrix"><thead><tr><th>學生</th>' + matrixHead + '</tr></thead><tbody>' + (matrixRows || '<tr><td colspan="' + (assignments.length + 1) + '">尚無學生加入</td></tr>') + '</tbody></table></div></section>' : '') +

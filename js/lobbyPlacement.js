@@ -24,11 +24,8 @@
 
     spawn: { x: 820, y: 556, direction: "S" },
 
-    /*
-     * v1.1 中央廣場：三個核心設施都放在出生鏡頭內，避免玩家為了
-     * 理解基本循環先橫跨整張大廳。外圍平台保留給後續土地擴張。
-     */
-    portal:    { x: 800, y: 330, interactRadius: 110, label: "行動傳送門" },
+    /* 傳送門回到北側平台；工作台與回收區保留在出生點附近。 */
+    portal:    { x: 800, y: 40, interactRadius: 110, label: "行動傳送門" },
     workbench: { x: 600, y: 530, interactRadius: 105, label: "建造工作台" },
     /* 掛機回收區：站上去就開始累積（矩形判定） */
     idleZone:  { x: 900, y: 445, w: 210, h: 170, label: "資源回收區" },

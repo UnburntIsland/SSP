@@ -2579,6 +2579,13 @@ html.is-mobile, .is-mobile body{
   box-shadow:0 3px 0 #06141d;
 }
 .gameplay-help-btn:hover{ color:#ffd84a; border-color:#ffd84a; }
+.gameplay-help-btn img{
+  width:40px;
+  height:40px;
+  object-fit:contain;
+  image-rendering:pixelated;
+  pointer-events:none;
+}
 .is-mobile .gameplay-help-btn{
   right:calc(20px + var(--vis-inset-right, 0px));
   bottom:calc(18px + var(--vis-inset-bottom, 0px));
@@ -6514,10 +6521,23 @@ html.is-mobile:is(.short-visible,.mobile-low-scale) #stage #screen-settings [dat
   width:150px;
 }
 .lobby-btn{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:7px;
   min-height:44px;
   padding:8px 12px;
   font-size:15px;
   letter-spacing:1px;
+  text-align:left;
+}
+.lobby-menu-icon{
+  width:27px;
+  height:27px;
+  flex:0 0 27px;
+  object-fit:contain;
+  image-rendering:pixelated;
+  pointer-events:none;
 }
 #lobby-hud #mobile-fullscreen-btn{
   right:auto;
@@ -7452,15 +7472,9 @@ html.compact-visible body.taiwan-map-preview #screen-portal .portal-actions .sta
 .island-space-menu-button #island-space-badge{ position:static;min-width:31px;height:21px;padding:0 5px;font-size:9px;box-shadow:0 2px 0 #641f1a; }
 .compact-visible .island-space-menu-button #island-space-badge{ display:none; }
 .build-tab-icon-land{
-  display:grid;
-  place-items:center;
-  color:#ffe17b;
-  background:linear-gradient(180deg,#4f8d58,#28573e);
-  border:2px solid rgba(255,225,123,.55);
-  border-radius:7px;
-  font-size:16px;
+  background-image:url("../assets/images/ui/navigation/island.webp");
 }
-.build-tab.active .build-tab-icon-land{ color:#113a2d; background:#ffe17b; border-color:#775b16; }
+.build-tab.active .build-tab-icon-land{ filter:drop-shadow(0 1px 0 rgba(8,33,28,.55)); }
 .build-list.land-mode{ display:flex; flex-direction:column; gap:10px; }
 .land-catalog-intro,.land-expansion-card{
   width:100%;
@@ -7481,6 +7495,12 @@ html.compact-visible body.taiwan-map-preview #screen-portal .portal-actions .sta
   color:#173e31;background:linear-gradient(180deg,#ffe17b,#7eddbf);
   border:3px solid #071a22;border-radius:12px;font-size:24px;
   box-shadow:0 4px 0 rgba(4,17,22,.72);
+}
+.land-catalog-icon img,.land-expansion-icon img{
+  width:52px;
+  height:52px;
+  object-fit:contain;
+  image-rendering:pixelated;
 }
 .land-catalog-intro > div:nth-child(2),.land-expansion-copy{ min-width:0; display:flex; flex-direction:column; gap:4px; }
 .land-catalog-intro strong,.land-expansion-copy h3{ color:#fff0a6; font-size:18px; }
@@ -8206,10 +8226,10 @@ html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .port
   image-rendering:pixelated;
 }
 .build-tab-icon-functional{
-  background-image:url("../assets/images/lobby/ui/build_category.png?v=lobby-category-icons-20260730a");
+  background-image:url("../assets/images/ui/navigation/build.webp");
 }
 .build-tab-icon-decoration{
-  background-image:url("../assets/images/lobby/ui/decoration_category.png?v=lobby-category-icons-20260730a");
+  background-image:url("../assets/images/ui/navigation/decoration.webp");
 }
 .build-tab.active{
   color:#08211c;
@@ -8460,11 +8480,17 @@ html.is-mobile.short-visible:not(.compact-visible) body.taiwan-map-preview .port
     gap:4px;
   }
   .lobby-btn{
+    gap:3px;
     min-width:0;
     min-height:32px;
     padding:4px 5px;
     font-size:10px;
     letter-spacing:0;
+  }
+  .lobby-menu-icon{
+    width:18px;
+    height:18px;
+    flex-basis:18px;
   }
   .lobby-objective,
   .is-mobile .lobby-objective,
@@ -9803,6 +9829,12 @@ html:not(.compact-visible) #screen-settings .setting-val{
   font-size:29px;
   box-shadow:0 4px 0 rgba(4,17,22,.72);
 }
+.account-panel-icon img{
+  width:48px;
+  height:48px;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
 .account-unavailable,
 .account-benefits,
 .account-profile,
@@ -9884,6 +9916,12 @@ html:not(.compact-visible) #screen-settings .setting-val{
   border:3px solid #0a1a23;
   border-radius:10px;
   font-size:22px;
+}
+.help-icon img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
 }
 .account-providers{ display:flex; flex-wrap:wrap; gap:6px; }
 .account-provider,.linked-google,.account-revision{
@@ -10019,6 +10057,13 @@ html.is-mobile:is(.short-visible,.mobile-low-scale) .account-heading .screen-des
   color: #164b40;
   font-size: 26px;
   font-weight: 900;
+}
+.tutorial-coach-icon img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
 }
 .tutorial-coach-copy { display: grid; gap: 3px; min-width: 0; }
 .tutorial-coach-copy strong { font-size: 17px; color: #fff7bd; }
@@ -10229,6 +10274,12 @@ html.is-mobile:is(.short-visible,.mobile-low-scale) .account-heading .screen-des
   border-radius:12px;
   font-size:24px;
   box-shadow:0 4px 0 rgba(4,17,22,.78);
+}
+.education-empty-icon img{
+  width:54px;
+  height:54px;
+  object-fit:contain;
+  image-rendering:pixelated;
 }
 .student-classroom,.teacher-dashboard{ display:flex; flex-direction:column; gap:10px; min-width:0; text-align:left; }
 .education-toolbar{
@@ -10462,6 +10513,7 @@ html.is-mobile #screen-island-spaces :is(button,.btn){ min-height:var(--mobile-t
   .education-empty-card{ margin-top:18px; padding:15px; align-items:flex-start; flex-wrap:wrap; }
   .education-empty-card > .btn{ width:100%; }
   .education-empty-icon{ width:46px; height:46px; flex-basis:46px; font-size:19px; }
+  .education-empty-icon img{ width:40px; height:40px; }
   .join-class-form,.create-class-form{ grid-template-columns:1fr auto; }
   .join-class-form label,.create-class-form label{ grid-column:1 / -1; }
   .selected-class-banner{ align-items:flex-start; }

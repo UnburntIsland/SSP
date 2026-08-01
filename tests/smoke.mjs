@@ -564,7 +564,7 @@ export async function main() {
             },
             terrain: {
               polygonCount: LobbyWorld.walkablePolygons.length,
-              portalApproach: LobbyWorld.circleInWalkable(800, 426, 15),
+              portalApproach: LobbyWorld.circleInWalkable(800, 136, 15),
               workbenchApproach: LobbyWorld.circleInWalkable(676, 530, 15),
               recycleApproach: LobbyWorld.circleInWalkable(920, 530, 15),
               reopenedClearing: LobbyWorld.circleInWalkable(700, 750, 15),
@@ -605,7 +605,6 @@ export async function main() {
             },
             unreachable: LobbyPlacement.checkReachability([], null),
             hubDistances: {
-              portal: Math.hypot(LobbyWorld.spawn.x - LobbyWorld.portal.x, LobbyWorld.spawn.y - LobbyWorld.portal.y),
               workbench: Math.hypot(LobbyWorld.spawn.x - LobbyWorld.workbench.x, LobbyWorld.spawn.y - LobbyWorld.workbench.y),
               recycle: Math.hypot(
                 LobbyWorld.spawn.x - (LobbyWorld.idleZone.x + LobbyWorld.idleZone.w / 2),
@@ -627,14 +626,14 @@ export async function main() {
           alignment.world.backgroundHeight === alignment.world.height,
           "大廳底圖仍被縮放到不同長寬比");
         assert(
-          alignment.fixed.portal.x === 800 && alignment.fixed.portal.y === 330 &&
+          alignment.fixed.portal.x === 800 && alignment.fixed.portal.y === 40 &&
           alignment.fixed.workbench.x === 600 && alignment.fixed.workbench.y === 530 &&
           alignment.fixed.idleZone.x === 900 && alignment.fixed.idleZone.y === 445 &&
           alignment.fixed.idleZone.w === 210 && alignment.fixed.idleZone.h === 170,
-          "傳送門、工作台或回收區未套用 v1.1 中央廣場配置"
+          "傳送門未回到北側平台，或工作台與回收區位置錯誤"
         );
         assert(Object.values(alignment.hubDistances).every((distance) => distance <= 260),
-          `中央廣場設施離出生點仍太遠：${JSON.stringify(alignment.hubDistances)}`);
+          `工作台或回收區離出生點仍太遠：${JSON.stringify(alignment.hubDistances)}`);
         assert(alignment.legacyLearningEvents.includes("quiz_answer") && alignment.legacyLearningEvents.includes("correction"),
           `舊版答題紀錄沒有轉成可稽核事件：${JSON.stringify(alignment.legacyLearningEvents)}`);
         assert(
@@ -738,7 +737,7 @@ export async function main() {
           })()`);
           await browser.screenshot(path.join(ROOT, "screenshots", filename));
         };
-        await captureLobbyAnchor({ x: 288, y: 200 }, "lobby-v11-central-hub.png");
+        await captureLobbyAnchor({ x: 288, y: 0 }, "lobby-upper-portal.png");
       }
     },
     {

@@ -106,29 +106,34 @@
       </div>
       <div class="lobby-topright">
         <button id="cloud-account-button" class="btn lobby-btn cloud-account-button" type="button" data-action="account" aria-label="帳號與雲端存檔">
+          <img class="lobby-menu-icon" src="assets/images/ui/navigation/account.webp" alt="" aria-hidden="true" />
           <span class="cloud-status-dot" aria-hidden="true"></span>
           <span id="cloud-account-status">訪客</span>
         </button>
         <button id="education-menu-button" class="btn lobby-btn education-menu-button" type="button" data-action="education" aria-label="班級中心">
+          <img class="lobby-menu-icon" src="assets/images/ui/navigation/class.webp" alt="" aria-hidden="true" />
           <span id="education-menu-label">班級</span>
           <span id="education-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
         </button>
         <button id="island-space-menu-button" class="btn lobby-btn island-space-menu-button" type="button" data-action="island-spaces" aria-label="島嶼空間與土地擴張">
+          <img class="lobby-menu-icon" src="assets/images/ui/navigation/island.webp" alt="" aria-hidden="true" />
           <span id="island-space-label">擴張</span>
           <span id="island-space-badge" class="achievement-menu-badge" aria-hidden="true">0/3</span>
         </button>
-        <button class="btn lobby-btn" type="button" data-action="characters">角色</button>
-        <button class="btn lobby-btn" type="button" data-action="build">建造</button>
+        <button class="btn lobby-btn" type="button" data-action="characters"><img class="lobby-menu-icon" src="assets/images/ui/navigation/character.webp" alt="" aria-hidden="true" /><span>角色</span></button>
+        <button class="btn lobby-btn" type="button" data-action="build"><img class="lobby-menu-icon" src="assets/images/ui/navigation/build.webp" alt="" aria-hidden="true" /><span>建造</span></button>
         <button class="btn lobby-btn mission-menu-button" type="button" data-action="missions" aria-label="環境任務">
+          <img class="lobby-menu-icon" src="assets/images/ui/navigation/missions.webp" alt="" aria-hidden="true" />
           <span class="btn-label">環境任務</span>
           <span id="mission-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
         </button>
-        <button class="btn lobby-btn" type="button" data-action="commerce-hub">商店/扭蛋</button>
+        <button class="btn lobby-btn" type="button" data-action="commerce-hub"><img class="lobby-menu-icon" src="assets/images/ui/navigation/commerce.webp" alt="" aria-hidden="true" /><span>商店/扭蛋</span></button>
         <button class="btn lobby-btn achievement-menu-button" type="button" data-action="records-hub" aria-label="圖鑑/成就">
+          <img class="lobby-menu-icon" src="assets/images/ui/navigation/records.webp" alt="" aria-hidden="true" />
           <span class="btn-label">圖鑑/成就</span>
           <span id="achievement-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
         </button>
-        <button class="btn lobby-btn" type="button" data-action="settings-home">設定</button>
+        <button class="btn lobby-btn" type="button" data-action="settings-home"><img class="lobby-menu-icon" src="assets/images/ui/navigation/settings.webp" alt="" aria-hidden="true" /><span>設定</span></button>
       </div>
       <div class="lobby-title-tag" aria-hidden="true">森循島</div>
       <div id="lobby-objective" class="lobby-objective" aria-live="polite">
@@ -138,7 +143,7 @@
       </div>
       <div id="lobby-idle-status" class="hidden" aria-live="polite"></div>
       <button id="lobby-interact" class="hidden" type="button"></button>
-      <button id="gameplay-help-btn" class="gameplay-help-btn" type="button" data-action="help" aria-label="遊戲說明" title="遊戲說明">?</button>
+      <button id="gameplay-help-btn" class="gameplay-help-btn" type="button" data-action="help" aria-label="遊戲說明" title="遊戲說明"><img src="assets/images/ui/navigation/help.webp" alt="" aria-hidden="true" /></button>
     </div>
 
     <!-- ===== First lobby onboarding ===== -->
@@ -161,7 +166,7 @@
 
     <!-- ===== v1.2 progressive tutorial (non-modal, action driven) ===== -->
     <aside id="tutorial-coach" class="tutorial-coach hidden" aria-live="polite" aria-hidden="true">
-      <div class="tutorial-coach-icon" data-tutorial-icon aria-hidden="true">↟</div>
+      <div class="tutorial-coach-icon" data-tutorial-icon aria-hidden="true"><img src="assets/images/ui/navigation/character.webp" alt="" /></div>
       <div class="tutorial-coach-copy">
         <span class="tutorial-coach-progress" data-tutorial-progress>教學 1 / 7</span>
         <strong data-tutorial-title>先走動看看</strong>
@@ -178,7 +183,7 @@
           <div id="build-tabs" class="build-tabs" role="tablist" aria-label="建造分類">
             <button id="build-tab-functional" type="button" class="build-tab active" role="tab" aria-selected="true" aria-controls="build-list" tabindex="0" data-build-tab="functional"><span class="build-tab-icon build-tab-icon-functional" aria-hidden="true"></span><span>功能建築</span></button>
             <button id="build-tab-decoration" type="button" class="build-tab" role="tab" aria-selected="false" aria-controls="build-list" tabindex="-1" data-build-tab="decoration"><span class="build-tab-icon build-tab-icon-decoration" aria-hidden="true"></span><span>裝飾</span></button>
-            <button id="build-tab-land" type="button" class="build-tab" role="tab" aria-selected="false" aria-controls="build-list" tabindex="-1" data-build-tab="land"><span class="build-tab-icon build-tab-icon-land" aria-hidden="true">⌘</span><span>土地擴張</span></button>
+            <button id="build-tab-land" type="button" class="build-tab" role="tab" aria-selected="false" aria-controls="build-list" tabindex="-1" data-build-tab="land"><span class="build-tab-icon build-tab-icon-land" aria-hidden="true"></span><span>土地擴張</span></button>
           </div>
           <div class="build-sheet-wallet">⬢ <span id="build-materials">0</span></div>
           <button class="btn build-close" type="button" data-action="build-close">完成</button>
@@ -433,19 +438,19 @@
       <h2 class="screen-title">遊戲說明</h2>
       <p class="screen-desc">先從大廳進入傳送門，再靠移動、升級與永續知識完成淨化行動。</p>
       <div class="help-list">
-        <div class="help-row"><span class="help-icon" aria-hidden="true">↟</span><div><strong>大廳移動</strong><span>鍵盤使用 WASD 或方向鍵；手機和平板在畫面上拖曳即可移動角色。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">▶</span><div><strong>進入關卡</strong><span>往大廳上方走到傳送門，靠近後按 E 或點互動提示，再選擇地圖並開始遊戲。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">✦</span><div><strong>自動攻擊</strong><span>戰鬥中角色會自動攻擊附近污染物；你只需要移動、閃避並選擇升級。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">⬢</span><div><strong>取得再生材料</strong><span>回收站會在遊玩與離線期間自動累積材料；靠近後一次領取，每天有上限。擊敗 BOSS 也有每日首勝材料。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">⌂</span><div><strong>使用建造區</strong><span>靠近工作台或點右上角「建造」，消耗再生材料放置建築與裝飾；功能建築會提供出擊加成。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">⌘</span><div><strong>擴張島嶼土地</strong><span>在工作台切換到「土地擴張」，依序開放小屋、實驗室、回收場及新的可走、可建造區域。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">✓</span><div><strong>環境任務與挑戰</strong><span>每日任務於台灣時間 00:00 重置、每週任務於週一重置；挑戰模式會檢查目前角色與大廳中已擺放的指定建築。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">5</span><div><strong>隨機資源</strong><span>遊戲開始後每 5 秒在附近隨機出現 1 個，不會在開局一次塞滿地圖。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">♻</span><div><strong>分類回收</strong><span>塑膠瓶、鋁罐、玻璃瓶與廢電池會提供不同的經驗與循環幣。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">+</span><div><strong>自動拾取</strong><span>走近物件即可拾取；物件會立刻從地圖消失並顯示清理獎勵。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">◎</span><div><strong>污染圈</strong><span>紅色虛線是下一個安全邊界；倒數結束後才開始縮小。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">?</span><div><strong>永續知識卡</strong><span>拾取後解鎖圖鑑；升級答題連勝 5 / 10 題可強化對綠色精英的傷害。</span></div></div>
-        <div class="help-row"><span class="help-icon" aria-hidden="true">»</span><div><strong>衝刺</strong><span>按 Space / Shift，或點右下角按鈕；衝刺期間短暫免傷。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/character.webp" alt="" /></span><div><strong>大廳移動</strong><span>鍵盤使用 WASD 或方向鍵；手機和平板在畫面上拖曳即可移動角色。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/portal.webp" alt="" /></span><div><strong>進入關卡</strong><span>往大廳上方走到傳送門，靠近後按 E 或點互動提示，再選擇地圖並開始遊戲。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/character.webp" alt="" /></span><div><strong>自動攻擊</strong><span>戰鬥中角色會自動攻擊附近污染物；你只需要移動、閃避並選擇升級。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/recycle.webp" alt="" /></span><div><strong>取得再生材料</strong><span>回收站會在遊玩與離線期間自動累積材料；靠近後一次領取，每天有上限。擊敗 BOSS 也有每日首勝材料。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/build.webp" alt="" /></span><div><strong>使用建造區</strong><span>靠近工作台或點右上角「建造」，消耗再生材料放置建築與裝飾；功能建築會提供出擊加成。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/island.webp" alt="" /></span><div><strong>擴張島嶼土地</strong><span>在工作台切換到「土地擴張」，依序開放小屋、實驗室、回收場及新的可走、可建造區域。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/missions.webp" alt="" /></span><div><strong>環境任務與挑戰</strong><span>每日任務於台灣時間 00:00 重置、每週任務於週一重置；挑戰模式會檢查目前角色與大廳中已擺放的指定建築。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/missions.webp" alt="" /></span><div><strong>隨機資源</strong><span>遊戲開始後每 5 秒在附近隨機出現 1 個，不會在開局一次塞滿地圖。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/recycle.webp" alt="" /></span><div><strong>分類回收</strong><span>塑膠瓶、鋁罐、玻璃瓶與廢電池會提供不同的經驗與循環幣。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/recycle.webp" alt="" /></span><div><strong>自動拾取</strong><span>走近物件即可拾取；物件會立刻從地圖消失並顯示清理獎勵。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/portal.webp" alt="" /></span><div><strong>污染圈</strong><span>紅色虛線是下一個安全邊界；倒數結束後才開始縮小。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/records.webp" alt="" /></span><div><strong>永續知識卡</strong><span>拾取後解鎖圖鑑；升級答題連勝 5 / 10 題可強化對綠色精英的傷害。</span></div></div>
+        <div class="help-row"><span class="help-icon" aria-hidden="true"><img src="assets/images/ui/navigation/character.webp" alt="" /></span><div><strong>衝刺</strong><span>按 Space / Shift，或點右下角按鈕；衝刺期間短暫免傷。</span></div></div>
       </div>
       <div class="screen-footer">
         <button class="btn" data-action="tutorial-restart">重新開始新手教學</button>
@@ -456,7 +461,7 @@
     <!-- ===== v1.3 account and cross-device cloud save ===== -->
     <section id="screen-account" class="screen account-screen hidden" aria-labelledby="account-title">
       <div class="account-heading">
-        <span class="account-kicker">v1.3 跨裝置存檔</span>
+        <span class="account-kicker">跨裝置進度</span>
         <h2 id="account-title" class="screen-title">守護者帳號</h2>
         <p class="screen-desc">登入後自動同步這台裝置的遊戲進度；未登入或離線時仍可正常遊玩。</p>
       </div>
@@ -469,7 +474,7 @@
     <!-- ===== v1.4 class center and teacher dashboard ===== -->
     <section id="screen-education" class="screen education-screen hidden" aria-labelledby="education-title">
       <div class="education-heading">
-        <span class="account-kicker">v1.4 教學協作</span>
+        <span class="account-kicker">教學協作</span>
         <h2 id="education-title" class="screen-title">班級中心</h2>
         <p class="screen-desc">加入班級、完成老師派發的學習任務，或從教師後台掌握全班進度。</p>
       </div>
@@ -483,7 +488,7 @@
     <!-- ===== v1.5 土地擴張與島嶼空間 ===== -->
     <section id="screen-island-spaces" class="screen island-spaces-screen hidden" aria-labelledby="island-space-title">
       <div class="island-spaces-heading">
-        <span class="account-kicker">v1.5 島嶼拓展</span>
+        <span class="account-kicker">島嶼拓展</span>
         <h2 id="island-space-title" class="screen-title">島嶼空間</h2>
         <p class="screen-desc">擴張土地，走進小屋、實驗室與回收場，讓大廳成為真正會成長的基地。</p>
       </div>
