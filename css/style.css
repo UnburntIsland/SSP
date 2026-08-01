@@ -10427,7 +10427,12 @@ html.is-mobile:is(.short-visible,.mobile-low-scale) .education-heading .screen-t
 html.is-mobile:is(.short-visible,.mobile-low-scale) .education-footer{ min-height:42px !important; }
 .compact-visible .education-footer .btn,
 html.is-mobile:is(.short-visible,.mobile-low-scale) .education-footer .btn{ min-height:44px !important; }
-html.is-mobile .education-class-tab{ min-height:48px; padding-top:9px; padding-bottom:9px; }
+html.is-mobile .education-class-tab{
+  min-width:var(--mobile-touch-target,52px);
+  min-height:48px;
+  padding-top:9px;
+  padding-bottom:9px;
+}
 html.is-mobile #screen-education :is(button,.btn){ min-height:var(--mobile-touch-target,52px) !important; }
 html.is-mobile #screen-account :is(button,.btn){ min-height:var(--mobile-touch-target,52px) !important; }
 html.is-mobile #screen-island-spaces :is(button,.btn){ min-height:var(--mobile-touch-target,52px) !important; }
