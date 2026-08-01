@@ -1,0 +1,19 @@
+{
+  "characterId": "chemist",
+  "frameCount": 40,
+  "coverageRange": [
+    0.2683,
+    0.3324
+  ],
+  "walkVariants": {
+    "N": 4,
+    "NE": 4,
+    "E": 4,
+    "SE": 4,
+    "S": 4,
+    "SW": 4,
+    "W": 4,
+    "NW": 4
+  },
+  "residualMagentaPixels": 0
+}

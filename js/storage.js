@@ -5,9 +5,55 @@
    ============================================================ */
 (function (global) {
   var KEY = "senloop_save_v1";
-  var DEFAULT_COINS = 1000000; // 測試期間：新存檔與重置後的預設循環幣
+  var PRODUCTION_STARTING_COINS = 200;
+  var QA_STARTING_COINS = 1000000;
   var STARTING_RECYCLED = 10; // 新手可立即完成第一個小型裝飾建造
   var OFFICIAL_CHARACTER_IDS = ["ranger", "beachcomber", "solar", "mechanic", "chemist"];
+
+  function isQaSession() {
+    if (global.TestMode && global.TestMode.enabled) return true;
+    try { return new URLSearchParams(global.location.search).get("test") === "1"; }
+    catch (error) { return false; }
+  }
+
+  function startingCoins() {
+    return isQaSession() ? QA_STARTING_COINS : PRODUCTION_STARTING_COINS;
+  }
+
+  function learningEventId(prefix) {
+    if (global.crypto && global.crypto.randomUUID) return String(prefix || "event") + "-" + global.crypto.randomUUID();
+    return String(prefix || "event") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+  }
+
+  function normalizeLearningEvent(value) {
+    if (!isRecord(value)) return null;
+    var kind = String(value.kind || "");
+    if (["stage_clear", "quiz_answer", "correction"].indexOf(kind) === -1) return null;
+    var id = String(value.id || "").slice(0, 80);
+    var subjectId = String(value.subjectId || "").slice(0, 80);
+    if (!id || !subjectId) return null;
+    var occurredAt = new Date(value.occurredAt || Date.now());
+    if (!isFinite(occurredAt.getTime())) occurredAt = new Date();
+    return {
+      id: id,
+      kind: kind,
+      subjectId: subjectId,
+      correct: value.correct === true,
+      amount: Math.max(1, Math.min(value.legacy === true ? 100 : 1, nonNegativeInteger(value.amount) || 1)),
+      legacy: value.legacy === true,
+      occurredAt: occurredAt.toISOString()
+    };
+  }
+
+  function appendLearningEvent(root, value) {
+    if (!isRecord(root)) return null;
+    if (!Array.isArray(root.queue)) root.queue = [];
+    var event = normalizeLearningEvent(value);
+    if (!event || root.queue.some(function (entry) { return entry.id === event.id; })) return null;
+    root.queue.push(event);
+    if (root.queue.length > 500) root.queue.splice(0, root.queue.length - 500);
+    return event;
+  }
   var PREFERENCE_DEFAULTS = {
     quality: "balanced",
     reduceAnimations: false,
@@ -195,20 +241,36 @@
 
   var Storage = {
     data: null,
+    _suppressEvents: false,
 
-    /* -------- 大廳（schema 4 新增）預設值 -------- */
+    /* -------- 大廳（schema 4 新增；v1.5 升至 lobby version 5）預設值 -------- */
     _defaultLobby: function () {
       return {
-        version: 3,
+        version: 5,
         playerPosition: { x: 0, y: 0, direction: "S" },   /* 0,0 = 尚未存過 → 用出生點 */
         guideCompleted: false,
         placementHelpCompleted: false,
         materials: { recycled: STARTING_RECYCLED },
         daily: { dateKey: null, idleEarned: 0, dailyBossClaims: {} },
+        recycleGenerator: {
+          unclaimed: 1,
+          lastAccruedAt: Date.now(),
+          lastClaimedAt: null,
+          capacity: 60
+        },
         inventory: {},          /* { buildingId: 數量 }（已購買但收納中） */
         buildings: [],          /* { instanceId, buildingId, x, y, rotation, level, placed } */
         orphanedBuildings: [],  /* 未知 building id 先移到這裡，不直接刪除 */
-        nextInstanceId: 1
+        nextInstanceId: 1,
+        land: {
+          expansionLevel: 0,
+          expandedAt: {}
+        },
+        spaces: {
+          cottage: { visits: 0, lastRestDate: null, restClaims: 0 },
+          laboratory: { visits: 0, research: { recycleSpeed: 0, recycleCapacity: 0 } },
+          recycleYard: { visits: 0, dateKey: null, playsToday: 0, bestScore: 0, totalSorted: 0, activeGame: null }
+        }
       };
     },
 
@@ -231,6 +293,18 @@
         out.daily.dateKey = typeof raw.daily.dateKey === "string" ? raw.daily.dateKey : null;
         out.daily.idleEarned = nonNegativeInteger(raw.daily.idleEarned);
         if (isRecord(raw.daily.dailyBossClaims)) out.daily.dailyBossClaims = raw.daily.dailyBossClaims;
+      }
+      if (isRecord(raw.recycleGenerator)) {
+        out.recycleGenerator.unclaimed = Math.min(60, nonNegativeInteger(raw.recycleGenerator.unclaimed));
+        var accruedAt = Number(raw.recycleGenerator.lastAccruedAt);
+        out.recycleGenerator.lastAccruedAt = Number.isFinite(accruedAt) && accruedAt > 0 ? accruedAt : Date.now();
+        var claimedAt = Number(raw.recycleGenerator.lastClaimedAt);
+        out.recycleGenerator.lastClaimedAt = Number.isFinite(claimedAt) && claimedAt > 0 ? claimedAt : null;
+        out.recycleGenerator.capacity = 60;
+      } else {
+        /* 舊版收益已直接進入錢包；遷移時不重複發放。 */
+        out.recycleGenerator.unclaimed = 0;
+        out.recycleGenerator.lastAccruedAt = Date.now();
       }
       if (isRecord(raw.inventory)) {
         Object.keys(raw.inventory).forEach(function (id) {
@@ -277,13 +351,58 @@
         if (m) maxInstance = Math.max(maxInstance, Number(m[1]) || 0);
       });
       out.nextInstanceId = Math.max(nonNegativeInteger(raw.nextInstanceId), maxInstance + 1, 1);
+      if (isRecord(raw.land)) {
+        out.land.expansionLevel = Math.max(0, Math.min(2, nonNegativeInteger(raw.land.expansionLevel)));
+        if (isRecord(raw.land.expandedAt)) {
+          ["1", "2"].forEach(function (level) {
+            var at = Number(raw.land.expandedAt[level]);
+            if (Number.isFinite(at) && at > 0) out.land.expandedAt[level] = at;
+          });
+        }
+      } else if (sourceVersion > 0 && sourceVersion < 5) {
+        /* v1.4 可在外圍放置建築；若舊存檔已有外圍配置，直接保留完整土地權限。 */
+        var usedOuterLand = out.buildings.some(function (inst) {
+          return inst.x < 360 || inst.x > 1160 || inst.y < 210 || inst.y > 840;
+        });
+        out.land.expansionLevel = usedOuterLand ? 2 : 0;
+      }
+      if (isRecord(raw.spaces)) {
+        var cottage = isRecord(raw.spaces.cottage) ? raw.spaces.cottage : {};
+        out.spaces.cottage.visits = nonNegativeInteger(cottage.visits);
+        out.spaces.cottage.lastRestDate = typeof cottage.lastRestDate === "string" ? cottage.lastRestDate : null;
+        out.spaces.cottage.restClaims = nonNegativeInteger(cottage.restClaims);
+        var laboratory = isRecord(raw.spaces.laboratory) ? raw.spaces.laboratory : {};
+        out.spaces.laboratory.visits = nonNegativeInteger(laboratory.visits);
+        var research = isRecord(laboratory.research) ? laboratory.research : {};
+        out.spaces.laboratory.research.recycleSpeed = Math.min(2, nonNegativeInteger(research.recycleSpeed));
+        out.spaces.laboratory.research.recycleCapacity = Math.min(2, nonNegativeInteger(research.recycleCapacity));
+        var yard = isRecord(raw.spaces.recycleYard) ? raw.spaces.recycleYard : {};
+        out.spaces.recycleYard.visits = nonNegativeInteger(yard.visits);
+        out.spaces.recycleYard.dateKey = typeof yard.dateKey === "string" ? yard.dateKey : null;
+        out.spaces.recycleYard.playsToday = Math.min(3, nonNegativeInteger(yard.playsToday));
+        out.spaces.recycleYard.bestScore = Math.min(5, nonNegativeInteger(yard.bestScore));
+        out.spaces.recycleYard.totalSorted = nonNegativeInteger(yard.totalSorted);
+        if (isRecord(yard.activeGame) && Array.isArray(yard.activeGame.itemIds) && yard.activeGame.itemIds.length === 5) {
+          var itemIds = yard.activeGame.itemIds.map(function (id) { return String(id || "").slice(0, 40); });
+          if (itemIds.every(Boolean)) {
+            out.spaces.recycleYard.activeGame = {
+              itemIds: itemIds,
+              index: Math.min(4, nonNegativeInteger(yard.activeGame.index)),
+              correct: Math.min(5, nonNegativeInteger(yard.activeGame.correct)),
+              awaitingNext: yard.activeGame.awaitingNext === true,
+              feedbackCorrect: typeof yard.activeGame.feedbackCorrect === "boolean" ? yard.activeGame.feedbackCorrect : null
+            };
+          }
+        }
+      }
       return out;
     },
 
     _default: function () {
       return {
-        schemaVersion: 8,
-        coins: DEFAULT_COINS,
+        schemaVersion: 12,
+        saveMeta: { revision: 1, updatedAt: Date.now(), createdAt: Date.now() },
+        coins: startingCoins(),
         shop: {},        // { upgradeId: level }
         knowledge: [],   // 已解鎖的 knowledge id
         ownedCharacters: { ranger: true, beachcomber: true, solar: false, mechanic: false, chemist: false },
@@ -305,6 +424,18 @@
           challenges: {},
           tracked: null
         },
+        tutorial: {
+          version: 1,
+          active: false,
+          completed: false,
+          skipped: false,
+          stepId: "move",
+          completedSteps: [],
+          startedAt: null,
+          completedAt: null
+        },
+        questionProgress: { version: 1, byId: {} },
+        learningEvents: { version: 1, queue: [] },
         lobby: this._defaultLobby(),
         // 音量設定（0~100；mute 為布林）—— 單一來源，audioManager 由此讀寫
         audio: { master: 80, music: 70, sfx: 80, mute: false },
@@ -320,10 +451,11 @@
       } catch (e) { d = null; }
       if (!d || typeof d !== "object") d = this._default();
       var savedSchemaVersion = d.schemaVersion | 0;
-      // 「測試經濟補幣」只在升到 schema 3 之前做一次；schema 3 → 4 不再補幣。
+      var hadLearningEvents = isRecord(d.learningEvents);
+      // 舊存檔只在升到 schema 3 前補足一次目前環境的初始資源。
       var requiresCoinTopUp = savedSchemaVersion < 3;
-      var requiresLobbySave = !isRecord(d.lobby) || nonNegativeInteger(d.lobby.version) < 3;
-      var requiresSchemaSave = savedSchemaVersion < 8 || requiresLobbySave;
+      var requiresLobbySave = !isRecord(d.lobby) || nonNegativeInteger(d.lobby.version) < 5;
+      var requiresSchemaSave = savedSchemaVersion < 12 || requiresLobbySave;
       // 補齊缺漏欄位（含舊存檔沒有的 audio）
       var def = this._default();
       var legacyCharacterSave = !d.ownedCharacters || typeof d.ownedCharacters !== "object";
@@ -387,6 +519,66 @@
       if (!isRecord(d.environmentMissions.challenges)) d.environmentMissions.challenges = {};
       if (!isRecord(d.environmentMissions.tracked)) d.environmentMissions.tracked = null;
       d.environmentMissions.version = 2;
+      if (!isRecord(d.tutorial)) d.tutorial = def.tutorial;
+      d.tutorial.version = 1;
+      d.tutorial.active = d.tutorial.active === true;
+      d.tutorial.completed = d.tutorial.completed === true;
+      d.tutorial.skipped = d.tutorial.skipped === true;
+      d.tutorial.stepId = typeof d.tutorial.stepId === "string" ? d.tutorial.stepId : "move";
+      d.tutorial.completedSteps = Array.isArray(d.tutorial.completedSteps)
+        ? d.tutorial.completedSteps.filter(function (id, index, all) { return typeof id === "string" && all.indexOf(id) === index; })
+        : [];
+      d.tutorial.startedAt = Number(d.tutorial.startedAt) || null;
+      d.tutorial.completedAt = Number(d.tutorial.completedAt) || null;
+      if (savedSchemaVersion < 9 && d.lobby && d.lobby.guideCompleted === true) {
+        d.tutorial.completed = true;
+        d.tutorial.active = false;
+      }
+      if (!isRecord(d.questionProgress)) d.questionProgress = { version: 1, byId: {} };
+      if (!isRecord(d.questionProgress.byId)) d.questionProgress.byId = {};
+      Object.keys(d.questionProgress.byId).forEach(function (id) {
+        var progress = d.questionProgress.byId[id];
+        if (!isRecord(progress)) { delete d.questionProgress.byId[id]; return; }
+        progress.attempts = nonNegativeInteger(progress.attempts);
+        progress.correctCount = nonNegativeInteger(progress.correctCount);
+        progress.wrongCount = nonNegativeInteger(progress.wrongCount);
+        progress.lastSelected = Number.isFinite(Number(progress.lastSelected)) ? Number(progress.lastSelected) : null;
+        progress.lastCorrect = progress.lastCorrect === true;
+        progress.firstAnsweredAt = Number(progress.firstAnsweredAt) || null;
+        progress.lastAnsweredAt = Number(progress.lastAnsweredAt) || null;
+        progress.correctedAt = Number(progress.correctedAt) || null;
+      });
+      d.questionProgress.version = 1;
+      if (!hadLearningEvents) d.learningEvents = { version: 1, queue: [] };
+      if (!Array.isArray(d.learningEvents.queue)) d.learningEvents.queue = [];
+      d.learningEvents.queue = d.learningEvents.queue.map(normalizeLearningEvent).filter(Boolean).slice(-500);
+      d.learningEvents.version = 1;
+      if (!hadLearningEvents) {
+        (d.clearedStages || []).forEach(function (stageId) {
+          appendLearningEvent(d.learningEvents, {
+            id: "legacy-stage-" + String(stageId).replace(/[^a-z0-9_-]/gi, "-").slice(0, 60),
+            kind: "stage_clear", subjectId: stageId, amount: 1, legacy: true,
+            occurredAt: d.saveMeta && d.saveMeta.updatedAt || Date.now()
+          });
+        });
+        Object.keys(d.questionProgress.byId).forEach(function (questionId) {
+          var questionState = d.questionProgress.byId[questionId] || {};
+          if (questionState.attempts > 0) appendLearningEvent(d.learningEvents, {
+            id: "legacy-quiz-" + String(questionId).replace(/[^a-z0-9_-]/gi, "-").slice(0, 61),
+            kind: "quiz_answer", subjectId: questionId, correct: questionState.lastCorrect === true,
+            amount: questionState.attempts, legacy: true, occurredAt: questionState.lastAnsweredAt || Date.now()
+          });
+          if (questionState.correctedAt) appendLearningEvent(d.learningEvents, {
+            id: "legacy-correction-" + String(questionId).replace(/[^a-z0-9_-]/gi, "-").slice(0, 55),
+            kind: "correction", subjectId: questionId, correct: true,
+            amount: 1, legacy: true, occurredAt: questionState.correctedAt
+          });
+        });
+      }
+      if (!isRecord(d.saveMeta)) d.saveMeta = def.saveMeta;
+      d.saveMeta.revision = Math.max(1, nonNegativeInteger(d.saveMeta.revision));
+      d.saveMeta.createdAt = Number(d.saveMeta.createdAt) || Number(d.saveMeta.updatedAt) || Date.now();
+      d.saveMeta.updatedAt = Number(d.saveMeta.updatedAt) || d.saveMeta.createdAt;
       var normalizedEnemyIds = [];
       function rememberEnemy(id) {
         id = normalizeEnemyId(id);
@@ -408,13 +600,12 @@
         });
       }
       d.encounteredEnemies = normalizedEnemyIds;
-      // 測試經濟一次性遷移：既有存檔首次載入時至少補到 100 萬。
-      // 升至 schema 3 後不再重複補幣，因此消費後重新整理不會恢復滿額。
-      if (requiresCoinTopUp) d.coins = Math.max(nonNegativeInteger(d.coins), DEFAULT_COINS);
+      // QA 保留大量測試幣；正式玩家只補到正式起始值，避免測試數值污染經濟。
+      if (requiresCoinTopUp) d.coins = Math.max(nonNegativeInteger(d.coins), startingCoins());
       // schema 4：大廳存檔。舊存檔沒有 lobby 時補預設值；
       // schema 5：污染物遭遇圖鑑。兩者皆不改角色、經濟與關卡解鎖。
       d.lobby = this._normalizeLobby(d.lobby);
-      d.schemaVersion = 8;
+      d.schemaVersion = 12;
       d.achievements = normalizeAchievementData(d.achievements);
       if (!d.selectedStageId || !global.GameData || !global.GameData.getStage || !global.GameData.getStage(d.selectedStageId)) {
         d.selectedStageId = "tidal_flat";
@@ -424,14 +615,32 @@
       for (var ak in def.audio) { if (!(ak in d.audio)) d.audio[ak] = def.audio[ak]; }
       d.preferences = normalizePreferences(d.preferences);
       this.data = d;
-      if (requiresSchemaSave) this.save();
+      if (requiresSchemaSave) this.save({ preserveRevision: true, source: "migration" });
       return d;
     },
 
-    save: function () {
+    save: function (options) {
+      options = options || {};
+      if (!this.data) return;
+      if (!isRecord(this.data.saveMeta)) this.data.saveMeta = { revision: 1, updatedAt: Date.now(), createdAt: Date.now() };
+      if (!options.preserveRevision) {
+        this.data.saveMeta.revision = Math.max(1, (this.data.saveMeta.revision | 0) + 1);
+        this.data.saveMeta.updatedAt = Date.now();
+      }
       try {
         global.localStorage.setItem(KEY, JSON.stringify(this.data));
       } catch (e) { /* file:// 或隱私模式可能失敗，靜默忽略 */ }
+      if (!options.silentEvent && !this._suppressEvents) {
+        try {
+          global.dispatchEvent(new CustomEvent("game-save-changed", {
+            detail: {
+              revision: this.data.saveMeta.revision,
+              updatedAt: this.data.saveMeta.updatedAt,
+              source: options.source || "local"
+            }
+          }));
+        } catch (e2) {}
+      }
     },
 
     reset: function () {
@@ -439,7 +648,72 @@
       this.save();
     },
 
+    exportCloudData: function () {
+      if (!this.data) this.load();
+      try { return JSON.parse(JSON.stringify(this.data)); }
+      catch (error) { return null; }
+    },
+
+    replaceFromCloud: function (payload) {
+      if (!isRecord(payload)) return { ok: false, reason: "format" };
+      var serialized;
+      try { serialized = JSON.stringify(payload); }
+      catch (error) { return { ok: false, reason: "format" }; }
+      if (!serialized || serialized.length > 1024 * 1024) return { ok: false, reason: "size" };
+      var schema = nonNegativeInteger(payload.schemaVersion);
+      if (!schema || schema > 12) return { ok: false, reason: "schema" };
+      this._suppressEvents = true;
+      try {
+        global.localStorage.setItem(KEY, serialized);
+        this.data = null;
+        this.load();
+        this.save({ preserveRevision: true, silentEvent: true, source: "cloud" });
+      } catch (error2) {
+        return { ok: false, reason: "storage" };
+      } finally {
+        this._suppressEvents = false;
+      }
+      try { global.dispatchEvent(new CustomEvent("cloud-save-applied")); } catch (error3) {}
+      return { ok: true, data: this.data };
+    },
+
+    hasMeaningfulProgress: function () {
+      if (!this.data) this.load();
+      var d = this.data;
+      var lobby = d.lobby || {};
+      var questions = d.questionProgress && d.questionProgress.byId || {};
+      return (Array.isArray(d.clearedStages) && d.clearedStages.length > 0) ||
+        (Array.isArray(lobby.buildings) && lobby.buildings.length > 0) ||
+        Object.keys(questions).length > 0 ||
+        (Array.isArray(d.knowledge) && d.knowledge.length > 0) ||
+        (Array.isArray(d.ownedSkins) && d.ownedSkins.length > 0) ||
+        Number(lobby.land && lobby.land.expansionLevel) > 0 ||
+        Number(lobby.spaces && lobby.spaces.cottage && lobby.spaces.cottage.restClaims) > 0 ||
+        Number(lobby.spaces && lobby.spaces.recycleYard && lobby.spaces.recycleYard.totalSorted) > 0 ||
+        Number(d.coins) !== startingCoins() ||
+        !lobby.materials || Number(lobby.materials.recycled) !== STARTING_RECYCLED;
+    },
+
+    describeSave: function (payload) {
+      payload = isRecord(payload) ? payload : {};
+      var lobby = isRecord(payload.lobby) ? payload.lobby : {};
+      var questions = payload.questionProgress && isRecord(payload.questionProgress.byId)
+        ? payload.questionProgress.byId : {};
+      return {
+        schemaVersion: nonNegativeInteger(payload.schemaVersion),
+        updatedAt: Number(payload.saveMeta && payload.saveMeta.updatedAt) || null,
+        revision: Number(payload.saveMeta && payload.saveMeta.revision) || 0,
+        clearedStages: Array.isArray(payload.clearedStages) ? payload.clearedStages.length : 0,
+        buildings: Array.isArray(lobby.buildings) ? lobby.buildings.length : 0,
+        questions: Object.keys(questions).length,
+        coins: nonNegativeInteger(payload.coins),
+        recycled: nonNegativeInteger(lobby.materials && lobby.materials.recycled),
+        materials: nonNegativeInteger(lobby.materials && lobby.materials.recycled)
+      };
+    },
+
     /* -------- 循環幣 -------- */
+    getStartingCoins: function () { return startingCoins(); },
     getCoins: function () { return this.data.coins | 0; },
     addCoins: function (n) { this.data.coins = (this.data.coins | 0) + Math.max(0, n | 0); this.save(); },
     spendCoins: function (n) {
@@ -723,7 +997,7 @@
       } catch (cloneError) {
         return { ok: false, reason: "storage" };
       }
-      next.schemaVersion = 8;
+      next.schemaVersion = 12;
       next.coins = nonNegativeInteger(next.coins) + coins;
       next.achievements = normalizeAchievementData(next.achievements);
       if (points) {
@@ -776,7 +1050,14 @@
       if (!this.data || !global.GameData || !global.GameData.getStage(id)) return null;
       var next = global.GameData.getNextStage ? global.GameData.getNextStage(id) : null;
       var nextWasUnlocked = next ? this.isStageUnlocked(next.id) : false;
-      if (!this.isStageCleared(id)) this.data.clearedStages.push(id);
+      var firstClear = !this.isStageCleared(id);
+      if (firstClear) {
+        this.data.clearedStages.push(id);
+        appendLearningEvent(this.data.learningEvents, {
+          id: learningEventId("stage"), kind: "stage_clear", subjectId: id,
+          correct: true, amount: 1, occurredAt: Date.now()
+        });
+      }
       this._lastFixedCharacterUnlocks = [];
       var fixedCharacterId = id === "recycle_works"
         ? "mechanic"
@@ -837,6 +1118,139 @@
       this.save();
     },
 
+    /* -------- v1.2 漸進式教學 -------- */
+    getTutorial: function () {
+      if (!this.data) this.load();
+      if (!isRecord(this.data.tutorial)) this.data.tutorial = this._default().tutorial;
+      return this.data.tutorial;
+    },
+
+    startTutorial: function (restart) {
+      var tutorial = this.getTutorial();
+      if (restart) {
+        tutorial.completedSteps = [];
+        tutorial.stepId = "move";
+        tutorial.completed = false;
+        tutorial.skipped = false;
+        tutorial.completedAt = null;
+      }
+      tutorial.active = true;
+      tutorial.startedAt = tutorial.startedAt || Date.now();
+      this.save();
+      return tutorial;
+    },
+
+    setTutorialStep: function (stepId, completedSteps) {
+      var tutorial = this.getTutorial();
+      tutorial.stepId = stepId;
+      tutorial.active = true;
+      if (Array.isArray(completedSteps)) tutorial.completedSteps = completedSteps.slice();
+      this.save();
+      return tutorial;
+    },
+
+    finishTutorial: function (skipped) {
+      var tutorial = this.getTutorial();
+      tutorial.active = false;
+      tutorial.completed = !skipped;
+      tutorial.skipped = skipped === true;
+      tutorial.completedAt = Date.now();
+      this.save();
+      return tutorial;
+    },
+
+    /* -------- v1.2 題目作答、詳解與訂正紀錄 -------- */
+    getQuestionProgress: function (id) {
+      if (!this.data) this.load();
+      var root = this.data.questionProgress;
+      if (!isRecord(root)) root = this.data.questionProgress = { version: 1, byId: {} };
+      if (!isRecord(root.byId)) root.byId = {};
+      return id ? (root.byId[id] || null) : root;
+    },
+
+    getQuestionStatus: function (id) {
+      var progress = this.getQuestionProgress(id);
+      if (!progress || !progress.attempts) return "unanswered";
+      if (!progress.lastCorrect) return "wrong";
+      return progress.wrongCount > 0 ? "corrected" : "correct";
+    },
+
+    recordQuestionAttempt: function (question, selected, correct) {
+      if (!question || !question.id) return null;
+      var root = this.getQuestionProgress();
+      var now = Date.now();
+      var progress = root.byId[question.id];
+      var wasWrong = !!(progress && progress.attempts && !progress.lastCorrect);
+      if (!isRecord(progress)) {
+        progress = root.byId[question.id] = {
+          attempts: 0,
+          correctCount: 0,
+          wrongCount: 0,
+          firstAnsweredAt: now,
+          lastAnsweredAt: now,
+          lastSelected: null,
+          lastCorrect: false,
+          correctedAt: null
+        };
+      }
+      progress.attempts = (progress.attempts | 0) + 1;
+      progress.correctCount = (progress.correctCount | 0) + (correct ? 1 : 0);
+      progress.wrongCount = (progress.wrongCount | 0) + (correct ? 0 : 1);
+      progress.lastSelected = Number(selected);
+      progress.lastCorrect = correct === true;
+      progress.lastAnsweredAt = now;
+      if (!progress.firstAnsweredAt) progress.firstAnsweredAt = now;
+      if (correct && progress.wrongCount > 0) progress.correctedAt = now;
+      appendLearningEvent(this.data.learningEvents, {
+        id: learningEventId("quiz"), kind: "quiz_answer", subjectId: question.id,
+        correct: correct === true, amount: 1, occurredAt: now
+      });
+      if (correct && wasWrong) appendLearningEvent(this.data.learningEvents, {
+        id: learningEventId("correction"), kind: "correction", subjectId: question.id,
+        correct: true, amount: 1, occurredAt: now
+      });
+      this.save();
+      return progress;
+    },
+
+    getPendingLearningEvents: function () {
+      if (!this.data) this.load();
+      var root = isRecord(this.data.learningEvents) ? this.data.learningEvents : (this.data.learningEvents = { version: 1, queue: [] });
+      if (!Array.isArray(root.queue)) root.queue = [];
+      return root.queue.map(function (entry) { return Object.assign({}, entry); });
+    },
+
+    acknowledgeLearningEvents: function (ids) {
+      if (!this.data || !isRecord(this.data.learningEvents) || !Array.isArray(this.data.learningEvents.queue)) return 0;
+      var accepted = {};
+      (ids || []).forEach(function (id) { accepted[String(id)] = true; });
+      var before = this.data.learningEvents.queue.length;
+      this.data.learningEvents.queue = this.data.learningEvents.queue.filter(function (entry) { return !accepted[entry.id]; });
+      var removed = before - this.data.learningEvents.queue.length;
+      if (removed) this.save({ source: "learning-events-ack" });
+      return removed;
+    },
+
+    getQuestionSummary: function () {
+      var questions = global.GameData && Array.isArray(global.GameData.sustainabilityQuestions)
+        ? global.GameData.sustainabilityQuestions : [];
+      var summary = { total: questions.length, attempted: 0, attempts: 0, correctAttempts: 0, correct: 0, wrong: 0, corrected: 0, unanswered: 0 };
+      var self = this;
+      questions.forEach(function (question) {
+        var progress = self.getQuestionProgress(question.id);
+        var status = self.getQuestionStatus(question.id);
+        summary[status] += 1;
+        if (progress) {
+          summary.attempted += 1;
+          summary.attempts += progress.attempts | 0;
+          summary.correctAttempts += progress.correctCount | 0;
+        }
+      });
+      summary.completionRate = summary.total ? Math.round(summary.attempted / summary.total * 100) : 0;
+      summary.accuracyRate = summary.attempts ? Math.round(summary.correctAttempts / summary.attempts * 100) : 0;
+      return summary;
+    },
+
     /* ============================================================
        大廳（schema 4）：再生材料、建築配置、每日進度
        所有「扣材料 + 動建築」都在同一次 save() 內完成，
@@ -867,6 +1281,45 @@
     },
 
     getRecycled: function () { return this.getLobby().materials.recycled | 0; },
+
+    getLobbyExpansionLevel: function () {
+      var lobby = this.getLobby();
+      return Math.max(0, Math.min(2, lobby.land && lobby.land.expansionLevel | 0));
+    },
+
+    expandLobbyLand: function (level, cost) {
+      level = Math.max(1, Math.min(2, level | 0));
+      cost = Math.max(0, cost | 0);
+      var lobby = this.getLobby();
+      var current = this.getLobbyExpansionLevel();
+      if (level <= current) return { ok: false, reason: "owned", level: current };
+      if (level !== current + 1) return { ok: false, reason: "sequence", level: current };
+      if ((lobby.materials.recycled | 0) < cost) return { ok: false, reason: "materials", missing: cost - (lobby.materials.recycled | 0) };
+      lobby.materials.recycled -= cost;
+      lobby.land.expansionLevel = level;
+      lobby.land.expandedAt[String(level)] = Date.now();
+      this.save();
+      return { ok: true, level: level, spent: cost };
+    },
+
+    getIslandSpaces: function () { return this.getLobby().spaces; },
+
+    visitIslandSpace: function (spaceId) {
+      var space = this.getIslandSpaces()[spaceId];
+      if (!space) return false;
+      space.visits = Math.max(0, space.visits | 0) + 1;
+      this.save();
+      return true;
+    },
+
+    spendRecycled: function (amount) {
+      amount = Math.max(0, amount | 0);
+      var lobby = this.getLobby();
+      if ((lobby.materials.recycled | 0) < amount) return false;
+      lobby.materials.recycled -= amount;
+      this.save();
+      return true;
+    },
 
     addRecycled: function (n) {
       var lobby = this.getLobby();

@@ -1,0 +1,366 @@
+{
+  "skinId": "solar_battery",
+  "source": "C:\\Users\\aswen\\Desktop\\SSP\\assets\\images\\characters\\skins\\_masters\\solar_battery.png",
+  "frames": {
+    "idle_N_0": {
+      "coverage": 0.319,
+      "bbox": [
+        44,
+        10,
+        149,
+        185
+      ]
+    },
+    "walk_N_0": {
+      "coverage": 0.3236,
+      "bbox": [
+        41,
+        9,
+        152,
+        186
+      ]
+    },
+    "walk_N_1": {
+      "coverage": 0.3236,
+      "bbox": [
+        41,
+        9,
+        151,
+        186
+      ]
+    },
+    "walk_N_2": {
+      "coverage": 0.316,
+      "bbox": [
+        41,
+        9,
+        150,
+        185
+      ]
+    },
+    "walk_N_3": {
+      "coverage": 0.3234,
+      "bbox": [
+        40,
+        9,
+        150,
+        186
+      ]
+    },
+    "idle_NE_0": {
+      "coverage": 0.3216,
+      "bbox": [
+        39,
+        10,
+        156,
+        184
+      ]
+    },
+    "walk_NE_0": {
+      "coverage": 0.3321,
+      "bbox": [
+        37,
+        8,
+        157,
+        186
+      ]
+    },
+    "walk_NE_1": {
+      "coverage": 0.3153,
+      "bbox": [
+        38,
+        9,
+        153,
+        186
+      ]
+    },
+    "walk_NE_2": {
+      "coverage": 0.325,
+      "bbox": [
+        37,
+        9,
+        154,
+        186
+      ]
+    },
+    "walk_NE_3": {
+      "coverage": 0.3206,
+      "bbox": [
+        36,
+        9,
+        153,
+        186
+      ]
+    },
+    "idle_E_0": {
+      "coverage": 0.2803,
+      "bbox": [
+        45,
+        9,
+        151,
+        184
+      ]
+    },
+    "walk_E_0": {
+      "coverage": 0.3253,
+      "bbox": [
+        42,
+        8,
+        152,
+        185
+      ]
+    },
+    "walk_E_1": {
+      "coverage": 0.2884,
+      "bbox": [
+        43,
+        8,
+        149,
+        186
+      ]
+    },
+    "walk_E_2": {
+      "coverage": 0.3255,
+      "bbox": [
+        40,
+        8,
+        152,
+        185
+      ]
+    },
+    "walk_E_3": {
+      "coverage": 0.2863,
+      "bbox": [
+        42,
+        9,
+        148,
+        186
+      ]
+    },
+    "idle_SE_0": {
+      "coverage": 0.307,
+      "bbox": [
+        42,
+        9,
+        152,
+        185
+      ]
+    },
+    "walk_SE_0": {
+      "coverage": 0.3504,
+      "bbox": [
+        35,
+        9,
+        158,
+        186
+      ]
+    },
+    "walk_SE_1": {
+      "coverage": 0.3239,
+      "bbox": [
+        36,
+        9,
+        156,
+        186
+      ]
+    },
+    "walk_SE_2": {
+      "coverage": 0.3588,
+      "bbox": [
+        33,
+        9,
+        158,
+        186
+      ]
+    },
+    "walk_SE_3": {
+      "coverage": 0.3298,
+      "bbox": [
+        37,
+        8,
+        153,
+        185
+      ]
+    },
+    "idle_S_0": {
+      "coverage": 0.2942,
+      "bbox": [
+        48,
+        11,
+        148,
+        185
+      ]
+    },
+    "walk_S_0": {
+      "coverage": 0.2964,
+      "bbox": [
+        48,
+        9,
+        147,
+        185
+      ]
+    },
+    "walk_S_1": {
+      "coverage": 0.3014,
+      "bbox": [
+        46,
+        9,
+        148,
+        184
+      ]
+    },
+    "walk_S_2": {
+      "coverage": 0.2983,
+      "bbox": [
+        45,
+        9,
+        147,
+        185
+      ]
+    },
+    "walk_S_3": {
+      "coverage": 0.2998,
+      "bbox": [
+        45,
+        9,
+        146,
+        186
+      ]
+    },
+    "idle_SW_0": {
+      "coverage": 0.3058,
+      "bbox": [
+        42,
+        9,
+        152,
+        185
+      ]
+    },
+    "walk_SW_0": {
+      "coverage": 0.3486,
+      "bbox": [
+        35,
+        9,
+        158,
+        185
+      ]
+    },
+    "walk_SW_1": {
+      "coverage": 0.3288,
+      "bbox": [
+        36,
+        9,
+        155,
+        186
+      ]
+    },
+    "walk_SW_2": {
+      "coverage": 0.3555,
+      "bbox": [
+        33,
+        9,
+        157,
+        185
+      ]
+    },
+    "walk_SW_3": {
+      "coverage": 0.319,
+      "bbox": [
+        35,
+        9,
+        154,
+        186
+      ]
+    },
+    "idle_W_0": {
+      "coverage": 0.2846,
+      "bbox": [
+        42,
+        10,
+        149,
+        184
+      ]
+    },
+    "walk_W_0": {
+      "coverage": 0.3182,
+      "bbox": [
+        37,
+        8,
+        153,
+        186
+      ]
+    },
+    "walk_W_1": {
+      "coverage": 0.2869,
+      "bbox": [
+        40,
+        8,
+        152,
+        185
+      ]
+    },
+    "walk_W_2": {
+      "coverage": 0.321,
+      "bbox": [
+        38,
+        8,
+        153,
+        186
+      ]
+    },
+    "walk_W_3": {
+      "coverage": 0.2872,
+      "bbox": [
+        38,
+        8,
+        152,
+        185
+      ]
+    },
+    "idle_NW_0": {
+      "coverage": 0.3207,
+      "bbox": [
+        38,
+        10,
+        153,
+        184
+      ]
+    },
+    "walk_NW_0": {
+      "coverage": 0.3569,
+      "bbox": [
+        30,
+        9,
+        162,
+        185
+      ]
+    },
+    "walk_NW_1": {
+      "coverage": 0.3251,
+      "bbox": [
+        35,
+        9,
+        155,
+        185
+      ]
+    },
+    "walk_NW_2": {
+      "coverage": 0.3423,
+      "bbox": [
+        33,
+        9,
+        157,
+        186
+      ]
+    },
+    "walk_NW_3": {
+      "coverage": 0.3258,
+      "bbox": [
+        34,
+        9,
+        155,
+        186
+      ]
+    }
+  }
+}

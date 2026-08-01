@@ -1,0 +1,69 @@
+{
+  "version": "lobby-gpt-20260726a",
+  "background": "assets/images/lobby/ground/lobby_map.png",
+  "portal": {
+    "fps": 8,
+    "loop": true,
+    "frames": [
+      "assets/images/lobby/portal/portal_idle_0.png",
+      "assets/images/lobby/portal/portal_idle_1.png",
+      "assets/images/lobby/portal/portal_idle_2.png",
+      "assets/images/lobby/portal/portal_idle_3.png",
+      "assets/images/lobby/portal/portal_idle_4.png",
+      "assets/images/lobby/portal/portal_idle_5.png"
+    ]
+  },
+  "stations": {
+    "recycling_idle_zone": {
+      "fps": 5,
+      "loop": true,
+      "frames": [
+        "assets/images/lobby/stations/recycling_idle_zone/idle_0.png",
+        "assets/images/lobby/stations/recycling_idle_zone/idle_1.png",
+        "assets/images/lobby/stations/recycling_idle_zone/idle_2.png",
+        "assets/images/lobby/stations/recycling_idle_zone/idle_3.png"
+      ]
+    },
+    "construction_workbench": {
+      "frames": [
+        "assets/images/lobby/stations/construction_workbench/idle_0.png"
+      ]
+    }
+  },
+  "buildings": {
+    "solar_workshop": {
+      "frames": [
+        "assets/images/lobby/buildings/solar_workshop/idle_0.png"
+      ]
+    },
+    "rain_garden": {
+      "frames": [
+        "assets/images/lobby/buildings/rain_garden/idle_0.png"
+      ]
+    },
+    "wind_station": {
+      "frames": [
+        "assets/images/lobby/buildings/wind_station/idle_0.png"
+      ]
+    },
+    "recycle_guard": {
+      "frames": [
+        "assets/images/lobby/buildings/recycle_guard/idle_0.png"
+      ]
+    }
+  },
+  "decorations": {
+    "small_tree": "assets/images/lobby/decorations/small_tree/idle_0.png",
+    "flower_bed": "assets/images/lobby/decorations/flower_bed/idle_0.png",
+    "recycling_bench": "assets/images/lobby/decorations/recycling_bench/idle_0.png",
+    "solar_streetlight": "assets/images/lobby/decorations/solar_streetlight/idle_0.png",
+    "sorting_bins": "assets/images/lobby/decorations/sorting_bins/idle_0.png",
+    "rain_barrel": "assets/images/lobby/decorations/rain_barrel/idle_0.png",
+    "eco_sign": "assets/images/lobby/decorations/eco_sign/idle_0.png",
+    "eco_pond": "assets/images/lobby/decorations/eco_pond/idle_0.png"
+  },
+  "ui": {
+    "recycled_material": "assets/images/lobby/ui/recycled_material.png",
+    "build_mode": "assets/images/lobby/ui/build_mode.png"
+  }
+}

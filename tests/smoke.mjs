@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { startStaticServer } from "../tools/static-server.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SERVER_ROOT = process.env.SMOKE_ROOT ? path.resolve(ROOT, process.env.SMOKE_ROOT) : ROOT;
 const OUTPUT_FILE = path.join(ROOT, "output", "smoke-test-results.json");
 const FAILURE_DIR = path.join(ROOT, "output", "smoke-failures");
 const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
@@ -318,7 +319,7 @@ async function launchBrowser(executablePath) {
 
 export async function main() {
   await fs.mkdir(path.dirname(OUTPUT_FILE), { recursive: true });
-  const server = await startStaticServer({ root: ROOT, port: 0 });
+  const server = await startStaticServer({ root: SERVER_ROOT, port: 0 });
   const executablePath = await findBrowser();
   const launched = await launchBrowser(executablePath);
   const browser = new SmokeBrowser(
@@ -340,6 +341,42 @@ export async function main() {
       }
     },
     {
+      name: "倒數歸零保證 BOSS 只生成一次",
+      run: async () => {
+        await browser.prepare("test=1&duration=8&qaSkipIntro=1&seed=1006");
+        await browser.startFirstStage();
+        const guarantee = await browser.evaluate(`(() => {
+          Game.stage.events = [];
+          Game.stage.waves = [];
+          Game.enemies = [];
+          Game.bossSpawned = false;
+          Game.bossSpawnReason = null;
+          Game.time = Game.runDuration - 0.01;
+          Game.update(0.02);
+          const firstCount = Game.enemies.filter((enemy) =>
+            !enemy.dead && enemy.isBoss && enemy.id === Game.stage.bossId
+          ).length;
+          const firstBoss = Game.ensureBossSpawned("test-repeat");
+          Game.handleEvents();
+          const finalCount = Game.enemies.filter((enemy) =>
+            !enemy.dead && enemy.isBoss && enemy.id === Game.stage.bossId
+          ).length;
+          return {
+            firstCount,
+            finalCount,
+            repeatedReturnsExisting: !!firstBoss,
+            bossSpawned: Game.bossSpawned,
+            reason: Game.bossSpawnReason,
+            overtime: Game.overtimeActive
+          };
+        })()`);
+        assert(guarantee.bossSpawned && guarantee.firstCount === 1 && guarantee.finalCount === 1,
+          `倒數歸零沒有生成唯一 BOSS：${JSON.stringify(guarantee)}`);
+        assert(guarantee.repeatedReturnsExisting && guarantee.reason === "timer" && guarantee.overtime,
+          `BOSS 保證機制沒有保持冪等或啟動延長賽：${JSON.stringify(guarantee)}`);
+      }
+    },
+    {
       name: "答題 → 升級 → 勝利",
       run: async () => {
         await browser.prepare("test=1&duration=8&qaSkipIntro=1&seed=1002");
@@ -349,6 +386,9 @@ export async function main() {
         const answer = await browser.evaluate("Game.quizOrder[Game.quizIndex - 1].answer");
         await browser.click(".quiz-card", answer);
         await browser.waitFor("!!document.querySelector('.quiz-continue')", "答題結果顯示");
+        const explanation = await browser.evaluate("document.getElementById('levelup-feedback')?.textContent || ''");
+        assert(explanation.includes("正確答案") && explanation.includes("詳解") && explanation.includes("題目複習"),
+          "作答後沒有顯示正確答案、詳解或複習入口提示");
         await browser.click(".quiz-continue");
         await browser.waitFor("document.querySelectorAll('#levelup-options .levelup-card').length >= 1", "升級選項顯示");
         await browser.click("#levelup-options .levelup-card", 0);
@@ -358,6 +398,41 @@ export async function main() {
         const state = await browser.evaluate("__TEST__.getState()");
         assert(state.quizCorrect === 1, "答對題數未寫入當局統計");
         assert(state.save.clearedStages.includes("tidal_flat"), "勝利後未保存通關紀錄");
+        const reviewSeed = await browser.evaluate(`(() => {
+          const first = Game.quizOrder[Game.quizIndex - 1];
+          const wrongQuestion = GameData.sustainabilityQuestions.find((item) => item.id !== first.id);
+          const wrongAnswer = wrongQuestion.options.findIndex((_, index) => index !== wrongQuestion.answer);
+          Storage.recordQuestionAttempt(wrongQuestion, wrongAnswer, false);
+          App.enterLobby();
+          App.handleAction("codex");
+          UI.setCodexView("questions");
+          return {
+            wrongId: wrongQuestion.id,
+            correctAnswer: wrongQuestion.answer,
+            summary: Storage.getQuestionSummary(),
+            firstStatus: Storage.getQuestionStatus(first.id),
+            wrongStatus: Storage.getQuestionStatus(wrongQuestion.id)
+          };
+        })()`);
+        assert(reviewSeed.firstStatus === "correct" && reviewSeed.wrongStatus === "wrong" &&
+          reviewSeed.summary.attempted === 2 && reviewSeed.summary.wrong === 1,
+          `題目分類或統計錯誤：${JSON.stringify(reviewSeed)}`);
+        await browser.waitFor("document.querySelectorAll('.codex-question-card').length > 0", "題目複習清單顯示");
+        const wrongFilterIndex = await browser.evaluate(`Array.from(document.querySelectorAll('.question-review-filter')).findIndex((node) => node.textContent === '答錯')`);
+        await browser.click(".question-review-filter", wrongFilterIndex);
+        await browser.waitFor("document.querySelectorAll('.codex-question-card.status-wrong').length === 1", "答錯分類顯示");
+        await browser.click(".question-card-open", 0);
+        await browser.waitFor("!document.getElementById('overlay-question-review').classList.contains('hidden')", "訂正題目開啟");
+        await browser.click(".question-practice-option", reviewSeed.correctAnswer);
+        await browser.waitFor("document.querySelector('.question-detail-box .question-detail-answer')", "訂正詳解顯示");
+        const corrected = await browser.evaluate(`(() => ({
+          status: Storage.getQuestionStatus(${JSON.stringify(reviewSeed.wrongId)}),
+          summary: Storage.getQuestionSummary(),
+          text: document.getElementById('question-review-body')?.textContent || ''
+        }))()`);
+        assert(corrected.status === "corrected" && corrected.summary.corrected === 1 &&
+          corrected.text.includes("正確答案") && corrected.text.includes("詳解"),
+          `錯題沒有完成訂正或詳解缺漏：${JSON.stringify(corrected)}`);
       }
     },
     {
@@ -428,6 +503,12 @@ export async function main() {
           });
           const oldSave = Storage._default();
           oldSave.schemaVersion = 5;
+          delete oldSave.learningEvents;
+          const legacyQuestionId = GameData.sustainabilityQuestions[0].id;
+          oldSave.questionProgress.byId[legacyQuestionId] = {
+            attempts:3,correctCount:2,wrongCount:1,lastSelected:0,lastCorrect:true,
+            firstAnsweredAt:Date.now()-2000,lastAnsweredAt:Date.now()-1000,correctedAt:Date.now()-1000
+          };
           oldSave.lobby.version = 1;
           oldSave.lobby.playerPosition = { x: 820, y: 500, direction: "S" };
           localStorage.setItem("senloop_save_v1", JSON.stringify(oldSave));
@@ -435,6 +516,40 @@ export async function main() {
           Storage.load();
           const persistedLobbyVersion =
             JSON.parse(localStorage.getItem("senloop_save_v1")).lobby.version;
+          Storage.getLobby().buildings = [{
+            instanceId: "building-99",
+            buildingId: "small_tree",
+            x: 576,
+            y: 512,
+            rotation: 0,
+            level: 1,
+            placed: true
+          }];
+          Storage.getLobby().inventory = {};
+          const relocatedBuildings = Lobby.reconcileFixedLayout();
+          const relocation = {
+            count: relocatedBuildings,
+            placed: Storage.getLobby().buildings.length,
+            inventory: Storage.getLobbyInventoryCount("small_tree")
+          };
+          Storage.getLobby().land.expansionLevel = 0;
+          const landLocked = {
+            northwest: LobbyWorld.circleInWalkable(480, 225, 15),
+            northeast: LobbyWorld.circleInWalkable(1140, 245, 15),
+            southwest: LobbyWorld.circleInWalkable(240, 720, 15),
+            southeast: LobbyWorld.circleInWalkable(1410, 760, 15)
+          };
+          Storage.getLobby().land.expansionLevel = 1;
+          const landTierOne = {
+            northwest: LobbyWorld.circleInWalkable(480, 225, 15),
+            southwest: LobbyWorld.circleInWalkable(240, 720, 15),
+            northeast: LobbyWorld.circleInWalkable(1140, 245, 15)
+          };
+          Storage.getLobby().land.expansionLevel = 2;
+          const landTierTwo = {
+            northeast: LobbyWorld.circleInWalkable(1140, 245, 15),
+            southeast: LobbyWorld.circleInWalkable(1410, 760, 15)
+          };
           return {
             world: state.world,
             fixed: {
@@ -449,9 +564,9 @@ export async function main() {
             },
             terrain: {
               polygonCount: LobbyWorld.walkablePolygons.length,
-              portalApproach: LobbyWorld.circleInWalkable(800, 136, 15),
-              workbenchApproach: LobbyWorld.circleInWalkable(370, 448, 15),
-              recycleApproach: LobbyWorld.circleInWalkable(1250, 480, 15),
+              portalApproach: LobbyWorld.circleInWalkable(800, 426, 15),
+              workbenchApproach: LobbyWorld.circleInWalkable(676, 530, 15),
+              recycleApproach: LobbyWorld.circleInWalkable(920, 530, 15),
               reopenedClearing: LobbyWorld.circleInWalkable(700, 750, 15),
               lowerClearing: LobbyWorld.circleInWalkable(900, 760, 15),
               northwestBridge: LobbyWorld.circleInWalkable(480, 225, 15),
@@ -479,9 +594,9 @@ export async function main() {
               })(),
               workbenchCollisionSafe: (() => {
                 const p = LobbyPlacement.resolveCircle(
-                  300, 458, 400, 458, 15, LobbyPlacement.collisionRects()
+                  600, 540, 700, 540, 15, LobbyPlacement.collisionRects()
                 );
-                return p.x >= 367;
+                return p.x >= 667;
               })(),
               footAnchorSafe: (() => {
                 const p = Lobby.resolveAvatarPosition(80, 470, 250, 470);
@@ -489,10 +604,21 @@ export async function main() {
               })()
             },
             unreachable: LobbyPlacement.checkReachability([], null),
+            hubDistances: {
+              portal: Math.hypot(LobbyWorld.spawn.x - LobbyWorld.portal.x, LobbyWorld.spawn.y - LobbyWorld.portal.y),
+              workbench: Math.hypot(LobbyWorld.spawn.x - LobbyWorld.workbench.x, LobbyWorld.spawn.y - LobbyWorld.workbench.y),
+              recycle: Math.hypot(
+                LobbyWorld.spawn.x - (LobbyWorld.idleZone.x + LobbyWorld.idleZone.w / 2),
+                LobbyWorld.spawn.y - (LobbyWorld.idleZone.y + LobbyWorld.idleZone.h / 2)
+              )
+            },
             migratedVersion: migrated.version,
             migratedPlayerY: migrated.playerPosition.y,
             migratedBuildingY: migrated.buildings[0]?.y,
-            persistedLobbyVersion
+            persistedLobbyVersion,
+            legacyLearningEvents: Storage.getPendingLearningEvents().filter((event) => event.legacy).map((event) => event.kind),
+            relocation,
+            landStages: { locked: landLocked, tierOne: landTierOne, tierTwo: landTierTwo }
           };
         })()`);
         assert(alignment.world.width === 1600 && alignment.world.height === 1000,
@@ -501,12 +627,16 @@ export async function main() {
           alignment.world.backgroundHeight === alignment.world.height,
           "大廳底圖仍被縮放到不同長寬比");
         assert(
-          alignment.fixed.portal.x === 800 && alignment.fixed.portal.y === 40 &&
-          alignment.fixed.workbench.x === 300 && alignment.fixed.workbench.y === 448 &&
-          alignment.fixed.idleZone.x === 1196 && alignment.fixed.idleZone.y === 379 &&
-          alignment.fixed.idleZone.w === 224 && alignment.fixed.idleZone.h === 178,
-          "傳送門、工作台或回收區未對齊背景預留平台"
+          alignment.fixed.portal.x === 800 && alignment.fixed.portal.y === 330 &&
+          alignment.fixed.workbench.x === 600 && alignment.fixed.workbench.y === 530 &&
+          alignment.fixed.idleZone.x === 900 && alignment.fixed.idleZone.y === 445 &&
+          alignment.fixed.idleZone.w === 210 && alignment.fixed.idleZone.h === 170,
+          "傳送門、工作台或回收區未套用 v1.1 中央廣場配置"
         );
+        assert(Object.values(alignment.hubDistances).every((distance) => distance <= 260),
+          `中央廣場設施離出生點仍太遠：${JSON.stringify(alignment.hubDistances)}`);
+        assert(alignment.legacyLearningEvents.includes("quiz_answer") && alignment.legacyLearningEvents.includes("correction"),
+          `舊版答題紀錄沒有轉成可稽核事件：${JSON.stringify(alignment.legacyLearningEvents)}`);
         assert(
           alignment.terrain.polygonCount === 11 &&
           alignment.terrain.portalApproach &&
@@ -535,11 +665,63 @@ export async function main() {
         );
         assert(alignment.unreachable.length === 0,
           `固定裝置不可到達：${alignment.unreachable.join("、")}`);
-        assert(alignment.migratedVersion === 3 &&
+        assert(Object.values(alignment.landStages.locked).every((value) => value === false) &&
+          alignment.landStages.tierOne.northwest && alignment.landStages.tierOne.southwest && !alignment.landStages.tierOne.northeast &&
+          alignment.landStages.tierTwo.northeast && alignment.landStages.tierTwo.southeast,
+          `土地分階邊界沒有正確開放：${JSON.stringify(alignment.landStages)}`);
+        assert(alignment.migratedVersion === 5 &&
           alignment.migratedPlayerY === 556 &&
           alignment.migratedBuildingY === 462 &&
-          alignment.persistedLobbyVersion === 3,
+          alignment.persistedLobbyVersion === 5,
           "舊版大廳 Y 座標沒有正確遷移");
+        assert(alignment.relocation.count === 1 && alignment.relocation.placed === 0 &&
+          alignment.relocation.inventory === 1,
+          `與新設施重疊的舊建築未安全收納：${JSON.stringify(alignment.relocation)}`);
+
+        const lobbyTitle = await browser.evaluate(`(() => {
+          const title = document.querySelector(".lobby-title-tag");
+          const objective = document.getElementById("lobby-objective");
+          const titleRect = title.getBoundingClientRect();
+          const objectiveRect = objective.getBoundingClientRect();
+          const style = getComputedStyle(title);
+          return {
+            width: titleRect.width,
+            bottom: titleRect.bottom,
+            objectiveTop: objectiveRect.top,
+            backgroundImage: style.backgroundImage,
+            color: style.color
+          };
+        })()`);
+        assert(lobbyTitle.width >= 240 && lobbyTitle.backgroundImage.includes("linear-gradient") &&
+          lobbyTitle.bottom <= lobbyTitle.objectiveTop,
+          `森循島標題橫條不清楚或與任務列重疊：${JSON.stringify(lobbyTitle)}`);
+
+        const lobbyLabels = await browser.evaluate(`(() => {
+          const original = UI_THEME.drawOutlinedText;
+          const avatar = Lobby.avatar;
+          const captures = [];
+          const stationNames = ["行動傳送門", "建造工作台", "資源回收區"];
+          UI_THEME.drawOutlinedText = function (ctx, text, x, y, options) {
+            if (stationNames.includes(text)) captures.push({ text, x, y, cameraX: Lobby.camera.x });
+            return original.call(this, ctx, text, x, y, options);
+          };
+          Lobby.running = false;
+          Lobby.avatar = null;
+          Lobby.camera.y = 200;
+          Lobby.camera.x = 0;
+          Lobby.render();
+          Lobby.camera.x = 540;
+          Lobby.render();
+          Lobby.camera.x = 700;
+          Lobby.render();
+          Lobby.avatar = avatar;
+          UI_THEME.drawOutlinedText = original;
+          const workbench = captures.filter((entry) => entry.text === "建造工作台");
+          return { captures, workbench };
+        })()`);
+        assert(lobbyLabels.workbench.length === 2 &&
+          lobbyLabels.workbench.every((entry) => entry.x === 600),
+          `工作台標籤仍隨鏡頭漂移或離場後未隱藏：${JSON.stringify(lobbyLabels.workbench)}`);
 
         const captureLobbyAnchor = async (camera, filename) => {
           await browser.evaluate(`(() => {
@@ -556,53 +738,55 @@ export async function main() {
           })()`);
           await browser.screenshot(path.join(ROOT, "screenshots", filename));
         };
-        await captureLobbyAnchor({ x: 288, y: 0 }, "lobby-aligned-portal.png");
-        await captureLobbyAnchor({ x: 0, y: 180 }, "lobby-aligned-workbench.png");
-        await captureLobbyAnchor({ x: 796, y: 190 }, "lobby-aligned-recycle-zone.png");
+        await captureLobbyAnchor({ x: 288, y: 200 }, "lobby-v11-central-hub.png");
       }
     },
     {
-      name: "大廳子頁持續掛機收益",
+      name: "自動回收、離線補算與一次領取",
       run: async () => {
         await browser.prepare("test=1&qaSkipIntro=1&qaIdleInterval=0.2&seed=1008");
         const beforeSettings = await browser.evaluate(`(() => {
-          Lobby.avatar.x = LobbyWorld.idleZone.x + LobbyWorld.idleZone.w / 2;
-          Lobby.avatar.y = LobbyWorld.idleZone.y + LobbyWorld.idleZone.h / 2;
-          Lobby.updateIdleEconomy();
-          const before = Storage.getRecycled();
+          const lobby = Storage.getLobby();
+          lobby.recycleGenerator.unclaimed = 0;
+          lobby.recycleGenerator.lastAccruedAt = Date.now();
+          Storage.save();
+          const wallet = Storage.getRecycled();
           App.openSettings("home");
-          return before;
+          return { wallet, unclaimed: LobbyEconomy.getStatus().unclaimed };
         })()`);
         await browser.waitFor(
-          "App.state === 'SETTINGS_FROM_HOME' && LobbyEconomy.isCollecting()",
-          "設定頁保留掛機狀態"
+          "App.state === 'SETTINGS_FROM_HOME'",
+          "設定頁顯示"
         );
         await browser.waitFor(
-          `Storage.getRecycled() > ${beforeSettings}`,
-          "設定頁掛機材料增加",
+          `LobbyEconomy.getStatus().unclaimed > ${beforeSettings.unclaimed}`,
+          "設定頁自動回收累積",
           4000
         );
+        assert(await browser.evaluate(`Storage.getRecycled() === ${beforeSettings.wallet}`),
+          "自動生產不應在領取前直接灌入錢包");
         await browser.evaluate("App.closeSettings()");
         await browser.waitFor("__TEST__.getState().screen === 'lobby'", "設定頁返回大廳");
-
-        const beforeAchievements = await browser.evaluate(`(() => {
+        const collection = await browser.evaluate(`(() => {
+          const lobby = Storage.getLobby();
+          lobby.recycleGenerator.lastAccruedAt = Date.now() - 1000;
+          Storage.save();
           const before = Storage.getRecycled();
-          App.openAchievements();
-          return before;
+          const generated = LobbyEconomy.settle();
+          const ready = LobbyEconomy.getStatus().unclaimed;
+          const collected = LobbyEconomy.collect();
+          const second = LobbyEconomy.collect();
+          return {
+            generated, ready, collected, second,
+            walletGain: Storage.getRecycled() - before,
+            afterReady: LobbyEconomy.getStatus().unclaimed
+          };
         })()`);
-        await browser.waitFor(
-          "App.state === 'ACHIEVEMENTS' && LobbyEconomy.isCollecting()",
-          "成就頁保留掛機狀態"
-        );
-        await browser.waitFor(
-          `Storage.getRecycled() > ${beforeAchievements}`,
-          "成就頁掛機材料增加",
-          4000
-        );
-        await browser.evaluate("App.enterLobby()");
-        await browser.waitFor("__TEST__.getState().screen === 'lobby'", "成就頁返回大廳");
-        const state = await browser.evaluate("__TEST__.getState().lobby");
-        assert(state.idleCollecting, "返回大廳後掛機狀態未延續");
+        assert(collection.generated > 0 && collection.ready > 0,
+          "離線時間差沒有補算到回收站");
+        assert(collection.collected === collection.ready && collection.walletGain === collection.collected &&
+          collection.second === 0 && collection.afterReady === 0,
+          `回收站沒有一次領取或重複領取防護：${JSON.stringify(collection)}`);
       }
     },
     {
@@ -855,7 +1039,7 @@ export async function main() {
           };
         })()`);
 
-        assert(featureState.schemaVersion === 8 && featureState.hasMissionSave &&
+        assert(featureState.schemaVersion === 12 && featureState.hasMissionSave &&
           featureState.missionSaveVersion === 2, "舊存檔沒有遷移到任務 schema");
         assert(featureState.pool.dailyDefinitions >= 8 && featureState.pool.weeklyDefinitions >= 9 &&
           featureState.pool.dailyActive === 3 && featureState.pool.weeklyActive === 4 &&
@@ -1335,6 +1519,555 @@ export async function main() {
       }
     },
     {
+      name: "v1.3 帳號、跨裝置同步與衝突復原",
+      run: async () => {
+        await browser.setViewport(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height, false);
+        await browser.prepare("test=1&qaCloud=1&qaSkipIntro=1&forceMobile=1&seed=1013");
+        await browser.waitFor("CloudSync.configured && CloudSync.getState().status === 'guest'", "模擬雲端準備");
+        await browser.evaluate("CloudSync.__qaResetCloud(); true");
+        await browser.click('.lobby-topright [data-action="account"]');
+        await browser.waitFor("App.state === 'ACCOUNT' && !!document.getElementById('cloud-email')", "帳號畫面顯示");
+
+        await browser.evaluate(`(() => {
+          document.getElementById("cloud-email").value = "guardian@example.com";
+          document.getElementById("cloud-password").value = "GreenIsland123!";
+          return true;
+        })()`);
+        await browser.click('[data-action="cloud-register"]');
+        await browser.waitFor(
+          "CloudSync.getState().signedIn && !CloudSync.getState().syncing && CloudSync.getState().baseRevision === 1",
+          "註冊後首次上傳"
+        );
+        const registered = await browser.evaluate(`(() => {
+          const state = CloudSync.getState();
+          const saves = JSON.parse(localStorage.getItem("senloop_mock_cloud_saves_v1") || "{}");
+          return {
+            email: state.user?.email,
+            revision: state.baseRevision,
+            pending: state.pending,
+            hasRemote: !!saves[state.user?.id],
+            passwordInputGone: !document.getElementById("cloud-password")
+          };
+        })()`);
+        assert(registered.email === "guardian@example.com" && registered.revision === 1 &&
+          !registered.pending && registered.hasRemote && registered.passwordInputGone,
+          `註冊或首次雲端存檔錯誤：${JSON.stringify(registered)}`);
+
+        await browser.evaluate("Storage.addCoins(125); true");
+        await browser.waitFor("CloudSync.getState().pending", "本機變更排入同步");
+        await browser.click('[data-action="cloud-sync"]');
+        await browser.waitFor(
+          "!CloudSync.getState().syncing && !CloudSync.getState().pending && CloudSync.getState().baseRevision === 2",
+          "手動同步完成"
+        );
+
+        const conflictSeed = await browser.evaluate(`(() => {
+          const remote = Storage.exportCloudData();
+          remote.coins = 777;
+          CloudSync.__qaSeedRemote(remote, CloudSync.getState().baseRevision + 1);
+          Storage.addCoins(3);
+          CloudSync.syncNow({ manual:true });
+          return { localCoins:Storage.getCoins(), remoteCoins:remote.coins };
+        })()`);
+        await browser.waitFor(
+          "CloudSync.getState().status === 'conflict' && !document.getElementById('overlay-cloud-conflict').classList.contains('hidden')",
+          "跨裝置衝突選擇顯示"
+        );
+        const conflict = await browser.evaluate(`(() => ({
+          localText:document.getElementById("cloud-conflict-local")?.textContent || "",
+          cloudText:document.getElementById("cloud-conflict-cloud")?.textContent || "",
+          localButton:!!document.querySelector('[data-action="cloud-conflict-local"]:not([disabled])'),
+          cloudButton:!!document.querySelector('[data-action="cloud-conflict-cloud"]:not([disabled])')
+        }))()`);
+        assert(conflict.localText.replaceAll(",", "").includes(String(conflictSeed.localCoins)) && conflict.cloudText.includes("777") &&
+          conflict.localButton && conflict.cloudButton,
+          `衝突畫面未同時呈現兩份進度：${JSON.stringify(conflict)}`);
+        await browser.evaluate(`(() => {
+          const newer = Storage.exportCloudData();
+          newer.coins = 888;
+          CloudSync.__qaSeedRemote(newer, 4);
+          return true;
+        })()`);
+        await browser.click('[data-action="cloud-conflict-local"]');
+        await browser.waitFor(
+          "CloudSync.getState().status === 'conflict' && CloudSync.getState().conflict.revision === 4",
+          "第三台裝置更新後重新確認衝突"
+        );
+        await browser.click('[data-action="cloud-conflict-local"]');
+        await browser.waitFor(
+          "CloudSync.getState().status === 'synced' && CloudSync.getState().baseRevision === 5",
+          "保留本機版本"
+        );
+        const localResolved = await browser.evaluate(`(() => {
+          const state = CloudSync.getState();
+          const row = JSON.parse(localStorage.getItem("senloop_mock_cloud_saves_v1") || "{}")[state.user.id];
+          return { local:Storage.getCoins(), remote:row?.payload?.coins, revision:row?.revision };
+        })()`);
+        assert(localResolved.local === conflictSeed.localCoins && localResolved.remote === conflictSeed.localCoins && localResolved.revision === 5,
+          `保留本機版本沒有安全寫回雲端：${JSON.stringify(localResolved)}`);
+
+        await browser.evaluate(`(() => {
+          const cloud = Storage.exportCloudData();
+          cloud.coins = 777;
+          CloudSync.__qaSeedRemote(cloud, 6);
+          Storage.addCoins(1);
+          CloudSync.syncNow({ manual:true });
+          return true;
+        })()`);
+        await browser.waitFor(
+          "CloudSync.getState().status === 'conflict' && !document.getElementById('overlay-cloud-conflict').classList.contains('hidden')",
+          "第二次跨裝置衝突"
+        );
+        await browser.click('[data-action="cloud-conflict-cloud"]');
+        await browser.waitFor(
+          "Storage.getCoins() === 777 && CloudSync.getState().status === 'synced' && CloudSync.getState().baseRevision === 6 && App.state === 'LOBBY'",
+          "套用雲端版本"
+        );
+
+        await browser.click('.lobby-topright [data-action="account"]');
+        await browser.waitFor(`App.state === "ACCOUNT" && !!document.querySelector('[data-action="cloud-link-google"]')`, "重新開啟帳號畫面");
+        await browser.click('[data-action="cloud-link-google"]');
+        await browser.waitFor(
+          "CloudSync.getState().user.identities.some((identity) => identity.provider === 'google')",
+          "Google 身分連結"
+        );
+
+        const accountViewports = [
+          { width:1280, height:720, mobile:false, name:"desktop" },
+          { width:844, height:390, mobile:true, name:"phone-landscape" },
+          { width:768, height:1024, mobile:true, name:"tablet" },
+          { width:390, height:844, mobile:true, name:"phone-portrait" }
+        ];
+        for (const viewport of accountViewports) {
+          await browser.setViewport(viewport.width, viewport.height, viewport.mobile);
+          await sleep(180);
+          await browser.evaluate(`(() => {
+            const hint = document.getElementById("rotate-hint");
+            if (hint && !hint.classList.contains("hidden")) document.querySelector(".rotate-hint-close")?.click();
+            return true;
+          })()`);
+          await sleep(80);
+          const layout = await browser.evaluate(`(() => {
+            const read = (selector) => {
+              const node = document.querySelector(selector);
+              const rect = node?.getBoundingClientRect();
+              if (!node || !rect) return null;
+              const centerX = Math.max(0, Math.min(innerWidth - 1, rect.left + rect.width / 2));
+              const centerY = Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / 2));
+              const hit = document.elementFromPoint(centerX, centerY);
+              return { left:rect.left, right:rect.right, top:rect.top, bottom:rect.bottom,
+                width:rect.width, height:rect.height, hit:!!hit && (hit === node || node.contains(hit)) };
+            };
+            return {
+              viewport:{ width:innerWidth, height:innerHeight },
+              scrollWidth:document.documentElement.scrollWidth,
+              content:read("#account-content"),
+              back:read('#screen-account [data-action="back"]'),
+              tutorialHidden:document.getElementById("tutorial-coach").classList.contains("hidden"),
+              buttons:Array.from(document.querySelectorAll("#screen-account button:not([disabled])")).map((node) => {
+                const r=node.getBoundingClientRect(); return { width:r.width, height:r.height, left:r.left, right:r.right, top:r.top, bottom:r.bottom };
+              })
+            };
+          })()`);
+          assert(layout.scrollWidth <= layout.viewport.width + 1 && layout.content &&
+            layout.content.left >= -1 && layout.content.right <= layout.viewport.width + 1,
+            `${viewport.name} 帳號內容水平裁切：${JSON.stringify(layout)}`);
+          assert(layout.tutorialHidden, `${viewport.name} 教學卡不應覆蓋帳號頁`);
+          assert(layout.back && layout.back.left >= -1 && layout.back.right <= layout.viewport.width + 1 &&
+            layout.back.top >= -1 && layout.back.bottom <= layout.viewport.height + 1 && layout.back.hit,
+            `${viewport.name} 返回按鈕被遮擋或無法點擊：${JSON.stringify(layout.back)}`);
+          assert(layout.buttons.every((button) => button.width >= 44 && button.height >= 44 &&
+            button.left >= -1 && button.right <= layout.viewport.width + 1 &&
+            button.top >= -1 && button.bottom <= layout.viewport.height + 1),
+            `${viewport.name} 帳號按鈕被裁切或點擊區過小：${JSON.stringify(layout.buttons)}`);
+        }
+
+        await browser.setViewport(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height, false);
+        await browser.click('[data-action="cloud-logout"]');
+        await browser.waitFor("!CloudSync.getState().signedIn && !!document.getElementById('cloud-email')", "登出保留本機存檔");
+        await browser.evaluate(`(() => {
+          Storage.reset();
+          localStorage.removeItem("senloop_cloud_sync_meta_v1");
+          document.getElementById("cloud-email").value = "guardian@example.com";
+          document.getElementById("cloud-password").value = "GreenIsland123!";
+          return true;
+        })()`);
+        await browser.click('[data-action="cloud-login"]');
+        await browser.waitFor(
+          "CloudSync.getState().signedIn && CloudSync.getState().status === 'synced' && Storage.getCoins() === 777 && App.state === 'LOBBY'",
+          "新裝置登入下載雲端存檔"
+        );
+        const restored = await browser.evaluate(`(() => ({
+          coins:Storage.getCoins(),
+          google:CloudSync.getState().user.identities.some((identity) => identity.provider === "google"),
+          pending:CloudSync.getState().pending,
+          revision:CloudSync.getState().baseRevision
+        }))()`);
+        assert(restored.coins === 777 && restored.google && !restored.pending && restored.revision === 6,
+          `跨裝置登入未恢復完整雲端狀態：${JSON.stringify(restored)}`);
+      }
+    },
+    {
+      name: "v1.4 班級代碼、派作業、驗收與班級總覽",
+      run: async () => {
+        await browser.setViewport(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height, false);
+        await browser.prepare("test=1&qaCloud=1&qaSkipIntro=1&forceMobile=1&seed=1014");
+        await browser.evaluate("CloudSync.__qaResetCloud(); Education.__qaReset(); true");
+        await browser.waitFor("CloudSync.configured && CloudSync.getState().status === 'guest'", "v1.4 模擬雲端準備");
+
+        await browser.click('.lobby-topright [data-action="account"]');
+        await browser.waitFor("App.state === 'ACCOUNT' && !!document.getElementById('cloud-email')", "教師帳號註冊畫面");
+        await browser.evaluate(`(() => {
+          document.getElementById("cloud-email").value = "teacher@example.com";
+          document.getElementById("cloud-password").value = "TeacherCloud123!";
+          return true;
+        })()`);
+        await browser.click('[data-action="cloud-register"]');
+        await browser.waitFor("CloudSync.getState().signedIn && !!Education.profile", "教師帳號與教育 profile 建立");
+        assert(await browser.evaluate("Education.__qaSetRole('teacher')"), "無法在隔離測試資料建立教師角色");
+        await browser.waitFor("Education.getState().role === 'teacher'", "教師權限載入");
+        await browser.evaluate("App.enterLobby(); true");
+        await browser.click('.lobby-topright [data-action="education"]');
+        await browser.waitFor("App.state === 'EDUCATION' && !!document.getElementById('teacher-class-name')", "教師後台顯示");
+
+        await browser.evaluate(`(() => {
+          document.getElementById("teacher-class-name").value = "五年三班";
+          return true;
+        })()`);
+        await browser.click('[data-action="education-create-class"]');
+        await browser.waitFor("Education.getState().classes.length === 1 && !!document.getElementById('teacher-assignment-title')", "建立班級與代碼");
+        const classInfo = await browser.evaluate(`(() => {
+          const state = Education.getState();
+          return { id:state.classes[0]?.id, code:state.classes[0]?.code, name:state.classes[0]?.name,
+            codeText:document.querySelector(".teacher-class-summary .class-code-display")?.textContent || "" };
+        })()`);
+        assert(classInfo.name === "五年三班" && /^[A-Z0-9]{6}$/.test(classInfo.code) && classInfo.codeText.includes(classInfo.code),
+          `班級或六位代碼錯誤：${JSON.stringify(classInfo)}`);
+
+        await browser.evaluate(`(() => {
+          document.getElementById("teacher-assignment-title").value = "永續知識小測";
+          document.getElementById("teacher-assignment-description").value = "完成兩次永續知識作答後送交老師。";
+          document.getElementById("teacher-assignment-kind").value = "quiz_count";
+          document.getElementById("teacher-assignment-count").value = "2";
+          return true;
+        })()`);
+        await browser.click('[data-action="education-create-assignment"]');
+        await browser.waitFor("Education.getState().assignments.length === 1", "教師派發作業");
+        const assignmentInfo = await browser.evaluate(`(() => {
+          const item=Education.getState().assignments[0];
+          return { id:item?.id, title:item?.title, kind:item?.kind, count:item?.target?.count };
+        })()`);
+        assert(assignmentInfo.title === "永續知識小測" && assignmentInfo.kind === "quiz_count" && assignmentInfo.count === 2,
+          `派作業資料錯誤：${JSON.stringify(assignmentInfo)}`);
+
+        await browser.evaluate("CloudSync.signOut()");
+        await browser.waitFor("!CloudSync.getState().signedIn", "教師登出");
+        await browser.evaluate(`(async () => {
+          Storage.reset();
+          await CloudSync.signUp("student@example.com", "StudentCloud123!");
+          return true;
+        })()`);
+        await browser.waitFor("CloudSync.getState().signedIn && Education.getState().role === 'student'", "學生帳號建立");
+        await browser.evaluate("App.enterLobby(); true");
+        await browser.click('.lobby-topright [data-action="education"]');
+        await browser.waitFor("App.state === 'EDUCATION' && !!document.getElementById('education-class-code')", "學生班級中心顯示");
+        await browser.evaluate(`document.getElementById("education-class-code").value=${JSON.stringify(classInfo.code)}`);
+        await browser.click('[data-action="education-join-class"]');
+        await browser.waitFor("Education.getState().classes.length === 1 && document.querySelectorAll('.student-assignment-card').length === 1", "學生以代碼加入班級");
+
+        const denied = await browser.evaluate(`(async () => {
+          const before=Education.__qaData().classes.length;
+          const ok=await Education.createClass("不應建立的班級");
+          return { ok, before, after:Education.__qaData().classes.length, role:Education.getState().role };
+        })()`);
+        assert(!denied.ok && denied.before === denied.after && denied.role === "student",
+          `學生不應能建立班級：${JSON.stringify(denied)}`);
+
+        await browser.evaluate(`(async () => {
+          const questions=GameData.sustainabilityQuestions.slice(0,2);
+          questions.forEach((question) => Storage.recordQuestionAttempt(question, question.answer, true));
+          await Education.syncProgress();
+          return true;
+        })()`);
+        await browser.waitFor("Education.getState().submissions.some((row) => row.status === 'pending_review')", "學生達標後自動送驗");
+        const studentView = await browser.evaluate(`(() => ({
+          status:Education.getState().submissions[0]?.status,
+          progress:Education.getState().submissions[0]?.progress,
+          card:document.querySelector(".student-assignment-card")?.textContent || "",
+          teacherForm:!!document.getElementById("teacher-class-name")
+        }))()`);
+        assert(studentView.status === "pending_review" && studentView.progress >= 2 &&
+          studentView.card.includes("等待老師驗收") && !studentView.teacherForm,
+          `學生自動送驗或權限介面錯誤：${JSON.stringify(studentView)}`);
+
+        await browser.evaluate(`(async () => {
+          await CloudSync.signOut();
+          await CloudSync.signIn("teacher@example.com", "TeacherCloud123!");
+          return true;
+        })()`);
+        await browser.waitFor("CloudSync.getState().signedIn && Education.getState().role === 'teacher'", "教師重新登入");
+        await browser.evaluate("App.enterLobby(); true");
+        await browser.click('.lobby-topright [data-action="education"]');
+        await browser.waitFor("document.querySelectorAll('[data-action=\"education-review-accept\"]').length === 1", "教師看到待驗成果");
+        const pendingOverview = await browser.evaluate(`(() => ({
+          students:Education.getState().members.length,
+          pending:Education.getState().submissions.filter((row) => row.status === "pending_review").length,
+          matrix:document.querySelector(".class-matrix")?.textContent || ""
+        }))()`);
+        assert(pendingOverview.students === 1 && pendingOverview.pending === 1 &&
+          pendingOverview.matrix.includes("student") && pendingOverview.matrix.includes("待驗收"),
+          `教師班級總覽未呈現學生待驗狀態：${JSON.stringify(pendingOverview)}`);
+        await browser.evaluate(`document.querySelector('.teacher-review-feedback').value="請先完成錯題訂正，再重新送出。"`);
+        await browser.click('[data-action="education-review-return"]');
+        await browser.waitFor("Education.getState().submissions.some((row) => row.status === 'needs_revision')", "教師自訂回饋退回");
+        const returned = await browser.evaluate(`(() => { const row=Education.getState().submissions[0]; return {feedback:row?.feedback,status:row?.status}; })()`);
+        assert(returned.status === "needs_revision" && returned.feedback === "請先完成錯題訂正，再重新送出。",
+          `教師自訂退回回饋沒有保存：${JSON.stringify(returned)}`);
+        await browser.evaluate(`(async () => { const row=Education.getState().submissions[0]; await Education.review(row.assignment_id,row.student_id,"accepted",""); return true; })()`);
+        await browser.waitFor("Education.getState().submissions.some((row) => row.status === 'accepted')", "教師驗收通過");
+        const acceptedOverview = await browser.evaluate(`(() => ({
+          accepted:Education.getState().submissions.filter((row) => row.status === "accepted").length,
+          pending:Education.getState().submissions.filter((row) => row.status === "pending_review").length,
+          text:document.getElementById("education-content")?.textContent || "",
+          returnButton:!!document.querySelector('[data-action="education-review-return"]')
+        }))()`);
+        assert(acceptedOverview.accepted === 1 && acceptedOverview.pending === 0 &&
+          acceptedOverview.text.includes("已通過") && !acceptedOverview.returnButton,
+          `教師驗收或總覽更新錯誤：${JSON.stringify(acceptedOverview)}`);
+
+        const educationViewports = [
+          { width:1280, height:720, mobile:false, name:"desktop" },
+          { width:844, height:390, mobile:true, name:"phone-landscape" },
+          { width:390, height:844, mobile:true, name:"phone-portrait" },
+          { width:768, height:1024, mobile:true, name:"tablet" }
+        ];
+        for (const viewport of educationViewports) {
+          await browser.setViewport(viewport.width, viewport.height, viewport.mobile);
+          await sleep(180);
+          await browser.evaluate(`(() => {
+            const hint=document.getElementById("rotate-hint");
+            if(hint&&!hint.classList.contains("hidden")) document.querySelector(".rotate-hint-close")?.click();
+            return true;
+          })()`);
+          await sleep(80);
+          const layout = await browser.evaluate(`(() => {
+            const read=(selector)=>{const node=document.querySelector(selector),r=node?.getBoundingClientRect();return r?{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}:null};
+            const contentRect=document.getElementById("education-content").getBoundingClientRect();
+            const visibleButtons=Array.from(document.querySelectorAll("#screen-education button:not([disabled])")).map((node)=>{const r=node.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2;const inFooter=!!node.closest(".education-footer");const visible=x>=0&&x<=innerWidth&&y>=0&&y<=innerHeight&&(inFooter||(y>=contentRect.top&&y<=contentRect.bottom));let hit=true;if(visible){const found=document.elementFromPoint(x,y);hit=!!found&&(found===node||node.contains(found));}return {text:node.textContent.trim(),left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,visible,hit};});
+            return { viewport:{width:innerWidth,height:innerHeight}, scrollWidth:document.documentElement.scrollWidth,
+              screen:read("#screen-education"),content:read("#education-content"),footer:read("#screen-education .education-footer"),
+              tutorialHidden:document.getElementById("tutorial-coach").classList.contains("hidden"),buttons:visibleButtons };
+          })()`);
+          assert(layout.scrollWidth <= layout.viewport.width + 1 && layout.content &&
+            layout.content.left >= -1 && layout.content.right <= layout.viewport.width + 1,
+            `${viewport.name} 教師後台水平裁切：${JSON.stringify(layout)}`);
+          assert(layout.footer && layout.footer.top >= -1 && layout.footer.bottom <= layout.viewport.height + 1 && layout.tutorialHidden,
+            `${viewport.name} 教師後台頁尾或教學卡遮擋：${JSON.stringify(layout)}`);
+          assert(layout.buttons.every((button) => button.width >= 44 && button.height >= 44 &&
+            button.left >= -1 && button.right <= layout.viewport.width + 1 && (!button.visible || button.hit)),
+            `${viewport.name} 教師後台按鈕被裁切或無法點擊：${JSON.stringify(layout.buttons)}`);
+        }
+        await browser.setViewport(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height, false);
+      }
+    },
+    {
+      name: "v1.5 土地擴張、小屋、實驗室與回收場",
+      run: async () => {
+        await browser.setViewport(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height, false);
+        await browser.prepare("test=1&qaCloud=1&qaSkipIntro=1&forceMobile=1&seed=1015");
+        const initial = await browser.evaluate(`(() => {
+          Storage.getLobby().materials.recycled = 0;
+          const insufficient = IslandSpaces.expand(1);
+          Storage.getLobby().materials.recycled = 150;
+          Storage.save();
+          return {
+            schema:Storage.data.schemaVersion,
+            lobbyVersion:Storage.getLobby().version,
+            level:Storage.getLobbyExpansionLevel(),
+            northwest:LobbyWorld.circleInWalkable(480,225,15),
+            northeast:LobbyWorld.circleInWalkable(1140,245,15),
+            outOfOrder:IslandSpaces.expand(2),insufficient
+          };
+        })()`);
+        assert(initial.schema === 12 && initial.lobbyVersion === 5 && initial.level === 0 &&
+          !initial.northwest && !initial.northeast && initial.outOfOrder === false && initial.insufficient === false,
+          `v1.5 初始土地或存檔遷移錯誤：${JSON.stringify(initial)}`);
+
+        await browser.click('[data-action="build"]');
+        await browser.waitFor("App.state === 'LOBBY_BUILD'", "開啟土地擴張工作台");
+        await browser.click('#build-tab-land');
+        await browser.waitFor("document.querySelectorAll('.land-expansion-card').length === 2", "土地擴張卡片顯示");
+        await browser.click('[data-action="island-expand"][data-expansion-level="1"]');
+        const tierOne = await browser.evaluate(`(() => ({
+          level:Storage.getLobbyExpansionLevel(),materials:Storage.getRecycled(),
+          northwest:LobbyWorld.circleInWalkable(480,225,15),
+          southwest:LobbyWorld.circleInWalkable(240,720,15),
+          northeast:LobbyWorld.circleInWalkable(1140,245,15),
+          cottage:IslandSpaces.isUnlocked("cottage"),laboratory:IslandSpaces.isUnlocked("laboratory")
+        }))()`);
+        assert(tierOne.level === 1 && tierOne.materials === 130 && tierOne.northwest && tierOne.southwest &&
+          !tierOne.northeast && tierOne.cottage && !tierOne.laboratory,
+          `第一階段土地擴張錯誤：${JSON.stringify(tierOne)}`);
+
+        await browser.click('[data-action="island-expand"][data-expansion-level="2"]');
+        const tierTwo = await browser.evaluate(`(() => ({
+          level:Storage.getLobbyExpansionLevel(),materials:Storage.getRecycled(),
+          northeast:LobbyWorld.circleInWalkable(1140,245,15),
+          southeast:LobbyWorld.circleInWalkable(1410,760,15),
+          lab:IslandSpaces.isUnlocked("laboratory"),yard:IslandSpaces.isUnlocked("recycleYard"),
+          unreachable:LobbyPlacement.checkReachability([],null)
+        }))()`);
+        assert(tierTwo.level === 2 && tierTwo.materials === 85 && tierTwo.northeast && tierTwo.southeast &&
+          tierTwo.lab && tierTwo.yard && tierTwo.unreachable.length === 0,
+          `第二階段土地擴張或可達性錯誤：${JSON.stringify(tierTwo)}`);
+
+        await browser.click('[data-action="build-close"]');
+        await browser.click('[data-action="island-spaces"]');
+        await browser.waitFor("App.state === 'ISLAND_SPACES' && document.querySelectorAll('.island-space-card').length === 3", "島嶼空間總覽顯示");
+        await browser.click('[data-action="island-open-space"][data-space-id="cottage"]');
+        const coinsBeforeRest = await browser.evaluate("Storage.getCoins()");
+        await browser.click('[data-action="cottage-rest"]');
+        const cottage = await browser.evaluate(`(() => ({
+          coinGain:Storage.getCoins()-${coinsBeforeRest},claims:Storage.getIslandSpaces().cottage.restClaims,
+          buttonDisabled:document.querySelector('[data-action="cottage-rest"]')?.disabled,
+          text:document.getElementById("island-space-content")?.textContent||""
+        }))()`);
+        assert(cottage.coinGain === 50 && cottage.claims === 1 && cottage.buttonDisabled && cottage.text.includes("今天已整理完成"),
+          `小屋每日整理錯誤：${JSON.stringify(cottage)}`);
+
+        const cottageClock = await browser.evaluate(`(() => {
+          CloudSync.__qaSetTrustedTime(Date.UTC(2030,0,2,12));
+          IslandSpaces.renderCottage();
+          const readyNextDay=!document.querySelector('[data-action="cottage-rest"]')?.disabled;
+          IslandSpaces.restCottage();
+          CloudSync.__qaSetTrustedTime(Date.UTC(2030,0,1,12));
+          IslandSpaces.renderCottage();
+          return {readyNextDay,rollbackBlocked:document.querySelector('[data-action="cottage-rest"]')?.disabled,
+            claims:Storage.getIslandSpaces().cottage.restClaims,lastDate:Storage.getIslandSpaces().cottage.lastRestDate};
+        })()`);
+        assert(cottageClock.readyNextDay && cottageClock.rollbackBlocked && cottageClock.claims === 2 && cottageClock.lastDate === "2030-01-02",
+          `小屋伺服器日期或時鐘倒退防護錯誤：${JSON.stringify(cottageClock)}`);
+
+        await browser.click('[data-action="island-space-back"]');
+        await browser.click('[data-action="island-open-space"][data-space-id="laboratory"]');
+        const beforeResearch = await browser.evaluate(`(() => ({materials:Storage.getRecycled(),interval:LobbyEconomy.getInterval(),capacity:LobbyEconomy.getCapacity()}))()`);
+        await browser.click('[data-action="laboratory-research"][data-research-id="recycleSpeed"]');
+        await browser.click('[data-action="laboratory-research"][data-research-id="recycleCapacity"]');
+        await browser.evaluate("Storage.getLobby().materials.recycled += 5; Storage.save(); IslandSpaces.renderLaboratory(); true");
+        await browser.click('[data-action="laboratory-research"][data-research-id="recycleSpeed"]');
+        await browser.click('[data-action="laboratory-research"][data-research-id="recycleCapacity"]');
+        const research = await browser.evaluate(`(() => ({
+          materials:Storage.getRecycled(),speed:Storage.getIslandSpaces().laboratory.research.recycleSpeed,
+          capacityLevel:Storage.getIslandSpaces().laboratory.research.recycleCapacity,
+          interval:LobbyEconomy.getInterval(),capacity:LobbyEconomy.getCapacity(),dailyCap:LobbyEconomy.getDailyCap()
+        }))()`);
+        assert(beforeResearch.materials - research.materials === 85 && beforeResearch.interval === 20 &&
+          research.speed === 2 && research.capacityLevel === 2 && research.interval === 16 &&
+          research.capacity === 90 && research.dailyCap === 90,
+          `實驗室研究未套用自動回收：${JSON.stringify({beforeResearch,research})}`);
+
+        await browser.click('[data-action="island-space-back"]');
+        await browser.click('[data-action="island-open-space"][data-space-id="recycleYard"]');
+        await browser.evaluate(`(() => {
+          const generator=Storage.getLobby().recycleGenerator;
+          generator.unclaimed=3;generator.lastAccruedAt=GameClock.now();Storage.save();
+          IslandSpaces.renderRecycleYard();return true;
+        })()`);
+        const materialsBeforeCollect = await browser.evaluate("Storage.getRecycled()");
+        await browser.click('[data-action="recycle-yard-collect"]');
+        assert(await browser.evaluate(`Storage.getRecycled()-${materialsBeforeCollect}===3 && LobbyEconomy.getStatus().unclaimed===0`),
+          "回收場沒有一次領取自動累積材料");
+
+        const beforeGameMaterials = await browser.evaluate("Storage.getRecycled()");
+        await browser.click('[data-action="recycle-game-start"]');
+        assert(await browser.evaluate("Storage.getIslandSpaces().recycleYard.playsToday===0"), "分類挑戰開始時不應先扣每日次數");
+        const firstBin = await browser.evaluate("IslandSpaces.game.items[IslandSpaces.game.index].bin");
+        await browser.click(`[data-action="recycle-sort-choice"][data-bin-id="${firstBin}"]`);
+        const interrupted = await browser.evaluate(`(() => ({active:!!Storage.getIslandSpaces().recycleYard.activeGame,
+          awaiting:IslandSpaces.game?.awaitingNext,index:IslandSpaces.game?.index,plays:Storage.getIslandSpaces().recycleYard.playsToday}))()`);
+        assert(interrupted.active && interrupted.awaiting && interrupted.index === 0 && interrupted.plays === 0,
+          `分類挑戰中斷保存錯誤：${JSON.stringify(interrupted)}`);
+
+        await browser.navigate("test=1&qaCloud=1&qaSkipIntro=1&forceMobile=1&seed=1015");
+        await browser.evaluate(`(() => { App.openIslandSpaces(); App.openIslandSpace("recycleYard"); return true; })()`);
+        const resumed = await browser.evaluate(`(() => ({awaiting:IslandSpaces.game?.awaitingNext,index:IslandSpaces.game?.index,
+          feedback:!!IslandSpaces.game?.feedback,plays:Storage.getIslandSpaces().recycleYard.playsToday}))()`);
+        assert(resumed.awaiting && resumed.index === 0 && resumed.feedback && resumed.plays === 0,
+          `重新載入後沒有續接分類挑戰：${JSON.stringify(resumed)}`);
+        await browser.click('[data-action="recycle-sort-next"]');
+        for (let index = 1; index < 5; index += 1) {
+          const bin = await browser.evaluate("IslandSpaces.game.items[IslandSpaces.game.index].bin");
+          await browser.click(`[data-action="recycle-sort-choice"][data-bin-id="${bin}"]`);
+          await browser.click('[data-action="recycle-sort-next"]');
+        }
+        const sorting = await browser.evaluate(`(() => ({
+          finished:IslandSpaces.game?.finished,score:IslandSpaces.game?.correct,reward:IslandSpaces.game?.reward,
+          gain:Storage.getRecycled()-${beforeGameMaterials},plays:Storage.getIslandSpaces().recycleYard.playsToday,
+          best:Storage.getIslandSpaces().recycleYard.bestScore,total:Storage.getIslandSpaces().recycleYard.totalSorted,
+          result:document.querySelector('.sorting-result')?.textContent||""
+        }))()`);
+        assert(sorting.finished && sorting.score === 5 && sorting.reward === 13 && sorting.gain === 13 &&
+          sorting.plays === 1 && sorting.best === 5 && sorting.total === 5 && sorting.result.includes("完美獎勵"),
+          `回收分類挑戰或獎勵錯誤：${JSON.stringify(sorting)}`);
+
+        const dailyLimit = await browser.evaluate(`(() => {
+          function finish(){ IslandSpaces.dismissGame(); IslandSpaces.startRecycleGame(); while(IslandSpaces.game&&!IslandSpaces.game.finished){
+            IslandSpaces.sortChoice(IslandSpaces.game.items[IslandSpaces.game.index].bin); IslandSpaces.nextSortItem();
+          }}
+          finish();finish();
+          const before={plays:Storage.getIslandSpaces().recycleYard.playsToday,blocked:IslandSpaces.startRecycleGame()===false};
+          CloudSync.__qaSetTrustedTime(Date.UTC(2030,0,3,12));
+          const reset=IslandSpaces.ensureYardDay();
+          CloudSync.__qaSetTrustedTime(Date.UTC(2030,0,2,12));
+          const rollback=IslandSpaces.ensureYardDay();
+          return {before,after:reset.playsToday,date:reset.dateKey,rollbackDate:rollback.dateKey};
+        })()`);
+        assert(dailyLimit.before.plays === 3 && dailyLimit.before.blocked && dailyLimit.after === 0 &&
+          dailyLimit.date === "2030-01-03" && dailyLimit.rollbackDate === "2030-01-03",
+          `回收場每日上限或日期回退防護錯誤：${JSON.stringify(dailyLimit)}`);
+
+        await browser.navigate("test=1&qaSkipIntro=1&forceMobile=1&seed=1015");
+        const persisted = await browser.evaluate(`(() => {
+          const f=LobbyWorld.facilities.cottage;
+          Lobby.avatar.x=f.x+60;Lobby.avatar.y=f.y;Lobby.updateInteractions();
+          return {schema:Storage.data.schemaVersion,level:Storage.getLobbyExpansionLevel(),
+            speed:Storage.getIslandSpaces().laboratory.research.recycleSpeed,
+            capacity:Storage.getIslandSpaces().laboratory.research.recycleCapacity,
+            best:Storage.getIslandSpaces().recycleYard.bestScore,interaction:Lobby.nearestInteraction?.kind};
+        })()`);
+        assert(persisted.schema === 12 && persisted.level === 2 && persisted.speed === 2 && persisted.capacity === 2 &&
+          persisted.best === 5 && persisted.interaction === "facility:cottage",
+          `v1.5 重新載入或大廳入口錯誤：${JSON.stringify(persisted)}`);
+
+        await browser.evaluate(`(() => { App.openIslandSpaces(); App.openIslandSpace("recycleYard"); IslandSpaces.startRecycleGame(); return true; })()`);
+        const viewports = [
+          { width:1280,height:720,mobile:false,name:"desktop" },
+          { width:844,height:390,mobile:true,name:"phone-landscape" },
+          { width:390,height:844,mobile:true,name:"phone-portrait" },
+          { width:768,height:1024,mobile:true,name:"tablet" }
+        ];
+        for (const viewport of viewports) {
+          await browser.setViewport(viewport.width,viewport.height,viewport.mobile);
+          await sleep(160);
+          await browser.evaluate(`(() => { const hint=document.getElementById("rotate-hint"); if(hint&&!hint.classList.contains("hidden")) document.querySelector(".rotate-hint-close")?.click(); return true; })()`);
+          await sleep(70);
+          const layout = await browser.evaluate(`(() => {
+            const read=(selector)=>{const n=document.querySelector(selector),r=n?.getBoundingClientRect();return r?{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}:null};
+            const content=read("#island-space-content"),footer=read("#screen-island-spaces .island-space-footer");
+            const buttons=Array.from(document.querySelectorAll("#screen-island-spaces button:not([disabled])")).map((n)=>{const r=n.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;const visible=x>=0&&x<=innerWidth&&y>=0&&y<=innerHeight&&(n.closest(".island-space-footer")||(y>=content.top&&y<=content.bottom));let hit=true;if(visible){const f=document.elementFromPoint(x,y);hit=!!f&&(f===n||n.contains(f));}return {text:n.textContent.trim(),left:r.left,right:r.right,width:r.width,height:r.height,visible,hit};});
+            return {viewport:{width:innerWidth,height:innerHeight},scrollWidth:document.documentElement.scrollWidth,content,footer,buttons,tutorialHidden:document.getElementById("tutorial-coach").classList.contains("hidden")};
+          })()`);
+          assert(layout.scrollWidth <= layout.viewport.width + 1 && layout.content && layout.content.left >= -1 && layout.content.right <= layout.viewport.width + 1,
+            `${viewport.name} 島嶼空間水平裁切：${JSON.stringify(layout)}`);
+          assert(layout.footer && layout.footer.top >= -1 && layout.footer.bottom <= layout.viewport.height + 1 && layout.tutorialHidden,
+            `${viewport.name} 島嶼空間頁尾或教學遮擋：${JSON.stringify(layout)}`);
+          assert(layout.buttons.every((button) => button.width >= 44 && button.height >= 44 && button.left >= -1 && button.right <= layout.viewport.width + 1 && (!button.visible || button.hit)),
+            `${viewport.name} 島嶼空間按鈕被裁切或無法點擊：${JSON.stringify(layout.buttons)}`);
+        }
+        await browser.setViewport(DEFAULT_VIEWPORT.width,DEFAULT_VIEWPORT.height,false);
+      }
+    },
+    {
       name: "手機橫／直向版面",
       run: async () => {
         await browser.setViewport(1366, 768, false);
@@ -1371,7 +2104,8 @@ export async function main() {
 
         const viewports = [
           { name: "portrait", width: 390, height: 844 },
-          { name: "landscape", width: 844, height: 390 }
+          { name: "landscape", width: 844, height: 390 },
+          { name: "tablet", width: 768, height: 1024 }
         ];
         for (const viewport of viewports) {
           await browser.setViewport(viewport.width, viewport.height, true);
@@ -1415,8 +2149,8 @@ export async function main() {
           const card = layout.elements.find((element) => element.selector === "#stage-carousel-card");
           const stageName = layout.elements.find((element) => element.selector === "#stage-card-name");
           const meta = layout.elements.find((element) => element.selector === ".stage-card-meta span");
-          const minimumMapWidth = viewport.name === "portrait" ? 180 : 145;
-          const minimumCardWidth = viewport.name === "portrait" ? 200 : 140;
+          const minimumMapWidth = viewport.name === "landscape" ? 145 : 180;
+          const minimumCardWidth = viewport.name === "landscape" ? 140 : 200;
           assert(map.width >= minimumMapWidth, `${viewport.name} 傳送門地圖過小`);
           assert(card.width >= minimumCardWidth, `${viewport.name} 關卡預覽圖過小`);
           assert(stageName.fontSize >= 15, `${viewport.name} 關卡名稱字級過小`);
@@ -1424,7 +2158,7 @@ export async function main() {
         }
 
         await browser.setViewport(390, 844, true);
-        await browser.prepare("test=1&duration=8&qaSkipIntro=1&forceMobile=1&qaLobbyGuide=1&seed=1011");
+        await browser.prepare("test=1&duration=8&qaSkipIntro=1&forceMobile=1&qaTutorial=1&seed=1011");
         await browser.waitFor(
           "!document.getElementById('rotate-hint').classList.contains('hidden')",
           "手機直向旋轉提示顯示"
@@ -1441,17 +2175,48 @@ export async function main() {
           "旋轉提示未獨占畫面或焦點未移至最上層視窗");
         await browser.click(".rotate-hint-close");
         await browser.waitFor(
-          "!document.getElementById('overlay-lobby-guide').classList.contains('hidden')",
-          "旋轉提示關閉後顯示新手指南"
+          "!document.getElementById('tutorial-coach').classList.contains('hidden')",
+          "旋轉提示關閉後顯示漸進式教學"
         );
-        assert(await browser.evaluate("document.activeElement?.id === 'lobby-guide-next'"),
-          "新手指南開啟後焦點未移至下一步");
-        await browser.click("#lobby-guide-next");
-        await browser.click("#lobby-guide-next");
-        await browser.click("#lobby-guide-finish");
+        const tutorialState = await browser.evaluate(`(() => ({
+          title: document.querySelector('[data-tutorial-title]')?.textContent || '',
+          progress: document.querySelector('[data-tutorial-progress]')?.textContent || '',
+          oldGuideHidden: document.getElementById('overlay-lobby-guide').classList.contains('hidden'),
+          coachLayout: (() => {
+            const node = document.getElementById('tutorial-coach');
+            const rect = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            return {
+              rect: { left:rect.left, top:rect.top, right:rect.right, bottom:rect.bottom, width:rect.width, height:rect.height },
+              css: { width:style.width, left:style.left, bottom:style.bottom, padding:style.padding, transform:style.transform },
+              visibleStageWidth: getComputedStyle(document.documentElement).getPropertyValue('--visible-stage-width')
+            };
+          })(),
+          overlaps: (() => {
+            const rect = (selector) => {
+              const node = document.querySelector(selector);
+              const r = node?.getBoundingClientRect();
+              return r && r.width && r.height ? { left:r.left, top:r.top, right:r.right, bottom:r.bottom } : null;
+            };
+            const overlap = (a, b) => !a || !b ? 0 :
+              Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+              Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+            const coach = rect('#tutorial-coach');
+            return {
+              menu: overlap(coach, rect('.lobby-topright')),
+              objective: overlap(coach, rect('#lobby-objective')),
+              help: overlap(coach, rect('#gameplay-help-btn'))
+            };
+          })()
+        }))()`);
+        assert(tutorialState.title.includes("走動") && tutorialState.progress.includes("1 / 7") && tutorialState.oldGuideHidden,
+          "漸進式教學沒有從實際移動步驟開始");
+        assert(Object.values(tutorialState.overlaps).every((area) => area === 0),
+          `手機直向教學卡遮住功能列、任務或說明按鈕：${JSON.stringify(tutorialState)}`);
+        await browser.click("[data-action='tutorial-skip']");
         await browser.waitFor(
-          "document.getElementById('overlay-lobby-guide').classList.contains('hidden')",
-          "新手指南關閉"
+          "document.getElementById('tutorial-coach').classList.contains('hidden')",
+          "漸進式教學略過"
         );
 
         const hudOverlap = await browser.evaluate(`(() => {

@@ -25,13 +25,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run smoke suite
+        run: npm run test:smoke
+
+      - name: Build production site
+        run: npm run build
+        env:
+          SENLOOP_SUPABASE_URL: ${{ vars.SENLOOP_SUPABASE_URL }}
+          SENLOOP_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SENLOOP_SUPABASE_PUBLISHABLE_KEY }}
+          SENLOOP_GOOGLE_ENABLED: ${{ vars.SENLOOP_GOOGLE_ENABLED }}
+
+      - name: Smoke production build
+        run: npm run test:smoke
+        env:
+          SMOKE_ROOT: dist
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: dist
 
       - name: Deploy
         id: deployment

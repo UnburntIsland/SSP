@@ -3,3 +3,5 @@ dist/
 output/smoke-failures/
 output/smoke-test-results.json
 .tmp-smoke-profile-*/
+.tmp_chrome_*/
+debug.log
