@@ -554,6 +554,20 @@ export async function main() {
             world: state.world,
             fixed: {
               portal: { x: LobbyWorld.portal.x, y: LobbyWorld.portal.y },
+              portalScene: {
+                decorations: LobbyWorld.ambientDecorations
+                  .filter((item) => item.id === "solar_lamp")
+                  .map((item) => ({ x:item.x, y:item.y })),
+                collisions: LobbyWorld.fixedCollisionRects
+                  .filter((item) => item.name.startsWith("portal-"))
+                  .map((item) => ({ x:item.x, y:item.y, w:item.w, h:item.h, name:item.name })),
+                reserved: (() => {
+                  const item = LobbyWorld.reservedRects.find((rect) => rect.name === "傳送門保留區");
+                  return item ? { x:item.x, y:item.y, w:item.w, h:item.h } : null;
+                })(),
+                oldCenterClear: !LobbyWorld.fixedCollisionRects.some((rect) =>
+                  800 >= rect.x && 800 <= rect.x + rect.w && 365 >= rect.y && 365 <= rect.y + rect.h)
+              },
               workbench: { x: LobbyWorld.workbench.x, y: LobbyWorld.workbench.y },
               idleZone: {
                 x: LobbyWorld.idleZone.x,
@@ -631,6 +645,16 @@ export async function main() {
           alignment.fixed.idleZone.x === 900 && alignment.fixed.idleZone.y === 445 &&
           alignment.fixed.idleZone.w === 210 && alignment.fixed.idleZone.h === 170,
           "傳送門未回到北側平台，或工作台與回收區位置錯誤"
+        );
+        assert(
+          alignment.fixed.portalScene.decorations.length === 2 &&
+          alignment.fixed.portalScene.decorations.every((item) => item.y === 110) &&
+          alignment.fixed.portalScene.collisions.length === 3 &&
+          alignment.fixed.portalScene.collisions.every((item) => item.y < 150) &&
+          alignment.fixed.portalScene.reserved?.y === 0 &&
+          alignment.fixed.portalScene.reserved?.h === 230 &&
+          alignment.fixed.portalScene.oldCenterClear,
+          `傳送門燈具、碰撞或保留區仍殘留在中央：${JSON.stringify(alignment.fixed.portalScene)}`
         );
         assert(Object.values(alignment.hubDistances).every((distance) => distance <= 260),
           `工作台或回收區離出生點仍太遠：${JSON.stringify(alignment.hubDistances)}`);
@@ -2067,6 +2091,122 @@ export async function main() {
       }
     },
     {
+      name: "全畫面入口、返回操作、按鈕命中與圖片載入",
+      run: async () => {
+        const viewports = [
+          { width:1280, height:720, mobile:false, name:"desktop" },
+          { width:390, height:844, mobile:true, name:"phone-portrait" },
+          { width:844, height:390, mobile:true, name:"phone-landscape" },
+          { width:768, height:1024, mobile:true, name:"tablet" }
+        ];
+        const entries = [
+          { action:"account", selector:"#screen-account", state:"ACCOUNT" },
+          { action:"education", selector:"#screen-education", state:"EDUCATION" },
+          { action:"island-spaces", selector:"#screen-island-spaces", state:"ISLAND_SPACES" },
+          { action:"characters", selector:"#screen-characters", state:"CHARACTER_SELECT" },
+          { action:"missions", selector:"#screen-missions", state:"ENVIRONMENT_MISSIONS" },
+          { action:"commerce-hub", selector:"#screen-shop", state:"SHOP" },
+          { action:"gacha", selector:"#screen-gacha", state:"GACHA" },
+          { action:"records-hub", selector:"#screen-codex", state:"CODEX" },
+          { action:"achievements", selector:"#screen-achievements", state:"ACHIEVEMENTS" },
+          { action:"settings-home", selector:"#screen-settings", state:"SETTINGS_FROM_HOME" },
+          { action:"help", selector:"#screen-help", state:"HELP" },
+          { action:"build", selector:"#build-root", state:"LOBBY_BUILD", overlay:true },
+          { action:"portal", selector:"#screen-portal", state:"PORTAL_SELECT", portal:true }
+        ];
+
+        for (const viewport of viewports) {
+          await browser.setViewport(viewport.width, viewport.height, viewport.mobile);
+          await browser.prepare(`test=1&qaSkipIntro=1&seed=${3100 + viewport.width + viewport.height}${viewport.mobile ? "&forceMobile=1" : ""}`);
+          await browser.evaluate(`(() => {
+            const hint = document.getElementById("rotate-hint");
+            if (hint && !hint.classList.contains("hidden")) {
+              const dismiss = hint.querySelector(".rotate-hint-close");
+              if (dismiss) dismiss.click();
+            }
+            return true;
+          })()`);
+          for (const entry of entries) {
+            await browser.evaluate(`(() => {
+              if (window.Lobby && Lobby.mode !== "idle") App.exitBuildMode();
+              App.enterLobby();
+              if (${entry.portal ? "true" : "false"}) App.openPortalSelect();
+              else App.handleAction(${JSON.stringify(entry.action)});
+              return App.state;
+            })()`);
+            await browser.waitFor(
+              `App.state === ${JSON.stringify(entry.state)} && !document.querySelector(${JSON.stringify(entry.selector)}).classList.contains("hidden")`,
+              `${viewport.name} ${entry.action} 畫面開啟`
+            );
+            await browser.evaluate(`(() => {
+              document.querySelector(${JSON.stringify(entry.selector)}).querySelectorAll("img[src]")
+                .forEach((image) => { image.loading = "eager"; });
+              return true;
+            })()`);
+            await browser.waitFor(
+              `Array.from(document.querySelector(${JSON.stringify(entry.selector)}).querySelectorAll("img[src]")).every((image) => image.complete)`,
+              `${viewport.name} ${entry.action} 圖片載入`,
+              5000
+            );
+            const audit = await browser.evaluate(`(() => {
+              const root = document.querySelector(${JSON.stringify(entry.selector)});
+              const rootRect = root.getBoundingClientRect();
+              const visible = (node) => {
+                const style = getComputedStyle(node);
+                const rect = node.getBoundingClientRect();
+                return style.display !== "none" && style.visibility !== "hidden" &&
+                  Number(style.opacity || 1) > 0 && rect.width > 0 && rect.height > 0;
+              };
+              const controls = Array.from(root.querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]"))
+                .filter(visible)
+                .map((node) => {
+                  const footer = !!node.closest(".screen-footer") || node.classList.contains("build-close");
+                  if (!footer && node.scrollIntoView) node.scrollIntoView({ block:"center", inline:"nearest" });
+                  const rect = node.getBoundingClientRect();
+                  const x = rect.left + rect.width / 2;
+                  const y = rect.top + rect.height / 2;
+                  const centerInside = x >= 0 && x <= innerWidth && y >= 0 && y <= innerHeight;
+                  const target = centerInside ? document.elementFromPoint(x, y) : null;
+                  return {
+                    label:node.getAttribute("aria-label") || node.textContent.trim() || node.id || node.tagName,
+                    centerInside,
+                    hit:!centerInside || (!!target && (target === node || node.contains(target))),
+                    footer,
+                    fullyInside:rect.left >= -1 && rect.right <= innerWidth + 1 && rect.top >= -1 && rect.bottom <= innerHeight + 1,
+                    rect:{left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height}
+                  };
+                });
+              const images = Array.from(root.querySelectorAll("img[src]"));
+              return {
+                state:App.state,
+                root:{left:rootRect.left,right:rootRect.right,top:rootRect.top,bottom:rootRect.bottom},
+                documentOverflowX:document.documentElement.scrollWidth - innerWidth,
+                visibleScreens:Array.from(document.querySelectorAll(".screen:not(.hidden)")).map((node) => node.id),
+                blockedControls:controls.filter((item) => item.centerInside && !item.hit),
+                clippedFixedControls:controls.filter((item) => item.footer && !item.fullyInside),
+                brokenImages:images.filter((image) => image.complete && image.naturalWidth === 0).map((image) => image.currentSrc || image.src),
+                pendingImages:images.filter((image) => !image.complete).map((image) => image.currentSrc || image.src)
+              };
+            })()`);
+            assert(audit.documentOverflowX <= 1,
+              `${viewport.name} ${entry.action} 發生水平溢出：${JSON.stringify(audit)}`);
+            assert(audit.blockedControls.length === 0,
+              `${viewport.name} ${entry.action} 有可見但無法點擊的控制項：${JSON.stringify(audit.blockedControls)}`);
+            assert(audit.clippedFixedControls.length === 0,
+              `${viewport.name} ${entry.action} 固定操作按鈕被裁切：${JSON.stringify(audit.clippedFixedControls)}`);
+            assert(audit.brokenImages.length === 0 && audit.pendingImages.length === 0,
+              `${viewport.name} ${entry.action} 圖片未正確載入：${JSON.stringify({ broken:audit.brokenImages, pending:audit.pendingImages })}`);
+            assert(audit.visibleScreens.length === (entry.overlay ? 0 : 1),
+              `${viewport.name} ${entry.action} 同時顯示了非預期畫面：${JSON.stringify(audit.visibleScreens)}`);
+
+            await browser.evaluate(`window.dispatchEvent(new KeyboardEvent("keydown", { code:"Escape", key:"Escape", bubbles:true }))`);
+            await browser.waitFor("App.state === 'LOBBY'", `${viewport.name} ${entry.action} Escape 返回大廳`);
+          }
+        }
+        await browser.setViewport(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height, false);
+      }
+    },
+    {
       name: "手機橫／直向版面",
       run: async () => {
         await browser.setViewport(1366, 768, false);
@@ -2236,6 +2376,60 @@ export async function main() {
         })()`);
         assert(hudOverlap.helpCharacter === 0, "手機大廳說明按鈕仍與角色按鈕重疊");
         assert(hudOverlap.fullscreenObjective === 0, "手機大廳全螢幕按鈕仍與任務文字重疊");
+
+        const mobileDock = await browser.evaluate(`(() => {
+          const read = (node) => {
+            const r = node?.getBoundingClientRect();
+            if (!r) return null;
+            const x = r.left + r.width / 2, y = r.top + r.height / 2;
+            const hit = r.width > 0 && r.height > 0 ? document.elementFromPoint(x, y) : null;
+            return { left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height,
+              hit:!!hit && (hit === node || node.contains(hit)) };
+          };
+          const dock = document.querySelector(".lobby-topright");
+          const primary = Array.from(dock.children).filter((node) => node.matches("button.lobby-btn"));
+          const objective = read(document.getElementById("lobby-objective"));
+          const resources = read(document.querySelector(".lobby-topleft"));
+          const overlap = (a, b) => !a || !b ? 0 :
+            Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+            Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+          return { viewport:{width:innerWidth,height:innerHeight}, dock:read(dock), primary:primary.map(read),
+            primaryLabels:primary.map((node) => node.dataset.mobileLabel), moreHidden:getComputedStyle(document.getElementById("lobby-more-panel")).display === "none",
+            topOverlap:overlap(objective, resources) };
+        })()`);
+        assert(mobileDock.dock && mobileDock.dock.left >= -1 && mobileDock.dock.right <= mobileDock.viewport.width + 1 &&
+          mobileDock.dock.bottom <= mobileDock.viewport.height + 1 && mobileDock.dock.top > mobileDock.viewport.height * .72,
+          `手機大廳底部導覽位置錯誤：${JSON.stringify(mobileDock)}`);
+        assert(mobileDock.primary.length === 5 && mobileDock.primaryLabels.join(",") === "角色,建造,任務,商店,更多" &&
+          mobileDock.primary.every((button) => button.width >= 44 && button.height >= 44 && button.hit) &&
+          mobileDock.moreHidden && mobileDock.topOverlap === 0,
+          `手機大廳常用入口、觸控尺寸或頂部資訊配置錯誤：${JSON.stringify(mobileDock)}`);
+        await browser.screenshot(path.join(ROOT, "screenshots", "lobby-mobile-portrait.png"));
+        await browser.click("#mobile-lobby-more");
+        const mobileMore = await browser.evaluate(`(() => {
+          const panel=document.getElementById("lobby-more-panel"),r=panel.getBoundingClientRect();
+          const buttons=Array.from(panel.querySelectorAll("button")).map((node)=>{const b=node.getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2,hit=document.elementFromPoint(x,y);return {label:node.dataset.mobileLabel,left:b.left,right:b.right,top:b.top,bottom:b.bottom,width:b.width,height:b.height,hit:!!hit&&(hit===node||node.contains(hit))};});
+          return {expanded:document.getElementById("mobile-lobby-more").getAttribute("aria-expanded"),ariaHidden:panel.getAttribute("aria-hidden"),panel:{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height},buttons,viewport:{width:innerWidth,height:innerHeight}};
+        })()`);
+        assert(mobileMore.expanded === "true" && mobileMore.ariaHidden === "false" &&
+          mobileMore.panel.left >= -1 && mobileMore.panel.right <= mobileMore.viewport.width + 1 && mobileMore.panel.top >= -1 &&
+          mobileMore.buttons.length === 5 && mobileMore.buttons.every((button) => button.width >= 44 && button.height >= 44 && button.hit),
+          `手機大廳更多功能面板被裁切或無法點擊：${JSON.stringify(mobileMore)}`);
+        await browser.screenshot(path.join(ROOT, "screenshots", "lobby-mobile-portrait-more.png"));
+        await browser.click("#mobile-lobby-more");
+        await browser.setViewport(844, 390, true);
+        await sleep(180);
+        const landscapeDock = await browser.evaluate(`(() => {
+          const dock=document.querySelector(".lobby-topright"),r=dock.getBoundingClientRect();
+          const buttons=Array.from(dock.children).filter((node)=>node.matches("button.lobby-btn")).map((node)=>{const b=node.getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2,hit=document.elementFromPoint(x,y);return {left:b.left,right:b.right,top:b.top,bottom:b.bottom,width:b.width,height:b.height,hit:!!hit&&(hit===node||node.contains(hit))};});
+          return {viewport:{width:innerWidth,height:innerHeight},dock:{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height},buttons};
+        })()`);
+        assert(landscapeDock.dock.left >= -1 && landscapeDock.dock.right <= landscapeDock.viewport.width + 1 &&
+          landscapeDock.dock.bottom <= landscapeDock.viewport.height + 1 && landscapeDock.buttons.every((button)=>button.width >= 44 && button.height >= 44 && button.hit),
+          `手機橫向大廳底部導覽被裁切或無法點擊：${JSON.stringify(landscapeDock)}`);
+        await browser.screenshot(path.join(ROOT, "screenshots", "lobby-mobile-landscape.png"));
+        await browser.setViewport(390, 844, true);
+        await sleep(180);
 
         await browser.evaluate("App.openEnvironmentMissions('challenges')");
         await browser.waitFor("App.state === 'ENVIRONMENT_MISSIONS'", "手機環境任務顯示");

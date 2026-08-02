@@ -35,10 +35,10 @@
       recycleYard: { x: 1325, y: 492, interactRadius: 98, unlockLevel: 2, label: "分類回收場", glyph: "♻" }
     },
 
-    /* 使用既有玩家建造素材填補中央廣場；全部位於設施保留區內。 */
+    /* 固定場景裝飾；傳送門燈具與本體一同位於北側平台。 */
     ambientDecorations: [
-      { id: "solar_lamp", x: 690, y: 365, rotation: 0 },
-      { id: "solar_lamp", x: 878, y: 365, rotation: 0 },
+      { id: "solar_lamp", x: 720, y: 110, rotation: 0 },
+      { id: "solar_lamp", x: 848, y: 110, rotation: 0 },
       { id: "flower_bed", x: 500, y: 558, rotation: 0 },
       { id: "recycle_bench", x: 650, y: 575, rotation: 0 },
       { id: "flower_bed", x: 900, y: 580, rotation: 0 },
@@ -200,13 +200,13 @@
 
     /* Fixed station bases are real world obstacles, separate from their labels/glow. */
     fixedCollisionRects: [
-      { x: 752, y: 345, w: 96, h: 42, name: "portal-base" },
+      { x: 752, y: 58, w: 96, h: 36, name: "portal-base" },
       { x: 548, y: 512, w: 104, h: 56, name: "workbench-base" },
       { x: 967, y: 516, w: 76, h: 58, name: "recycle-station-base" },
       { x: 434, y: 202, w: 72, h: 46, name: "cottage-entry" },
       { x: 1281, y: 464, w: 88, h: 54, name: "recycle-yard-entry" },
-      { x: 690, y: 365, w: 32, h: 32, name: "portal-lamp-west" },
-      { x: 878, y: 365, w: 32, h: 32, name: "portal-lamp-east" },
+      { x: 720, y: 110, w: 32, h: 32, name: "portal-lamp-west" },
+      { x: 848, y: 110, w: 32, h: 32, name: "portal-lamp-east" },
       { x: 650, y: 575, w: 64, h: 32, name: "workbench-bench" },
       { x: 1030, y: 575, w: 64, h: 32, name: "recycle-sorting-bins" }
     ],
@@ -217,7 +217,7 @@
     /* 建造保留區：出生點 5x5、傳送門、工作台、掛機區（含出入口緩衝） */
     reservedRects: [
       { x: 755, y: 492, w: 110, h: 170, name: "出生點安全區" },
-      { x: 660, y: 240, w: 280, h: 205, name: "傳送門保留區" },
+      { x: 675, y: 0, w: 250, h: 230, name: "傳送門保留區" },
       { x: 470, y: 430, w: 245, h: 195, name: "工作台保留區" },
       { x: 870, y: 410, w: 270, h: 225, name: "掛機回收區" },
       { x: 400, y: 178, w: 140, h: 110, name: "林間小屋入口" },

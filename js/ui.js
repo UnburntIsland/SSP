@@ -2074,8 +2074,13 @@
 
         var art = el("div", "codex-enemy-art");
         var img = document.createElement("img");
-        var base = def.spriteBasePath || ("assets/images/enemies/" + def.id + "/");
-        img.src = base + "idle_S_0.png?v=" + (def.spriteVersion || "codex1");
+        var manifestEntry = global.Assets && global.Assets.manifest
+          ? global.Assets.manifest[def.spriteId]
+          : null;
+        var staticPortrait = manifestEntry && manifestEntry.paths && manifestEntry.paths[0];
+        img.src = def.spriteBasePath
+          ? def.spriteBasePath + "idle_S_0.png?v=" + (def.spriteVersion || "codex1")
+          : (staticPortrait || ("assets/images/enemies/" + def.id + "/idle_S_0.png?v=codex1"));
         img.alt = encountered ? def.name : "";
         if (!encountered) img.setAttribute("aria-hidden", "true");
         img.loading = "lazy";

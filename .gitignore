@@ -2,6 +2,7 @@ node_modules/
 dist/
 output/smoke-failures/
 output/smoke-test-results.json
+output/content-audit-results.json
 .tmp-smoke-profile-*/
 .tmp_chrome_*/
 debug.log

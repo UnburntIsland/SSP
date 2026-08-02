@@ -104,36 +104,42 @@
           <span id="lobby-daily" class="lobby-daily">回收區每 20 秒 +1 · 今日 0 / 60</span>
         </div>
       </div>
-      <div class="lobby-topright">
-        <button id="cloud-account-button" class="btn lobby-btn cloud-account-button" type="button" data-action="account" aria-label="帳號與雲端存檔">
-          <img class="lobby-menu-icon" src="assets/images/ui/navigation/account.webp" alt="" aria-hidden="true" />
-          <span class="cloud-status-dot" aria-hidden="true"></span>
-          <span id="cloud-account-status">訪客</span>
-        </button>
-        <button id="education-menu-button" class="btn lobby-btn education-menu-button" type="button" data-action="education" aria-label="班級中心">
-          <img class="lobby-menu-icon" src="assets/images/ui/navigation/class.webp" alt="" aria-hidden="true" />
-          <span id="education-menu-label">班級</span>
-          <span id="education-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
-        </button>
-        <button id="island-space-menu-button" class="btn lobby-btn island-space-menu-button" type="button" data-action="island-spaces" aria-label="島嶼空間與土地擴張">
-          <img class="lobby-menu-icon" src="assets/images/ui/navigation/island.webp" alt="" aria-hidden="true" />
-          <span id="island-space-label">擴張</span>
-          <span id="island-space-badge" class="achievement-menu-badge" aria-hidden="true">0/3</span>
-        </button>
-        <button class="btn lobby-btn" type="button" data-action="characters"><img class="lobby-menu-icon" src="assets/images/ui/navigation/character.webp" alt="" aria-hidden="true" /><span>角色</span></button>
-        <button class="btn lobby-btn" type="button" data-action="build"><img class="lobby-menu-icon" src="assets/images/ui/navigation/build.webp" alt="" aria-hidden="true" /><span>建造</span></button>
-        <button class="btn lobby-btn mission-menu-button" type="button" data-action="missions" aria-label="環境任務">
+      <div class="lobby-topright" aria-label="大廳功能導覽">
+        <div id="lobby-more-panel" class="lobby-more-panel" aria-hidden="false">
+          <button id="cloud-account-button" class="btn lobby-btn cloud-account-button" type="button" data-action="account" data-mobile-label="帳號" aria-label="帳號與雲端存檔">
+            <img class="lobby-menu-icon" src="assets/images/ui/navigation/account.webp" alt="" aria-hidden="true" />
+            <span class="cloud-status-dot" aria-hidden="true"></span>
+            <span id="cloud-account-status">訪客</span>
+          </button>
+          <button id="education-menu-button" class="btn lobby-btn education-menu-button" type="button" data-action="education" data-mobile-label="班級" aria-label="班級中心">
+            <img class="lobby-menu-icon" src="assets/images/ui/navigation/class.webp" alt="" aria-hidden="true" />
+            <span id="education-menu-label">班級</span>
+            <span id="education-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+          </button>
+          <button id="island-space-menu-button" class="btn lobby-btn island-space-menu-button" type="button" data-action="island-spaces" data-mobile-label="擴張" aria-label="島嶼空間與土地擴張">
+            <img class="lobby-menu-icon" src="assets/images/ui/navigation/island.webp" alt="" aria-hidden="true" />
+            <span id="island-space-label">擴張</span>
+            <span id="island-space-badge" class="achievement-menu-badge" aria-hidden="true">0/3</span>
+          </button>
+          <button class="btn lobby-btn achievement-menu-button" type="button" data-action="records-hub" data-mobile-label="圖鑑" aria-label="圖鑑/成就">
+            <img class="lobby-menu-icon" src="assets/images/ui/navigation/records.webp" alt="" aria-hidden="true" />
+            <span class="btn-label">圖鑑/成就</span>
+            <span id="achievement-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+          </button>
+          <button class="btn lobby-btn" type="button" data-action="settings-home" data-mobile-label="設定"><img class="lobby-menu-icon" src="assets/images/ui/navigation/settings.webp" alt="" aria-hidden="true" /><span>設定</span></button>
+        </div>
+        <button class="btn lobby-btn lobby-primary-action" type="button" data-action="characters" data-mobile-label="角色"><img class="lobby-menu-icon" src="assets/images/ui/navigation/character.webp" alt="" aria-hidden="true" /><span>角色</span></button>
+        <button class="btn lobby-btn lobby-primary-action" type="button" data-action="build" data-mobile-label="建造"><img class="lobby-menu-icon" src="assets/images/ui/navigation/build.webp" alt="" aria-hidden="true" /><span>建造</span></button>
+        <button class="btn lobby-btn lobby-primary-action mission-menu-button" type="button" data-action="missions" data-mobile-label="任務" aria-label="環境任務">
           <img class="lobby-menu-icon" src="assets/images/ui/navigation/missions.webp" alt="" aria-hidden="true" />
           <span class="btn-label">環境任務</span>
           <span id="mission-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
         </button>
-        <button class="btn lobby-btn" type="button" data-action="commerce-hub"><img class="lobby-menu-icon" src="assets/images/ui/navigation/commerce.webp" alt="" aria-hidden="true" /><span>商店/扭蛋</span></button>
-        <button class="btn lobby-btn achievement-menu-button" type="button" data-action="records-hub" aria-label="圖鑑/成就">
-          <img class="lobby-menu-icon" src="assets/images/ui/navigation/records.webp" alt="" aria-hidden="true" />
-          <span class="btn-label">圖鑑/成就</span>
-          <span id="achievement-menu-badge" class="achievement-menu-badge hidden" aria-hidden="true">0</span>
+        <button class="btn lobby-btn lobby-primary-action" type="button" data-action="commerce-hub" data-mobile-label="商店"><img class="lobby-menu-icon" src="assets/images/ui/navigation/commerce.webp" alt="" aria-hidden="true" /><span>商店/扭蛋</span></button>
+        <button id="mobile-lobby-more" class="btn lobby-btn mobile-lobby-more" type="button" data-action="mobile-lobby-more" data-mobile-label="更多" aria-label="顯示更多功能" aria-controls="lobby-more-panel" aria-expanded="false">
+          <img class="lobby-menu-icon" src="assets/images/ui/navigation/settings.webp" alt="" aria-hidden="true" />
+          <span>更多</span>
         </button>
-        <button class="btn lobby-btn" type="button" data-action="settings-home"><img class="lobby-menu-icon" src="assets/images/ui/navigation/settings.webp" alt="" aria-hidden="true" /><span>設定</span></button>
       </div>
       <div class="lobby-title-tag" aria-hidden="true">森循島</div>
       <div id="lobby-objective" class="lobby-objective" aria-live="polite">

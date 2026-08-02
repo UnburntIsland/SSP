@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node tools/build-production.mjs",
     "serve": "node tools/static-server.mjs",
-    "test": "npm run test:smoke",
+    "test": "npm run test:all",
+    "test:all": "npm run test:content && npm run test:smoke",
+    "test:content": "node tests/content-audit.mjs",
     "test:smoke": "node tests/smoke.mjs"
   }
 }

@@ -82,6 +82,12 @@
     document.documentElement.classList.toggle("compact-visible", visW < COMPACT_VISIBLE_WIDTH);
     document.documentElement.classList.toggle("short-visible", visH < 650);
     document.documentElement.classList.toggle("mobile-low-scale", mobile && scale < 0.82);
+    var lobbyNav = document.querySelector(".lobby-topright");
+    var lobbyMorePanel = document.getElementById("lobby-more-panel");
+    if (lobbyMorePanel) {
+      var lobbyMoreOpen = !!(mobile && lobbyNav && lobbyNav.classList.contains("more-open"));
+      lobbyMorePanel.setAttribute("aria-hidden", String(mobile && !lobbyMoreOpen));
+    }
     // 輸出給 CSS：邊緣內縮 = 裁切量 + safe-area（換算成 stage px）
     var s = stage.style;
     s.setProperty("--vis-inset-top",    (visY + state.safe.top    / scale).toFixed(1) + "px");

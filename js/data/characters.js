@@ -111,6 +111,13 @@
       ch.spriteBasePath = "assets/images/characters/" + folder + "/";
       ch.spriteVersion = ch.id === "ranger" ? "lrfix1" : (ch.id === "solar" ? "solar_regen_2" : (ch.id === "mechanic" ? "mechanic_1" : (ch.id === "chemist" ? "chemist_dirfix_1" : "")));
       ch.animationSet = buildAnimSet();
+      // 循環機械師目前只有正式的八方向待機圖。移動時沿用同方向待機圖，
+      // 避免預先載入尚未製作的 32 張 walk 影格而產生 404。
+      if (ch.id === "mechanic") {
+        D.forEach(function (direction) {
+          ch.animationSet.walk[direction] = ["idle_" + direction + "_0"];
+        });
+      }
     });
   })();
 

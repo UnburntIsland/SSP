@@ -114,6 +114,7 @@
 
     /* ---------------- 大廳（首頁） ---------------- */
     enterLobby: function () {
+      this.closeMobileLobbyMore();
       this.showScreen(null, { preserveLobbyIdle: true }); // 子頁返回時延續回收區計時
       this.ui.showHUD(false);
       if (global.Lobby) global.Lobby.start();
@@ -213,9 +214,13 @@
       var self = this;
       var root = document.getElementById("game-root");
       root.addEventListener("click", function (e) {
+        var origin = e.target;
         var t = e.target;
         while (t && t !== root && !(t.dataset && t.dataset.action)) t = t.parentNode;
-        if (!t || !t.dataset || !t.dataset.action) return;
+        if (!t || !t.dataset || !t.dataset.action) {
+          if (!origin.closest || !origin.closest(".lobby-topright")) self.closeMobileLobbyMore();
+          return;
+        }
         if (global.AudioManager) global.AudioManager.playSfx("click");
         self.handleAction(t.dataset.action, t);
       });
@@ -371,7 +376,32 @@
       });
     },
 
+    closeMobileLobbyMore: function () {
+      var nav = document.querySelector(".lobby-topright");
+      var panel = document.getElementById("lobby-more-panel");
+      var button = document.getElementById("mobile-lobby-more");
+      if (nav) nav.classList.remove("more-open");
+      if (panel) panel.setAttribute("aria-hidden", String(document.documentElement.classList.contains("is-mobile")));
+      if (button) {
+        button.setAttribute("aria-expanded", "false");
+        button.setAttribute("aria-label", "顯示更多功能");
+      }
+    },
+
+    toggleMobileLobbyMore: function () {
+      var nav = document.querySelector(".lobby-topright");
+      var panel = document.getElementById("lobby-more-panel");
+      var button = document.getElementById("mobile-lobby-more");
+      if (!nav || !panel || !button) return;
+      var open = !nav.classList.contains("more-open");
+      nav.classList.toggle("more-open", open);
+      panel.setAttribute("aria-hidden", String(!open));
+      button.setAttribute("aria-expanded", String(open));
+      button.setAttribute("aria-label", open ? "收合更多功能" : "顯示更多功能");
+    },
+
     handleAction: function (action, source) {
+      if (action !== "mobile-lobby-more") this.closeMobileLobbyMore();
       switch (action) {
         // 大廳 / 傳送門
         case "play":          this.startSelectedStage(); break;
@@ -384,6 +414,7 @@
         case "lobby-guide-finish": if (global.Lobby) global.Lobby.finishGuide(); break;
         case "tutorial-skip": if (global.Tutorial) global.Tutorial.skip(); break;
         case "tutorial-restart": if (global.Tutorial) global.Tutorial.restart(); break;
+        case "mobile-lobby-more": this.toggleMobileLobbyMore(); break;
         case "build":         this.enterBuildMode(); break;
         case "build-close":   this.exitBuildMode(); break;
         case "ghost-rotate":  if (global.Lobby) global.Lobby.rotateGhost(); break;
